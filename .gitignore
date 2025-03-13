@@ -1,0 +1,22 @@
+# Ignorar node_modules
+node_modules/
+
+# Ignorar archivos de entorno
+.env
+
+# Ignorar configuración de VS Code
+.vscode/
+
+# Ignorar archivos de log
+*.log
+
+# Ignorar archivos de dependencias
+#package-lock.json
+#yarn.lock
+
+# Ignorar archivos de compilación (si usas TypeScript o Babel)
+dist/
+build/
+
+# Ignorar archivos de sistema
+.DS_Store
