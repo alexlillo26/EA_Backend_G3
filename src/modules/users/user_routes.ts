@@ -6,7 +6,9 @@ import {
     getAllUsersHandler,
     getUserByIdHandler,
     updateUserHandler,
-    deleteUserHandler
+    deleteUserHandler,
+    hideUserHandler,
+    loginUserHandler
 } from '../users/user_controller.js';
 
 const router = express.Router();
@@ -35,7 +37,7 @@ router.get('/main', saveMethodHandler);
 
 /**
  * @openapi
- * /api/users:
+ * /api/users/register:
  *   post:
  *     summary: Crea un nuevo usuario
  *     description: Añade los detalles de un nuevo usuario.
@@ -54,11 +56,13 @@ router.get('/main', saveMethodHandler);
  *                 type: integer
  *               email:
  *                 type: string
+ *               isAdmin:
+ *                 type: boolean
  *     responses:
  *       201:
  *         description: Usuario creado exitosamente
  */
-router.post('/users', createUserHandler);
+router.post('/users/register', createUserHandler);
 
 /**
  * @openapi
@@ -109,12 +113,16 @@ router.get('/users', getAllUsersHandler);
  *             schema:
  *               type: object
  *               properties:
- *                  name:
+ *                 name:
  *                   type: string
  *                 age:
  *                   type: integer
  *                 email:
- *                    type: string
+ *                   type: string
+ *                 isAdmin:
+ *                   type: boolean
+ *                 isHidden:
+ *                   type: boolean
  *       404:
  *         description: Usuario no encontrado
  */
@@ -177,4 +185,62 @@ router.put('/users/:id', updateUserHandler);
  */
 router.delete('/users/:id', deleteUserHandler);
 
+/**
+ * @openapi
+ * /api/users/{id}/oculto:
+ *   put:
+ *     summary: Cambia la visibilidad de un usuario por ID
+ *     description: Establece el campo isHidden de un usuario específico a true o false.
+ *     tags:
+ *       - Users
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               isHidden:
+ *                 type: boolean
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: Usuario actualizado exitosamente
+ *       404:
+ *         description: Usuario no encontrado
+ */
+router.put('/users/:id/oculto', hideUserHandler);
+
+/**
+ * @openapi
+ * /api/users/login:
+ *   post:
+ *     summary: Inicia sesión
+ *     description: Inicia sesión con un usuario existente.
+ *     tags:
+ *       - Users
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Inicio de sesión completado
+ *       404:
+ *         description: Usuario no encontrado
+ */
+router.post('/users/login', loginUserHandler);
 export default router;

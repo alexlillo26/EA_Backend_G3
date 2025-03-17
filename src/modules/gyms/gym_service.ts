@@ -20,3 +20,14 @@ export const updateGym = async (id: string, updateData: Partial<IGym>) => {
 export const deleteGym = async (id: string) => {
     return await Gym.deleteOne({ _id: id });
 };
+
+export const hideGym = async (id: string, isHidden: boolean) => {
+    return await Gym.updateOne({ _id: id }, { $set: { isHidden } });
+}
+
+export const loginGym = async (email: string, password: string) => {
+    return await Gym.findOne ({ email, password });
+};
+
+
+

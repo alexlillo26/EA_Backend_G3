@@ -24,3 +24,11 @@ export const updateUser = async (id: string, updateData: Partial<IUser>) => {
 export const deleteUser = async (id: string) => {
     return await User.deleteOne({ _id: id });
 };
+
+export const hideUser = async (id: string, isHidden: boolean) => {
+    return await User.updateOne({ _id: id }, { $set: { isHidden } });
+}
+
+export const loginUser = async (email: string, password: string) => {
+    return await User.findOne({ email, password });
+};

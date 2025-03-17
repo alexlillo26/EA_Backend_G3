@@ -228,4 +228,35 @@ router.delete('/combat/:id', deleteCombatHandler);
 
 router.get('/combat/:id/boxers', getBoxersByCombatIdHandler);
 
+/**
+ * @openapi
+ * /api/combat/{id}/oculto:
+ *   put:
+ *     summary: Cambia la visibilidad de un combate por ID
+ *     description: Oculta o muestra un combate específico.
+ *     tags:
+ *       - Combat
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               isHidden:
+ *                 type: boolean
+ *                 description: Estado de visibilidad del combate
+ *     responses:
+ *       200:
+ *         description: Combate actualizado exitosamente
+ *       404:
+ *         description: Combate no encontrado
+ */
+router.put('/combat/:id/oculto', saveMethodHandler);
 export default router;

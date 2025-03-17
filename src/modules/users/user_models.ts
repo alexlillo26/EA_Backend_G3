@@ -1,5 +1,13 @@
 import mongoose from "mongoose";
 
+export interface IUser{
+    name : string;
+    age : number;
+    email : string;
+    isAdmin : boolean;
+    isHidden : boolean;
+}
+
 const userSchema = new mongoose.Schema({
     name :{
         type: String,
@@ -12,15 +20,16 @@ const userSchema = new mongoose.Schema({
     email: {
         type : String,
         required : true
+    },
+    isAdmin: {
+        type : Boolean,
+        default : false
+    },
+    isHidden: {
+        type : Boolean,
+        default : false
     }
 });
-
-export interface IUser{
-    name : string;
-    age : number;
-    email : string;
-
-}
 
 const User = mongoose.model('User', userSchema);
 export default User;

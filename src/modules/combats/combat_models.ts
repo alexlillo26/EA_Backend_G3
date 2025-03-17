@@ -4,6 +4,7 @@ export interface ICombat{
     date : Date;
     gym : Types.ObjectId;
     boxers : Types.ObjectId[];
+    isHidden : boolean;
 
 }
 
@@ -21,7 +22,11 @@ const combatSchema = new Schema<ICombat>({
         type : Schema.Types.ObjectId,  
         ref: "User",
         required : true
-    }]
+    }],
+    isHidden: {
+        type : Boolean,
+        default : false
+    }
 });
 
 const Combat = model('Combat', combatSchema);
