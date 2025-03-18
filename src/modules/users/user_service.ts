@@ -11,11 +11,16 @@ export const createUser = async (userData: IUser) => {
 
 export const getAllUsers = async (page: number = 1, pageSize: number = 10) => {
     const skip = (page - 1) * pageSize;
-    return await User.find().skip(skip).limit(pageSize);
+    const users = await User.find().skip(skip).limit(pageSize);
+    return users.map(user => ({...user.toObject(), age: calculateAge(user.birthDate)}));
 };
 
 export const getUserById = async (id: string) => {
-    return await User.findById(id);
+    const user = await User.findById(id);
+    if (user) {
+        return {...user.toObject(), age: calculateAge(user.birthDate)};
+    }
+    return null;
 };
 
 export const updateUser = async (id: string, updateData: Partial<IUser>) => {
@@ -32,4 +37,13 @@ export const hideUser = async (id: string, isHidden: boolean) => {
 
 export const loginUser = async (email: string, password: string) => {
     return await User.findOne({ email, password });
+};
+
+const calculateAge = (birthDate: Date) => {
+    if (!birthDate) {
+        return null;
+    }
+    const diff = Date.now() - new Date(birthDate).getTime();
+    const ageDate = new Date(diff);
+    return Math.abs(ageDate.getUTCFullYear() - 1970);
 };

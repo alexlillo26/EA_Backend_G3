@@ -52,8 +52,9 @@ router.get('/main', saveMethodHandler);
  *             properties:
  *               name:
  *                 type: string
- *               age:
- *                 type: integer
+ *               birthDate:
+ *                 type: string
+ *                 format: date
  *               email:
  *                 type: string
  *               isAdmin:
@@ -98,8 +99,9 @@ router.post('/users/register', createUserHandler);
  *                 properties:
  *                  name:
  *                     type: string
- *                  age:
- *                    type: integer
+ *                  birthDate:
+ *                    type: string
+ *                    format: date
  *                  email:
  *                     type: string
  *                  isAdmin:
@@ -137,8 +139,9 @@ router.get('/users', getAllUsersHandler);
  *               properties:
  *                 name:
  *                   type: string
- *                 age:
- *                   type: integer
+ *                 birthDate:
+ *                   type: string
+ *                   format: date
  *                 email:
  *                   type: string
  *                 isAdmin:
@@ -173,10 +176,15 @@ router.get('/users/:id', getUserByIdHandler);
  *             properties:
  *                 name:
  *                   type: string
- *                 age:
- *                   type: integer
+ *                 birthDate:
+ *                   type: string
+ *                   format: date
  *                 email:
- *                    type: string
+ *                   type: string
+ *                 isAdmin:
+ *                   type: boolean
+ *                 isHidden:
+ *                   type: boolean
  *     responses:
  *       200:
  *         description: Usuario actualizado exitosamente

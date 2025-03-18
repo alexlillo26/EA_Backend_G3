@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 export interface IUser{
     name : string;
-    age : number;
+    birthDate : Date;
     email : string;
     isAdmin : boolean;
     isHidden : boolean;
@@ -13,8 +13,8 @@ const userSchema = new mongoose.Schema({
         type: String,
         required : true
     },
-    age: {
-        type: Number,
+    birthDate: {
+        type: Date,
         required : true
     },
     email: {
