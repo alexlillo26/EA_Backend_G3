@@ -68,10 +68,24 @@ router.post('/users/register', createUserHandler);
  * @openapi
  * /api/users:
  *   get:
- *     summary: Obtiene todos los usuarios
- *     description: Retorna una lista de todos los usuarios.
+ *     summary: Obtiene una lista de usuarios con paginación
+ *     description: Retorna una lista de usuarios paginada.
  *     tags:
  *       - Users
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - name: pageSize
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           enum: [10, 25, 50]
+ *           default: 10
  *     responses:
  *       200:
  *         description: Éxito
@@ -88,6 +102,14 @@ router.post('/users/register', createUserHandler);
  *                    type: integer
  *                  email:
  *                     type: string
+ *                  isAdmin:
+ *                     type: boolean
+ *                  isHidden:
+ *                     type: boolean
+ *       400:
+ *         description: Tamaño de página inválido
+ *       500:
+ *         description: Error interno del servidor
  */
 router.get('/users', getAllUsersHandler);
 

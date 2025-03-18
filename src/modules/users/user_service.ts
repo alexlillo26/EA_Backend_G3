@@ -9,8 +9,9 @@ export const createUser = async (userData: IUser) => {
     return await user.save();
 };
 
-export const getAllUsers = async () => {
-    return await User.find();
+export const getAllUsers = async (page: number = 1, pageSize: number = 10) => {
+    const skip = (page - 1) * pageSize;
+    return await User.find().skip(skip).limit(pageSize);
 };
 
 export const getUserById = async (id: string) => {
