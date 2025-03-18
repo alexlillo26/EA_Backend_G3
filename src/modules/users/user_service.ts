@@ -5,9 +5,19 @@ export const saveMethod = () => {
     return 'Hola';
 };
 export const createUser = async (userData: IUser) => {
+    // Verificar si el nombre de usuario o correo ya existen
+    const existingUser = await User.findOne({
+        $or: [{ name: userData.name }, { email: userData.email }]
+    });
+
+    if (existingUser) {
+        throw new Error('El nombre de usuario o el correo electrónico ya están en uso');
+    }
+
     const user = new User(userData);
     return await user.save();
 };
+
 
 export const getAllUsers = async (page: number = 1, pageSize: number = 10) => {
     const skip = (page - 1) * pageSize;

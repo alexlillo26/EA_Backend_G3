@@ -37,31 +37,11 @@ const router = express.Router();
  *                 type: string
  *                 description: Contraseña del gimnasio
  *     responses:
- *       200:
+ *       201:
  *         description: Gimnasio añadido exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                 name:
- *                   type: string
- *                 place:
- *                   type: string
- *                 price:
- *                   type: number
- *                 email:
- *                   type: string
- *                 phone:
- *                   type: string
- *                 password:
- *                   type: string
- *       500:
- *         description: Error interno del servidor
+ *       400:
+ *         description: Error de validación
  */
-
 router.post('/gym', addGymHandler);
 
 /**

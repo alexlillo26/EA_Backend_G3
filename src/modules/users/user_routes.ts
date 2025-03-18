@@ -62,6 +62,8 @@ router.get('/main', saveMethodHandler);
  *     responses:
  *       201:
  *         description: Usuario creado exitosamente
+ *       400:
+ *         description: Error de validación
  */
 router.post('/users/register', createUserHandler);
 

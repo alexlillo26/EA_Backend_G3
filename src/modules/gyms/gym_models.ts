@@ -13,11 +13,13 @@ export interface IGym {
 const gymSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: true
+        required: true,
+        unique: true // Asegura que el nombre del gimnasio sea único
     },
     place: {
         type: String,
-        required: true
+        required: true,
+        unique: true // Asegura que la ubicación del gimnasio sea única
     },
     price: {
         type: Number,
@@ -29,7 +31,9 @@ const gymSchema = new mongoose.Schema({
     },
     email: {
         type: String,
-        required: true
+        required: true,
+        unique: true, // Asegura que el correo electrónico sea único
+        match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ // Valida la estructura del correo electrónico
     },
     phone: {
         type: String,
@@ -39,9 +43,7 @@ const gymSchema = new mongoose.Schema({
         type: String,
         required: true
     }
-
 });
-
 
 const Gym = mongoose.model('Gym', gymSchema);
 export default Gym;
