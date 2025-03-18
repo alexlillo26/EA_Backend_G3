@@ -52,10 +52,24 @@ router.post('/combat', createCombatHandler);
  * @openapi
  * /api/combat:
  *   get:
- *     summary: Obtiene todos los combates
- *     description: Retorna una lista de todos los combates registrados.
+ *     summary: Obtiene una lista de combates con paginación
+ *     description: Retorna una lista de combates paginada.
  *     tags:
  *       - Combat
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - name: pageSize
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           enum: [10, 25, 50]
+ *           default: 10
  *     responses:
  *       200:
  *         description: Éxito
@@ -66,21 +80,20 @@ router.post('/combat', createCombatHandler);
  *               items:
  *                 type: object
  *                 properties:
+ *                   name:
+ *                     type: string
+ *                     description: Nombre del combate
  *                   date:
  *                     type: string
- *                     format: date-time
- *                     description: Fecha y hora del combate
- *                   gym:
- *                     type: ObjectId
- *                     description: ID del gimnasio donde se lleva a cabo el combate
- *                   boxers:
- *                     type: array
- *                     items:
- *                       type: ObjectId
- *                     description: Lista de IDs de los boxeadores participantes
+ *                     description: Fecha del combate
+ *                   location:
+ *                     type: string
+ *                     description: Ubicación del combate
+ *       400:
+ *         description: Tamaño de página inválido
+ *       500:
+ *         description: Error interno del servidor
  */
-
-
 router.get('/combat', getAllCombatsHandler);
 
 /**

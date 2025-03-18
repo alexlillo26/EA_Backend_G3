@@ -9,8 +9,10 @@ export const createCombat = async (combatData: ICombat) => {
     return await combat.save();
 };
 
-export const getAllCombats = async () => {
-    return await Combat.find().populate('boxers');
+export const getAllCombats = async (page: number, pageSize: number) => {
+    const offset = (page - 1) * pageSize;
+    const combats = await Combat.find().skip(offset).limit(pageSize);
+    return combats;
 };
 
 export const getCombatById = async (id: string) => {

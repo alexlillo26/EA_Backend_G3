@@ -5,8 +5,10 @@ export const addGym = async (gymData: IGym) => {
     return await gym.save();
 };
 
-export const getAllGyms = async () => {
-    return await Gym.find();
+export const getAllGyms = async (page: number, pageSize: number) => {
+    const offset = (page - 1) * pageSize;
+    const gyms = await Gym.find().skip(offset).limit(pageSize);
+    return gyms;
 };
 
 export const getGymById = async (id: string) => {

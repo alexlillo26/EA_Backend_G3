@@ -68,10 +68,24 @@ router.post('/gym', addGymHandler);
  * @openapi
  * /api/gym:
  *   get:
- *     summary: Obtiene todos los gimnasios
- *     description: Retorna una lista de todos los gimnasios disponibles.
+ *     summary: Obtiene una lista de gimnasios con paginación
+ *     description: Retorna una lista de gimnasios paginada.
  *     tags:
  *       - Gym
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - name: pageSize
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           enum: [10, 25, 50]
+ *           default: 10
  *     responses:
  *       200:
  *         description: Éxito
@@ -97,9 +111,11 @@ router.post('/gym', addGymHandler);
  *                   phone:
  *                     type: string
  *                     description: Teléfono del gimnasio
- * 
+ *       400:
+ *         description: Tamaño de página inválido
+ *       500:
+ *         description: Error interno del servidor
  */
-
 router.get('/gym', getAllGymsHandler);
 
 /**

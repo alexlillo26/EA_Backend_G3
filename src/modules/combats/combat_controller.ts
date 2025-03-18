@@ -21,8 +21,15 @@ export const createCombatHandler = async (req: Request, res: Response) => {
 };
 export const getAllCombatsHandler = async (req: Request, res: Response) => {
     try {
-        const combats = await getAllCombats();
-        res.json(combats);
+        const page = parseInt(req.query.page as string) || 1;
+        const pageSize = parseInt(req.query.pageSize as string) || 10;
+
+        if (![10, 25, 50].includes(pageSize)) {
+            return res.status(400).json({ message: 'El tamaño de la lista debe ser 10, 25 o 50' });
+        }
+
+        const combats = await getAllCombats(page, pageSize);
+        res.status(200).json(combats);
     } catch (error: any) {
         res.status(500).json({ message: error.message });
     }
