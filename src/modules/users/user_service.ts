@@ -14,6 +14,11 @@ export const createUser = async (userData: IUser) => {
         throw new Error('El nombre de usuario o el correo electrónico ya están en uso');
     }
 
+    // Verificar que la contraseña tenga al menos 8 caracteres
+    if (userData.password.length < 8) {
+        throw new Error('La contraseña debe tener al menos 8 caracteres');
+    }
+
     const user = new User(userData);
     return await user.save();
 };
@@ -46,7 +51,18 @@ export const hideUser = async (id: string, isHidden: boolean) => {
 }
 
 export const loginUser = async (email: string, password: string) => {
-    return await User.findOne({ email, password });
+    const user = await User.findOne({ email });
+
+    if (!user) {
+        throw new Error('Usuario no encontrado');
+    }
+
+    // Comparar la contraseña ingresada con la almacenada
+    if (user.password !== password) {
+        throw new Error('Contraseña incorrecta');
+    }
+
+    return user;
 };
 
 const calculateAge = (birthDate: Date) => {

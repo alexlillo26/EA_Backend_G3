@@ -1,4 +1,3 @@
-// src/routes/user_routes.ts
 import express from 'express';
 import {
     saveMethodHandler,
@@ -57,6 +56,9 @@ router.get('/main', saveMethodHandler);
  *                 format: date
  *               email:
  *                 type: string
+ *               password:
+ *                 type: string
+ *                 description: Contraseña del usuario (mínimo 8 caracteres)
  *               isAdmin:
  *                 type: boolean
  *     responses:
@@ -99,16 +101,16 @@ router.post('/users/register', createUserHandler);
  *               items:
  *                 type: object
  *                 properties:
- *                  name:
+ *                   name:
  *                     type: string
- *                  birthDate:
- *                    type: string
- *                    format: date
- *                  email:
+ *                   birthDate:
  *                     type: string
- *                  isAdmin:
+ *                     format: date
+ *                   email:
+ *                     type: string
+ *                   isAdmin:
  *                     type: boolean
- *                  isHidden:
+ *                   isHidden:
  *                     type: boolean
  *       400:
  *         description: Tamaño de página inválido
@@ -176,17 +178,17 @@ router.get('/users/:id', getUserByIdHandler);
  *           schema:
  *             type: object
  *             properties:
- *                 name:
- *                   type: string
- *                 birthDate:
- *                   type: string
- *                   format: date
- *                 email:
- *                   type: string
- *                 isAdmin:
- *                   type: boolean
- *                 isHidden:
- *                   type: boolean
+ *               name:
+ *                 type: string
+ *               birthDate:
+ *                 type: string
+ *                 format: date
+ *               email:
+ *                 type: string
+ *               isAdmin:
+ *                 type: boolean
+ *               isHidden:
+ *                 type: boolean
  *     responses:
  *       200:
  *         description: Usuario actualizado exitosamente
@@ -268,11 +270,13 @@ router.put('/users/:id/oculto', hideUserHandler);
  *                 type: string
  *               password:
  *                 type: string
+ *                 description: Contraseña del usuario
  *     responses:
  *       200:
  *         description: Inicio de sesión completado
- *       404:
- *         description: Usuario no encontrado
+ *       400:
+ *         description: Usuario no encontrado o contraseña incorrecta
  */
 router.post('/users/login', loginUserHandler);
+
 export default router;

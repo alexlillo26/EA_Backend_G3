@@ -17,7 +17,7 @@ export const createUserHandler = async (req: Request, res: Response) => {
         res.status(201).json(data);
     } catch (error: any) {
         if (error.name === 'ValidationError') {
-            res.status(400).json({ message: 'El correo electrónico no es válido' });
+            res.status(400).json({ message: 'El correo electrónico no es válido o la contraseña es demasiado corta' });
         } else if (error.message.includes('ya están en uso')) {
             res.status(400).json({ message: error.message });
         } else {
