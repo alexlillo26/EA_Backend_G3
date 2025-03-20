@@ -1,5 +1,5 @@
 // src/controllers/user_controller.ts
-import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser, hideUser, loginUser } from '../users/user_service.js';
+import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser, hideUser, loginUser, getUserCount} from '../users/user_service.js';
 
 import express, { Request, Response } from 'express';
 
@@ -34,7 +34,13 @@ export const getAllUsersHandler = async (req: Request, res: Response) => {
             return res.status(400).json({ message: 'El tamaño de la lista debe ser 10, 25 o 50' });
         }
         const users = await getAllUsers(page, pageSize);
-        res.status(200).json(users);
+        const totalUsers = await getUserCount();
+        res.status(200).json({
+            users,
+            totalUsers,
+            totalPages: Math.ceil(totalUsers / pageSize),
+            currentPage: page
+          });
     } catch (error: any) {
         res.status(500).json({ message: error.message });
     }
@@ -67,6 +73,7 @@ export const hideUserHandler = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { isHidden } = req.body;
+        console.log(`Received id: ${id}`);
 
         const user = await hideUser(id, isHidden);
 

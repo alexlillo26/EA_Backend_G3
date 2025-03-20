@@ -73,3 +73,7 @@ const calculateAge = (birthDate: Date) => {
     const ageDate = new Date(diff);
     return Math.abs(ageDate.getUTCFullYear() - 1970);
 };
+
+export const getUserCount = async () => {
+    return await User.countDocuments();
+};
