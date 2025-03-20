@@ -1,5 +1,7 @@
 import Gym, { IGym } from './gym_models.js';
 
+
+
 export const addGym = async (gymData: IGym) => {
     // Verificar si el nombre, correo o lugar ya existen
     const existingGym = await Gym.findOne({
@@ -8,6 +10,11 @@ export const addGym = async (gymData: IGym) => {
 
     if (existingGym) {
         throw new Error('El nombre, correo electrónico o lugar del gimnasio ya están en uso');
+    }
+
+    // Eliminar el campo _id si está vacío
+    if (gymData._id === "") {
+        delete gymData._id;
     }
 
     const gym = new Gym(gymData);

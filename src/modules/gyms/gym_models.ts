@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 export interface IGym {
+    _id?: string;    
     name: string;
     email: string;
     phone: string;

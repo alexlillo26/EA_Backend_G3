@@ -1,6 +1,7 @@
 import mongoose, { Types, model, ObjectId, Schema } from "mongoose";
 
 export interface ICombat{
+    
     date : Date;
     gym : Types.ObjectId;
     boxers : Types.ObjectId[];

@@ -2,10 +2,12 @@ import { addGym, deleteGym, getAllGyms, getGymById, updateGym, hideGym, loginGym
 import express, { Request, Response } from 'express';
 
 export const addGymHandler = async (req: Request, res: Response) => {
+    console.log("ADD GYM!!!!");
     try {
         const gym = await addGym(req.body);
         res.status(201).json(gym);
     } catch (error: any) {
+        console.log(error);
         if (error.name === 'ValidationError') {
             res.status(400).json({ message: 'El correo electrónico no es válido' });
         } else if (error.message.includes('ya están en uso')) {
