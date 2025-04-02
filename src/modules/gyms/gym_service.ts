@@ -12,6 +12,13 @@ export const addGym = async (gymData: IGym) => {
         throw new Error('El nombre, correo electrónico o lugar del gimnasio ya están en uso');
     }
 
+    if (!/^\d{9}$/.test(gymData.phone)) {
+        throw new Error('El número de teléfono debe tener exactamente 9 dígitos');
+    }
+    
+    if (gymData.password.length < 8) {
+        throw new Error('La contraseña debe tener al menos 8 caracteres');
+    }
     // Eliminar el campo _id si está vacío
     if (gymData._id === "") {
         delete gymData._id;
