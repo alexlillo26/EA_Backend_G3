@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { encrypt } from '../../utils/bcrypt.handle.js';
 
 export interface IGym {
     _id?: string;    
@@ -44,6 +45,13 @@ const gymSchema = new mongoose.Schema({
         type: String,
         required: true
     }
+});
+
+gymSchema.pre('save', async function (next) {
+    if (this.isModified('password')) {
+        this.password = await encrypt(this.password);
+    }
+    next();
 });
 
 const Gym = mongoose.model('Gym', gymSchema);

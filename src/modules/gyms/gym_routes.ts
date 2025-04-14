@@ -1,5 +1,6 @@
 import express from 'express';
-import { addGymHandler, deleteGymHandler, getAllGymsHandler, getGymByIdHandler, updateGymHandler, hideGymHandler, loginGymHandler } from './gym_controller.js';
+import { addGymHandler, deleteGymHandler, getAllGymsHandler, getGymByIdHandler, updateGymHandler, hideGymHandler, loginGymHandler, refreshGymTokenHandler } from './gym_controller.js';
+import { checkJwt } from '../../middleware/session.js';
 
 const router = express.Router();
 
@@ -96,7 +97,7 @@ router.post('/gym', addGymHandler);
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/gym', getAllGymsHandler);
+router.get('/gym', checkJwt, getAllGymsHandler);
 
 /**
  * @openapi
@@ -139,7 +140,7 @@ router.get('/gym', getAllGymsHandler);
  *         description: Gimnasio no encontrado
  */
 
-router.get('/gym/:id', getGymByIdHandler);
+router.get('/gym/:id', checkJwt, getGymByIdHandler);
 
 /**
  * @openapi
@@ -187,7 +188,7 @@ router.get('/gym/:id', getGymByIdHandler);
  *         description: Gimnasio no encontrado
  */
 
-router.put('/gym/:id', updateGymHandler);
+router.put('/gym/:id', checkJwt, updateGymHandler);
 
 /**
  * @openapi
@@ -210,7 +211,7 @@ router.put('/gym/:id', updateGymHandler);
  *         description: Gimnasio no encontrado
  */
 
-router.delete('/gym/:id', deleteGymHandler);
+router.delete('/gym/:id', checkJwt, deleteGymHandler);
 
 /**
  * @openapi
@@ -242,7 +243,7 @@ router.delete('/gym/:id', deleteGymHandler);
  *       404:
  *         description: Gimnasio no encontrado
  */
-router.put('/gym/:id/oculto', hideGymHandler);
+router.put('/gym/:id/oculto', checkJwt, hideGymHandler);
 
 /**
  * @openapi
@@ -272,4 +273,30 @@ router.put('/gym/:id/oculto', hideGymHandler);
  *         description: Gimnasio no encontrado
  */
 router.post('/gym/login', loginGymHandler);
+
+/**
+ * @openapi
+ * /api/gym/refresh:
+ *   post:
+ *     summary: Refresca el token de acceso para un gimnasio
+ *     description: Genera un nuevo token de acceso usando el refresh token.
+ *     tags:
+ *       - Gym
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Token refrescado exitosamente
+ *       403:
+ *         description: Refresh token inválido
+ */
+router.post('/gym/refresh', refreshGymTokenHandler);
+
 export default router;

@@ -1,6 +1,6 @@
 import Gym, { IGym } from './gym_models.js';
-
-
+import { generateToken, generateRefreshToken, verifyToken, verifyRefreshToken } from '../../utils/jwt.handle.js';
+import { encrypt, verified } from '../../utils/bcrypt.handle.js';
 
 export const addGym = async (gymData: IGym) => {
     // Verificar si el nombre, correo o lugar ya existen
@@ -24,16 +24,27 @@ export const addGym = async (gymData: IGym) => {
         delete gymData._id;
     }
 
+    // Eliminar la encriptación redundante aquí
+    // gymData.password = await encrypt(gymData.password);
+
     const gym = new Gym(gymData);
     return await gym.save();
 };
 
-export const getAllGyms = async (page: number = 1, pageSize: number = 10) => {
+export const getAllGyms = async (page: number = 1, pageSize: number = 10, token: string, refreshToken: string) => {
+    let decodedToken;
+    try {
+        decodedToken = verifyToken(token);
+    } catch {
+        const newToken = generateToken(refreshToken);
+        decodedToken = verifyToken(newToken);
+    }
+
     const skip = (page - 1) * pageSize;
     const gyms = await Gym.find()
-                           .sort({ isHidden: 1 }) 
-                           .skip(skip)
-                           .limit(pageSize);
+                          .sort({ isHidden: 1 })
+                          .skip(skip)
+                          .limit(pageSize);
     const totalGyms = await Gym.countDocuments();
     const totalPages = Math.ceil(totalGyms / pageSize);
     return { 
@@ -61,5 +72,42 @@ export const hideGym = async (id: string, isHidden: boolean) => {
 };
 
 export const loginGym = async (email: string, password: string) => {
-    return await Gym.findOne({ email, password });
+    const gym = await Gym.findOne({ email });
+
+    if (!gym) {
+        throw new Error('Gimnasio no encontrado');
+    }
+
+    // Verificar si el gimnasio está oculto
+    if (gym.isHidden) {
+        throw new Error('Este gimnasio está oculto y no puede iniciar sesión');
+    }
+
+    // Comparar la contraseña ingresada con la almacenada
+    const isCorrect = await verified(password, gym.password);
+    if (!isCorrect) {
+        throw new Error('Contraseña incorrecta');
+    }
+
+    // Generar tokens
+    const token = generateToken(gym.id, gym.email);
+    const refreshToken = generateRefreshToken(gym.id);
+
+    return {
+        token,
+        refreshToken,
+        gym
+    };
+};
+
+export const refreshGymToken = async (refreshToken: string) => {
+    const decoded: any = verifyRefreshToken(refreshToken);
+    const gym = await Gym.findById(decoded.id);
+
+    if (!gym) {
+        throw new Error('Gimnasio no encontrado');
+    }
+
+    const newToken = generateToken(gym.id, gym.email);
+    return newToken;
 };

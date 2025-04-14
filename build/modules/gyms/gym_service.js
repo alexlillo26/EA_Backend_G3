@@ -8,6 +8,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import Gym from './gym_models.js';
+import { generateToken, generateRefreshToken, verifyToken, verifyRefreshToken } from '../../utils/jwt.handle.js';
+import { verified } from '../../utils/bcrypt.handle.js';
 export const addGym = (gymData) => __awaiter(void 0, void 0, void 0, function* () {
     // Verificar si el nombre, correo o lugar ya existen
     const existingGym = yield Gym.findOne({
@@ -26,10 +28,20 @@ export const addGym = (gymData) => __awaiter(void 0, void 0, void 0, function* (
     if (gymData._id === "") {
         delete gymData._id;
     }
+    // Eliminar la encriptación redundante aquí
+    // gymData.password = await encrypt(gymData.password);
     const gym = new Gym(gymData);
     return yield gym.save();
 });
-export const getAllGyms = (page = 1, pageSize = 10) => __awaiter(void 0, void 0, void 0, function* () {
+export const getAllGyms = (page = 1, pageSize = 10, token, refreshToken) => __awaiter(void 0, void 0, void 0, function* () {
+    let decodedToken;
+    try {
+        decodedToken = verifyToken(token);
+    }
+    catch (_a) {
+        const newToken = generateToken(refreshToken);
+        decodedToken = verifyToken(newToken);
+    }
     const skip = (page - 1) * pageSize;
     const gyms = yield Gym.find()
         .sort({ isHidden: 1 })
@@ -57,5 +69,34 @@ export const hideGym = (id, isHidden) => __awaiter(void 0, void 0, void 0, funct
     return yield Gym.updateOne({ _id: id }, { $set: { isHidden } });
 });
 export const loginGym = (email, password) => __awaiter(void 0, void 0, void 0, function* () {
-    return yield Gym.findOne({ email, password });
+    const gym = yield Gym.findOne({ email });
+    if (!gym) {
+        throw new Error('Gimnasio no encontrado');
+    }
+    // Verificar si el gimnasio está oculto
+    if (gym.isHidden) {
+        throw new Error('Este gimnasio está oculto y no puede iniciar sesión');
+    }
+    // Comparar la contraseña ingresada con la almacenada
+    const isCorrect = yield verified(password, gym.password);
+    if (!isCorrect) {
+        throw new Error('Contraseña incorrecta');
+    }
+    // Generar tokens
+    const token = generateToken(gym.id, gym.email);
+    const refreshToken = generateRefreshToken(gym.id);
+    return {
+        token,
+        refreshToken,
+        gym
+    };
+});
+export const refreshGymToken = (refreshToken) => __awaiter(void 0, void 0, void 0, function* () {
+    const decoded = verifyRefreshToken(refreshToken);
+    const gym = yield Gym.findById(decoded.id);
+    if (!gym) {
+        throw new Error('Gimnasio no encontrado');
+    }
+    const newToken = generateToken(gym.id, gym.email);
+    return newToken;
 });

@@ -1,5 +1,7 @@
 // src/services/user_service.ts
 import User, { IUser } from '../users/user_models.js';
+import { generateToken, generateRefreshToken, verifyToken } from '../../utils/jwt.handle.js';
+import { encrypt, verified } from '../../utils/bcrypt.handle.js';
 
 export const saveMethod = () => {
     return 'Hola';
@@ -21,11 +23,23 @@ export const createUser = async (userData: IUser) => {
         throw new Error('La contraseña debe tener al menos 8 caracteres');
     }
 
+    // Encriptar la contraseña
+    userData.password = await encrypt(userData.password);
+
     const user = new User(userData);
     return await user.save();
 };
+
 // Obtener usuarios (solo los visibles)
-export const getAllUsers = async (page: number = 1, pageSize: number = 10) => {
+export const getAllUsers = async (page: number = 1, pageSize: number = 10, token: string, refreshToken: string) => {
+    let decodedToken;
+    try {
+        decodedToken = verifyToken(token);
+    } catch {
+        const newToken = generateToken(refreshToken);
+        decodedToken = verifyToken(newToken);
+    }
+
     const skip = (page - 1) * pageSize;
     const users = await User.find()
                             .sort({ isHidden: 1 }) // primero los visibles
@@ -41,9 +55,16 @@ export const getAllUsers = async (page: number = 1, pageSize: number = 10) => {
    }; 
 };
 
-
 // Obtener un usuario por ID
-export const getUserById = async (id: string) => {
+export const getUserById = async (id: string, token: string, refreshToken: string) => {
+    let decodedToken;
+    try {
+        decodedToken = verifyToken(token);
+    } catch {
+        const newToken = generateToken(refreshToken);
+        decodedToken = verifyToken(newToken);
+    }
+
     const user = await User.findById(id);
     if (user) {
         return { ...user.toObject(), age: calculateAge(user.birthDate) };
@@ -52,21 +73,45 @@ export const getUserById = async (id: string) => {
 };
 
 // Actualizar usuario
-export const updateUser = async (id: string, updateData: Partial<IUser>) => {
+export const updateUser = async (id: string, updateData: Partial<IUser>, token: string, refreshToken: string) => {
+    let decodedToken;
+    try {
+        decodedToken = verifyToken(token);
+    } catch {
+        const newToken = generateToken(refreshToken);
+        decodedToken = verifyToken(newToken);
+    }
+
     return await User.findByIdAndUpdate(id, updateData, { new: true });
 };
 
 // Eliminar usuario
-export const deleteUser = async (id: string) => {
+export const deleteUser = async (id: string, token: string, refreshToken: string) => {
+    let decodedToken;
+    try {
+        decodedToken = verifyToken(token);
+    } catch {
+        const newToken = generateToken(refreshToken);
+        decodedToken = verifyToken(newToken);
+    }
+
     return await User.findByIdAndDelete(id);
 };
 
 // Ocultar o mostrar usuario
-export const hideUser = async (id: string, isHidden: boolean) => {
+export const hideUser = async (id: string, isHidden: boolean, token: string, refreshToken: string) => {
+    let decodedToken;
+    try {
+        decodedToken = verifyToken(token);
+    } catch {
+        const newToken = generateToken(refreshToken);
+        decodedToken = verifyToken(newToken);
+    }
+
     return await User.findByIdAndUpdate(id, { isHidden }, { new: true });
 };
 
-// Iniciar sesión
+// Iniciar sesión con generación de tokens
 export const loginUser = async (email: string, password: string) => {
     const user = await User.findOne({ email });
 
@@ -80,11 +125,20 @@ export const loginUser = async (email: string, password: string) => {
     }
 
     // Comparar la contraseña ingresada con la almacenada
-    if (user.password !== password) {
+    const isCorrect = await verified(password, user.password);
+    if (!isCorrect) {
         throw new Error('Contraseña incorrecta');
     }
 
-    return user;
+    // Generar tokens
+    const token = generateToken(user.id, user.email);
+    const refreshToken = generateRefreshToken(user.id);
+
+    return {
+        token,
+        refreshToken,
+        user
+    };
 };
 
 // Calcular edad a partir de la fecha de nacimiento

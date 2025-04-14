@@ -1,5 +1,5 @@
 import express from 'express';
-import { saveMethodHandler, createUserHandler, getAllUsersHandler, getUserByIdHandler, updateUserHandler, deleteUserHandler, hideUserHandler, loginUserHandler } from '../users/user_controller.js';
+import { saveMethodHandler, createUserHandler, getAllUsersHandler, getUserByIdHandler, updateUserHandler, deleteUserHandler, hideUserHandler, loginUserHandler, refreshTokenHandler } from '../users/user_controller.js';
 const router = express.Router();
 /**
  * @openapi
@@ -260,4 +260,52 @@ router.put('/users/:id/oculto', hideUserHandler);
  *         description: Usuario no encontrado o contraseña incorrecta
  */
 router.post('/users/login', loginUserHandler);
+/**
+ * @openapi
+ * /api/users/refresh:
+ *   post:
+ *     summary: Refresca el token de acceso
+ *     description: Genera un nuevo token de acceso usando el refresh token.
+ *     tags:
+ *       - Users
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Token refrescado exitosamente
+ *       403:
+ *         description: Refresh token inválido
+ */
+router.post('/users/refresh', refreshTokenHandler);
+/**
+ * @openapi
+ * /api/users/refresh-token:
+ *   post:
+ *     summary: Refresca el token de acceso
+ *     description: Genera un nuevo token de acceso usando el refresh token.
+ *     tags:
+ *       - Users
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Token refrescado exitosamente
+ *       403:
+ *         description: Refresh token inválido
+ */
+router.post('/users/refresh-token', refreshTokenHandler);
 export default router;

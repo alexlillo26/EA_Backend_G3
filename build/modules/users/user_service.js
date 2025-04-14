@@ -9,6 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 // src/services/user_service.ts
 import User from '../users/user_models.js';
+import { generateToken, generateRefreshToken, verifyToken } from '../../utils/jwt.handle.js';
+import { encrypt, verified } from '../../utils/bcrypt.handle.js';
 export const saveMethod = () => {
     return 'Hola';
 };
@@ -25,11 +27,21 @@ export const createUser = (userData) => __awaiter(void 0, void 0, void 0, functi
     if (userData.password.length < 8) {
         throw new Error('La contraseña debe tener al menos 8 caracteres');
     }
+    // Encriptar la contraseña
+    userData.password = yield encrypt(userData.password);
     const user = new User(userData);
     return yield user.save();
 });
 // Obtener usuarios (solo los visibles)
-export const getAllUsers = (page = 1, pageSize = 10) => __awaiter(void 0, void 0, void 0, function* () {
+export const getAllUsers = (page = 1, pageSize = 10, token, refreshToken) => __awaiter(void 0, void 0, void 0, function* () {
+    let decodedToken;
+    try {
+        decodedToken = verifyToken(token);
+    }
+    catch (_a) {
+        const newToken = generateToken(refreshToken);
+        decodedToken = verifyToken(newToken);
+    }
     const skip = (page - 1) * pageSize;
     const users = yield User.find()
         .sort({ isHidden: 1 }) // primero los visibles
@@ -45,7 +57,15 @@ export const getAllUsers = (page = 1, pageSize = 10) => __awaiter(void 0, void 0
     };
 });
 // Obtener un usuario por ID
-export const getUserById = (id) => __awaiter(void 0, void 0, void 0, function* () {
+export const getUserById = (id, token, refreshToken) => __awaiter(void 0, void 0, void 0, function* () {
+    let decodedToken;
+    try {
+        decodedToken = verifyToken(token);
+    }
+    catch (_b) {
+        const newToken = generateToken(refreshToken);
+        decodedToken = verifyToken(newToken);
+    }
     const user = yield User.findById(id);
     if (user) {
         return Object.assign(Object.assign({}, user.toObject()), { age: calculateAge(user.birthDate) });
@@ -53,18 +73,42 @@ export const getUserById = (id) => __awaiter(void 0, void 0, void 0, function* (
     return null;
 });
 // Actualizar usuario
-export const updateUser = (id, updateData) => __awaiter(void 0, void 0, void 0, function* () {
+export const updateUser = (id, updateData, token, refreshToken) => __awaiter(void 0, void 0, void 0, function* () {
+    let decodedToken;
+    try {
+        decodedToken = verifyToken(token);
+    }
+    catch (_c) {
+        const newToken = generateToken(refreshToken);
+        decodedToken = verifyToken(newToken);
+    }
     return yield User.findByIdAndUpdate(id, updateData, { new: true });
 });
 // Eliminar usuario
-export const deleteUser = (id) => __awaiter(void 0, void 0, void 0, function* () {
+export const deleteUser = (id, token, refreshToken) => __awaiter(void 0, void 0, void 0, function* () {
+    let decodedToken;
+    try {
+        decodedToken = verifyToken(token);
+    }
+    catch (_d) {
+        const newToken = generateToken(refreshToken);
+        decodedToken = verifyToken(newToken);
+    }
     return yield User.findByIdAndDelete(id);
 });
 // Ocultar o mostrar usuario
-export const hideUser = (id, isHidden) => __awaiter(void 0, void 0, void 0, function* () {
+export const hideUser = (id, isHidden, token, refreshToken) => __awaiter(void 0, void 0, void 0, function* () {
+    let decodedToken;
+    try {
+        decodedToken = verifyToken(token);
+    }
+    catch (_e) {
+        const newToken = generateToken(refreshToken);
+        decodedToken = verifyToken(newToken);
+    }
     return yield User.findByIdAndUpdate(id, { isHidden }, { new: true });
 });
-// Iniciar sesión
+// Iniciar sesión con generación de tokens
 export const loginUser = (email, password) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield User.findOne({ email });
     if (!user) {
@@ -75,10 +119,18 @@ export const loginUser = (email, password) => __awaiter(void 0, void 0, void 0, 
         throw new Error('Este usuario está oculto y no puede iniciar sesión');
     }
     // Comparar la contraseña ingresada con la almacenada
-    if (user.password !== password) {
+    const isCorrect = yield verified(password, user.password);
+    if (!isCorrect) {
         throw new Error('Contraseña incorrecta');
     }
-    return user;
+    // Generar tokens
+    const token = generateToken(user.id, user.email);
+    const refreshToken = generateRefreshToken(user.id);
+    return {
+        token,
+        refreshToken,
+        user
+    };
 });
 // Calcular edad a partir de la fecha de nacimiento
 const calculateAge = (birthDate) => {

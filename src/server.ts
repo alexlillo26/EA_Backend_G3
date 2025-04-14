@@ -3,7 +3,8 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import userRoutes from './modules/users/user_routes.js'; // Nota el .js al final
 import gymRoutes from './modules/gyms/gym_routes.js'; // Nota el .js al final
-import combatRoutes from './modules/combats/combat_routes.js'; // Nota el .js al final
+import combatRoutes from './modules/combats/combat_routes.js'; 
+import authRoutes from './modules/auth/auth_routes.js'; // Ensure this file exists
 import { corsHandler } from './middleware/corsHandler.js';
 import { loggingHandler } from './middleware/loggingHandler.js';
 import { routeNotFound } from './middleware/routeNotFound.js';
@@ -48,6 +49,20 @@ const swaggerOptions = {
             {
                 url: `http://localhost:${LOCAL_PORT}`
             }
+        ],
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT'
+                }
+            }
+        },
+        security: [
+            {
+                bearerAuth: []
+            }
         ]
     },
     apis: ['./modules/users/*.js', './modules/gyms/*.js', './modules/combats/*.js'] // Asegúrate de que esta ruta apunta a tus rutas
@@ -70,6 +85,8 @@ app.use(corsHandler);
 app.use('/api', userRoutes);
 app.use('/api', gymRoutes);
 app.use('/api', combatRoutes);
+app.use('/api/auth', authRoutes);
+
 // Rutes de prova
 app.get('/', (req, res) => {
     res.send('Welcome to my API');

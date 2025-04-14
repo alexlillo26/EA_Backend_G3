@@ -1,5 +1,7 @@
 // src/controllers/user_controller.ts
-import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser, hideUser, loginUser, getUserCount} from '../users/user_service.js';
+import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser, hideUser, loginUser, getUserCount } from '../users/user_service.js';
+import { verifyRefreshToken, generateToken } from '../../utils/jwt.handle.js';
+import User from '../users/user_models.js'; // Ensure this import exists
 
 import express, { Request, Response } from 'express';
 
@@ -27,6 +29,8 @@ export const createUserHandler = async (req: Request, res: Response) => {
 };
 export const getAllUsersHandler = async (req: Request, res: Response) => {
     try {
+        const token = req.headers.authorization?.split(' ')[1] || '';
+        const refreshToken = req.body.refreshToken || '';
         const page = parseInt(req.query.page as string);
         const pageSize = parseInt(req.query.pageSize as string);
 
@@ -34,7 +38,7 @@ export const getAllUsersHandler = async (req: Request, res: Response) => {
             return res.status(400).json({ message: 'El tamaño de la lista debe ser 10, 25 o 50' });
         }
 
-        const { users, totalUsers, totalPages, currentPage} = await getAllUsers(page, pageSize);
+        const { users, totalUsers, totalPages, currentPage } = await getAllUsers(page, pageSize, token, refreshToken);
 
         res.status(200).json({
             users,
@@ -50,7 +54,9 @@ export const getAllUsersHandler = async (req: Request, res: Response) => {
 
 export const getUserByIdHandler = async (req: Request, res: Response) => {
     try {
-        const data = await getUserById(req.params.id);
+        const token = req.headers.authorization?.split(' ')[1] || '';
+        const refreshToken = req.body.refreshToken || '';
+        const data = await getUserById(req.params.id, token, refreshToken);
         res.json(data);
     } catch (error: any) {
         res.status(500).json({ message: error.message });
@@ -58,7 +64,9 @@ export const getUserByIdHandler = async (req: Request, res: Response) => {
 };
 export const updateUserHandler = async (req: Request, res: Response) => {
     try {
-        const data = await updateUser(req.params.id, req.body);
+        const token = req.headers.authorization?.split(' ')[1] || '';
+        const refreshToken = req.body.refreshToken || '';
+        const data = await updateUser(req.params.id, req.body, token, refreshToken);
         res.json(data);
     } catch (error: any) {
         res.status(500).json({ message: error.message });
@@ -66,7 +74,9 @@ export const updateUserHandler = async (req: Request, res: Response) => {
 };
 export const deleteUserHandler = async (req: Request, res: Response) => {
     try {
-        const data = await deleteUser(req.params.id);
+        const token = req.headers.authorization?.split(' ')[1] || '';
+        const refreshToken = req.body.refreshToken || '';
+        const data = await deleteUser(req.params.id, token, refreshToken);
         res.json(data);
     } catch (error: any) {
         res.status(500).json({ message: error.message });
@@ -74,18 +84,20 @@ export const deleteUserHandler = async (req: Request, res: Response) => {
 };
 export const hideUserHandler = async (req: Request, res: Response) => {
     try {
+        const token = req.headers.authorization?.split(' ')[1] || '';
+        const refreshToken = req.body.refreshToken || '';
         const { id } = req.params;
         const { isHidden } = req.body;
 
-        const user = await hideUser(id, isHidden);
+        const user = await hideUser(id, isHidden, token, refreshToken);
 
         if (!user) {
             return res.status(404).json({ message: 'Usuario no encontrado' });
         }
 
-        res.status(200).json({ 
-            message: `Usuario ${isHidden ? 'ocultado' : 'visible'} correctamente`, 
-            user 
+        res.status(200).json({
+            message: `Usuario ${isHidden ? 'ocultado' : 'visible'} correctamente`,
+            user
         });
     } catch (error: any) {
         res.status(500).json({ message: 'Error interno en el servidor', error });
@@ -94,14 +106,38 @@ export const hideUserHandler = async (req: Request, res: Response) => {
 export const loginUserHandler = async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;
-        const user = await loginUser(email, password);
+        const { token, refreshToken, user } = await loginUser(email, password);
 
-        if (!user) {
-            return res.status(404).json({ message: 'Usuario no encontrado' });
+        res.status(200).json({
+            message: 'Inicio de sesión completado',
+            token,
+            refreshToken,
+            user
+        });
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const refreshTokenHandler = async (req: Request, res: Response) => {
+    try {
+        const { refreshToken } = req.body;
+
+        if (!refreshToken) {
+            return res.status(400).json({ message: 'Refresh token is required' });
         }
 
-        res.status(200).json({ message: 'Inicio de sesión completado', user });
+        const decoded: any = verifyRefreshToken(refreshToken);
+        const user = await User.findById(decoded.id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const newToken = generateToken(user.id, user.email);
+        res.status(200).json({ token: newToken });
     } catch (error: any) {
-        res.status(500).json({ message: 'Error interno en el servidor', error });
+        console.error('Error in refreshTokenHandler:', error);
+        res.status(403).json({ message: 'Invalid refresh token' });
     }
 };

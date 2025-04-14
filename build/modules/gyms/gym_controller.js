@@ -7,7 +7,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { addGym, deleteGym, getAllGyms, getGymById, updateGym, hideGym, loginGym } from './gym_service.js';
+import { addGym, deleteGym, getAllGyms, getGymById, updateGym, hideGym, loginGym, refreshGymToken } from './gym_service.js';
 export const addGymHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("ADD GYM!!!!");
     try {
@@ -28,18 +28,21 @@ export const addGymHandler = (req, res) => __awaiter(void 0, void 0, void 0, fun
     }
 });
 export const getAllGymsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
+        const token = ((_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(' ')[1]) || '';
+        const refreshToken = req.body.refreshToken || '';
         const page = parseInt(req.query.page);
         const pageSize = parseInt(req.query.pageSize);
         if (![10, 25, 50].includes(pageSize)) {
             return res.status(400).json({ message: 'El tamaño de la lista debe ser 10, 25 o 50' });
         }
-        const { gyms, totalGyms, totalPages, currentPage } = yield getAllGyms(page, pageSize);
+        const { gyms, totalGyms, totalPages, currentPage } = yield getAllGyms(page, pageSize, token, refreshToken);
         res.status(200).json({ gyms, totalGyms, totalPages, currentPage });
     }
     catch (error) {
         console.error('Error en getAllGymsHandler:', error);
-        res.status(500).json({ message: 'Error interno del servidor: ', error });
+        res.status(500).json({ message: 'Error interno del servidor', error });
     }
 });
 export const getGymByIdHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -86,13 +89,28 @@ export const hideGymHandler = (req, res) => __awaiter(void 0, void 0, void 0, fu
 export const loginGymHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email, password } = req.body;
-        const gym = yield loginGym(email, password);
-        if (!gym) {
-            return res.status(404).json({ message: 'Usuario no encontrado' });
-        }
-        res.status(200).json({ message: 'Inicio de sesión completado', gym });
+        const { token, refreshToken, gym } = yield loginGym(email, password);
+        res.status(200).json({
+            message: 'Inicio de sesión completado',
+            token,
+            refreshToken,
+            gym
+        });
     }
     catch (error) {
-        res.status(500).json({ message: 'Error interno en el servidor', error });
+        res.status(500).json({ message: error.message });
+    }
+});
+export const refreshGymTokenHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { refreshToken } = req.body;
+        if (!refreshToken) {
+            return res.status(400).json({ message: 'Refresh token es requerido' });
+        }
+        const newToken = yield refreshGymToken(refreshToken);
+        res.status(200).json({ token: newToken });
+    }
+    catch (error) {
+        res.status(403).json({ message: 'Refresh token inválido' });
     }
 });
