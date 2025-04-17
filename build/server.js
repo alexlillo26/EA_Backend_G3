@@ -65,7 +65,7 @@ const swaggerOptions = {
 const swaggerSpec = swaggerJSDoc(swaggerOptions);
 app.use('/api-subjects', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(cors({
-    origin: 'http://localhost:4200',
+    origin: 'http://localhost:3000',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
