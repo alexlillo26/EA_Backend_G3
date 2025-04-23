@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { googleAuth } from "../auth/auth_service.js";
+import { googleAuth, googleRegister } from "../auth/auth_service.js";
 
 export const googleAuthCtrl = async (req: Request, res: Response) => {
     console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID || "undefined");
@@ -19,7 +19,7 @@ export const googleAuthCtrl = async (req: Request, res: Response) => {
         access_type: 'offline',
         response_type: 'code',
         prompt: 'consent',
-        scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email openid',
+        scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email openid', // Eliminado el scope innecesario
     });
 
     const fullUrl = `${rootUrl}?${options.toString()}`;
@@ -38,13 +38,20 @@ export const googleAuthCallback = async (req: Request, res: Response) => {
             return res.redirect('/login?error=authentication_failed');
         }
 
-        const { token, user, gym } = authData;
+        const { token, refreshToken, user, gym } = authData; // Asegúrate de desestructurar refreshToken
 
         res.cookie('token', token, {
             httpOnly: true,
             secure: false,
             sameSite: 'none',
             maxAge: 86400000, // 1 día
+        });
+
+        res.cookie('refreshToken', refreshToken, { // Ahora refreshToken está definido
+            httpOnly: true,
+            secure: false,
+            sameSite: 'none',
+            maxAge: 7 * 86400000, // 7 días
         });
 
         const redirectUrl = user
@@ -55,5 +62,31 @@ export const googleAuthCallback = async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error('Error en callback de Google:', error);
         res.redirect('http://localhost:3000/login?error=server_error');
+    }
+};
+
+export const googleRegisterCtrl = async (req: Request, res: Response) => {
+    try {
+        const { code, password } = req.body;
+
+        if (!code || !password) {
+            return res.status(400).json({ message: 'Código de autorización y contraseña son requeridos' });
+        }
+
+        const { token, refreshToken, user } = await googleRegister(code, password);
+
+        res.status(201).json({
+            message: 'Registro completado',
+            token,
+            refreshToken,
+            user,
+        });
+    } catch (error: any) {
+        console.error('Error en googleRegisterCtrl:', error);
+        if (error.message.includes('birthdays')) {
+            res.status(400).json({ message: 'No se pudo obtener la fecha de nacimiento del usuario' });
+        } else {
+            res.status(500).json({ message: error.message });
+        }
     }
 };

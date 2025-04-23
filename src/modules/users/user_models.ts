@@ -17,7 +17,8 @@ const userSchema = new mongoose.Schema({
     },
     birthDate: {
         type: Date,
-        required: true
+        required: true,
+        default: new Date("2017-01-01T00:00:00.000Z"), // Valor predeterminado
     },
     email: {
         type: String,

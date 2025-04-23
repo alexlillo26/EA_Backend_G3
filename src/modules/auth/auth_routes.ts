@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { verifyRefreshToken, generateToken } from '../../utils/jwt.handle.js';
-import { googleAuthCtrl, googleAuthCallback } from "../auth/auth_controller.js";
+import { googleAuthCtrl, googleAuthCallback, googleRegisterCtrl } from "../auth/auth_controller.js";
 
 const router = Router();
 
@@ -94,5 +94,36 @@ router.get('/google', googleAuthCtrl);
  *         description: Error interno del servidor
  */
 router.get('/google/callback', googleAuthCallback);
+
+/**
+ * @openapi
+ * /api/auth/google/register:
+ *   post:
+ *     summary: Registra un usuario con Google
+ *     description: Registra un usuario utilizando los datos de su cuenta de Google y una contraseña proporcionada.
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 description: Código de autorización proporcionado por Google
+ *               password:
+ *                 type: string
+ *                 description: Contraseña para el usuario
+ *     responses:
+ *       201:
+ *         description: Registro completado exitosamente
+ *       400:
+ *         description: Código de autorización o contraseña faltante
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.post('/google/register', googleRegisterCtrl);
 
 export default router;
