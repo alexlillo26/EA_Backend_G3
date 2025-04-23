@@ -92,3 +92,6 @@ app.listen(LOCAL_PORT, () => {
     console.log(`Swagger disponible a http://localhost:${LOCAL_PORT}/api-subjects`);
 });
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec)); // Ensure Swagger is accessible
+console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
+console.log("GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET);
+console.log("GOOGLE_OAUTH_REDIRECT_URL:", process.env.GOOGLE_OAUTH_REDIRECT_URL);

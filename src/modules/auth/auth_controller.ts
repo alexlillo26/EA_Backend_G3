@@ -6,12 +6,12 @@ export const googleAuthCtrl = async (req: Request, res: Response) => {
     console.log("GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET || "undefined");
     console.log("GOOGLE_OAUTH_REDIRECT_URL:", process.env.GOOGLE_OAUTH_REDIRECT_URL || "undefined");
 
-    const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URL;
-    if (!redirectUri || !process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET || !process.env.GOOGLE_OAUTH_REDIRECT_URL) {
         console.error("ERROR: Missing Google OAuth environment variables");
         return res.status(500).json({ message: "Error interno de configuración" });
     }
 
+    const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URL;
     const rootUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
     const options = new URLSearchParams({
         redirect_uri: redirectUri,
@@ -54,6 +54,6 @@ export const googleAuthCallback = async (req: Request, res: Response) => {
         res.redirect(redirectUrl);
     } catch (error: any) {
         console.error('Error en callback de Google:', error);
-        res.redirect('/login?error=server_error');
+        res.redirect('http://localhost:3000/login?error=server_error');
     }
 };
