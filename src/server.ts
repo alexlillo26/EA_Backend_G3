@@ -1,6 +1,8 @@
+import dotenv from 'dotenv';
+dotenv.config(); // Ensure this is at the top of the file
+
 import express from 'express';
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
 import userRoutes from './modules/users/user_routes.js'; // Nota el .js al final
 import gymRoutes from './modules/gyms/gym_routes.js'; // Nota el .js al final
 import combatRoutes from './modules/combats/combat_routes.js'; 
@@ -11,8 +13,6 @@ import { routeNotFound } from './middleware/routeNotFound.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 import cors from 'cors';
-
-dotenv.config(); // Cargamos las variables de entorno desde el archivo .env
 
 const app = express();
 
@@ -43,6 +43,10 @@ const swaggerOptions = {
             {
                 name: 'Combat',
                 description: 'Rutas relacionadas con los combates',
+            },
+            {
+                name: 'Auth',
+                description: 'Rutas relacionadas con la autenticación',
             }
           ],
         servers: [
@@ -65,27 +69,23 @@ const swaggerOptions = {
             }
         ]
     },
-    apis: ['./modules/users/*.js', './modules/gyms/*.js', './modules/combats/*.js'] // Asegúrate de que esta ruta apunta a tus rutas
+    apis: ['./modules/users/*.js', './modules/gyms/*.js', './modules/combats/*.js', './modules/auth/*.ts'] // Incluye auth/*.ts
 };
 
 const swaggerSpec = swaggerJSDoc(swaggerOptions);
 
 app.use('/api-subjects', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-app.use(cors({
-    origin: 'http://localhost:3000', // Cambia esto al origen de tu frontend
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
+
 // Middleware
 app.use(express.json());
-app.use(loggingHandler);
-app.use(corsHandler);
+app.use(corsHandler); // Ensure CORS middleware is applied
+app.use(loggingHandler); // Ensure logging middleware is applied
 //rutas
 app.use('/api', userRoutes);
 app.use('/api', gymRoutes);
 app.use('/api', combatRoutes);
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authRoutes); // Ensure this line is present and correct
 
 // Rutes de prova
 app.get('/', (req, res) => {
@@ -104,3 +104,5 @@ app.listen(LOCAL_PORT, () => {
     console.log('Server listening on port: ' + LOCAL_PORT);
     console.log(`Swagger disponible a http://localhost:${LOCAL_PORT}/api-subjects`);
 });
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec)); // Ensure Swagger is accessible

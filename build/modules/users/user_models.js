@@ -27,6 +27,11 @@ const userSchema = new mongoose.Schema({
     isHidden: {
         type: Boolean,
         default: false
+    },
+    googleId: {
+        type: String,
+        unique: true,
+        sparse: true, // Permite valores nulos
     }
 });
 const User = mongoose.model('User', userSchema);

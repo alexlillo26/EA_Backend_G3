@@ -4,7 +4,7 @@ export function corsHandler(req, res, next) {
     res.header('Access-Control-Allow-Credentials', 'true');
     if (req.method === 'OPTIONS') {
         res.header('Access-Control-Allow-Methods', 'PUT, POST, PATCH, DELETE, GET');
-        res.status(200).json({});
+        return res.status(200).json({}); // Ensure return to stop further execution
     }
     next();
 }

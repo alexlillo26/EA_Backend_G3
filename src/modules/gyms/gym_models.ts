@@ -10,6 +10,7 @@ export interface IGym {
     price: number;
     password: string;
     isHidden: boolean;
+    googleId?: string;
 }
 
 const gymSchema = new mongoose.Schema({
@@ -44,6 +45,11 @@ const gymSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true
+    },
+    googleId: {
+        type: String,
+        unique: true,
+        sparse: true, // Permite valores nulos
     }
 });
 
