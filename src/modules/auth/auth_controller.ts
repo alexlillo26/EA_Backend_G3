@@ -13,13 +13,16 @@ export const googleAuthCtrl = async (req: Request, res: Response) => {
 
     const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URL;
     const rootUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
+    const origin = req.query.origin || 'frontend'; 
+
     const options = new URLSearchParams({
         redirect_uri: redirectUri,
         client_id: process.env.GOOGLE_CLIENT_ID!,
         access_type: 'offline',
         response_type: 'code',
         prompt: 'consent',
-        scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email openid', // Eliminado el scope innecesario
+        scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email openid',
+        state: typeof origin === 'string' ? origin : String(origin), // Ensure state is a string 
     });
 
     const fullUrl = `${rootUrl}?${options.toString()}`;
@@ -30,6 +33,7 @@ export const googleAuthCtrl = async (req: Request, res: Response) => {
 export const googleAuthCallback = async (req: Request, res: Response) => {
     try {
         const code = req.query.code as string;
+        const origin = req.query.state as string || 'frontend'; // Cambiado a 'frontend' por defecto
         if (!code) {
             return res.status(400).json({ message: 'Código de autorización faltante' });
         }
@@ -38,7 +42,7 @@ export const googleAuthCallback = async (req: Request, res: Response) => {
             return res.redirect('/login?error=authentication_failed');
         }
 
-        const { token, refreshToken, user, gym } = authData; // Asegúrate de desestructurar refreshToken
+        const { token, refreshToken, } = authData; // Asegúrate de desestructurar refreshToken
 
         res.cookie('token', token, {
             httpOnly: true,
@@ -54,14 +58,17 @@ export const googleAuthCallback = async (req: Request, res: Response) => {
             maxAge: 7 * 86400000, // 7 días
         });
 
-        const redirectUrl = user
-            ? `http://localhost:4200/user-dashboard?token=${token}`
-            : `http://localhost:4200/gym-dashboard?token=${token}`;
+        const redirectMap: Record<string, string> = {
+            frontend: `http://localhost:4200/user-dashboard?token=${token}`,
+            webreact: `http://localhost:3000/?token=${token}`,
+        };
 
+        const redirectUrl = redirectMap[origin] || redirectMap['frontend']; // Redirigir según el origen
+        console.log(`Redirecting to: ${redirectUrl}`);
         res.redirect(redirectUrl);
     } catch (error: any) {
         console.error('Error en callback de Google:', error);
-        res.redirect('http://localhost:3000/login?error=server_error');
+        res.redirect('http://localhost:4200/login?error=server_error');
     }
 };
 
