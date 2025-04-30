@@ -41,7 +41,7 @@ const router = express.Router();
  *       400:
  *         description: Error de validación
  */
-router.post('/gym', addGymHandler);
+router.post('/gym', checkJwt, addGymHandler);
 /**
  * @openapi
  * /api/gym:
@@ -94,7 +94,7 @@ router.post('/gym', addGymHandler);
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/gym', checkJwt, getAllGymsHandler);
+router.get('/gym', getAllGymsHandler);
 /**
  * @openapi
  * /api/gym/{id}:
@@ -135,7 +135,7 @@ router.get('/gym', checkJwt, getAllGymsHandler);
  *       404:
  *         description: Gimnasio no encontrado
  */
-router.get('/gym/:id', checkJwt, getGymByIdHandler);
+router.get('/gym/:id', getGymByIdHandler);
 /**
  * @openapi
  * /api/gym/{id}:

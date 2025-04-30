@@ -1,6 +1,7 @@
 // src/routes/user_routes.ts
 import express from 'express';
 import { createCombatHandler, getAllCombatsHandler, getCombatByIdHandler, updateCombatHandler, deleteCombatHandler, getBoxersByCombatIdHandler, hideCombatHandler } from '../combats/combat_controller.js';
+import { checkJwt } from '../../middleware/session.js'; // Correct import path
 const router = express.Router();
 /**
  * @openapi
@@ -35,7 +36,7 @@ const router = express.Router();
  *       400:
  *         description: Datos inválidos
  */
-router.post('/combat', createCombatHandler);
+router.post('/combat', checkJwt, createCombatHandler); // Add checkJwt here
 /**
  * @openapi
  * /api/combat:
@@ -82,7 +83,7 @@ router.post('/combat', createCombatHandler);
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/combat', getAllCombatsHandler);
+router.get('/combat', checkJwt, getAllCombatsHandler); // Add checkJwt here
 /**
  * @openapi
  * /api/combat/{id}:
@@ -249,5 +250,5 @@ router.get('/combat/:id/boxers', getBoxersByCombatIdHandler);
  *       404:
  *         description: Combate no encontrado
  */
-router.put('/combat/:id/oculto', hideCombatHandler);
+router.put('/combat/:id/oculto', checkJwt, hideCombatHandler); // Ensure checkJwt is here
 export default router;

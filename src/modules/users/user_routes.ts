@@ -10,6 +10,7 @@ import {
     loginUserHandler,
     refreshTokenHandler
 } from '../users/user_controller.js';
+import { checkJwt } from '../../middleware/session.js'; // Correct import path
 
 const router = express.Router();
 
@@ -118,7 +119,7 @@ router.post('/users/register', createUserHandler);
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/users', getAllUsersHandler);
+router.get('/users', checkJwt, getAllUsersHandler); // Add checkJwt here
 
 /**
  * @openapi
@@ -156,7 +157,7 @@ router.get('/users', getAllUsersHandler);
  *       404:
  *         description: Usuario no encontrado
  */
-router.get('/users/:id', getUserByIdHandler);
+router.get('/users/:id', checkJwt, getUserByIdHandler); // Add checkJwt here
 
 /**
  * @openapi
@@ -250,7 +251,7 @@ router.delete('/users/:id', deleteUserHandler);
  *       404:
  *         description: Usuario no encontrado
  */
-router.put('/users/:id/oculto', hideUserHandler);
+router.put('/users/:id/oculto', checkJwt, hideUserHandler); // Ensure checkJwt is here
 
 /**
  * @openapi
