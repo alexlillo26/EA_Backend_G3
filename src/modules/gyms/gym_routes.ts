@@ -43,7 +43,7 @@ const router = express.Router();
  *       400:
  *         description: Error de validación
  */
-router.post('/gym', checkJwt, addGymHandler);
+router.post('/gym', addGymHandler);
 
 /**
  * @openapi

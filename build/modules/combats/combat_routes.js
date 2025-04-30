@@ -161,7 +161,7 @@ router.get('/combat/:id', getCombatByIdHandler);
  *       404:
  *         description: Combate no encontrado
  */
-router.put('/combat/:id', updateCombatHandler);
+router.put('/combat/:id', checkJwt, updateCombatHandler); // Added checkJwt
 /**
  * @openapi
  * /api/combat/{id}:
@@ -182,7 +182,7 @@ router.put('/combat/:id', updateCombatHandler);
  *       404:
  *         description: Combate no encontrado
  */
-router.delete('/combat/:id', deleteCombatHandler);
+router.delete('/combat/:id', checkJwt, deleteCombatHandler); // Added checkJwt
 /**
  * @openapi
  * /api/combat/{id}/boxers:

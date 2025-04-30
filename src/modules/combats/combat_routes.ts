@@ -179,7 +179,7 @@ router.get('/combat/:id', getCombatByIdHandler);
  *         description: Combate no encontrado
  */
 
-router.put('/combat/:id', updateCombatHandler);
+router.put('/combat/:id', checkJwt, updateCombatHandler); // Added checkJwt
 
 /**
  * @openapi
@@ -202,7 +202,7 @@ router.put('/combat/:id', updateCombatHandler);
  *         description: Combate no encontrado
  */
 
-router.delete('/combat/:id', deleteCombatHandler);
+router.delete('/combat/:id', checkJwt, deleteCombatHandler); // Added checkJwt
 
 /**
  * @openapi

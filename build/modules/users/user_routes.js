@@ -181,7 +181,7 @@ router.get('/users/:id', checkJwt, getUserByIdHandler); // Add checkJwt here
  *       404:
  *         description: Usuario no encontrado
  */
-router.put('/users/:id', updateUserHandler);
+router.put('/users/:id', checkJwt, updateUserHandler); // Added checkJwt
 /**
  * @openapi
  * /api/users/{id}:
@@ -202,7 +202,7 @@ router.put('/users/:id', updateUserHandler);
  *       404:
  *         description: Usuario no encontrado
  */
-router.delete('/users/:id', deleteUserHandler);
+router.delete('/users/:id', checkJwt, deleteUserHandler); // Added checkJwt
 /**
  * @openapi
  * /api/users/{id}/oculto:
