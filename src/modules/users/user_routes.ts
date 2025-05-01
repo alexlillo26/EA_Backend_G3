@@ -50,6 +50,13 @@ router.get('/main', saveMethodHandler);
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - name
+ *               - birthDate
+ *               - email
+ *               - password
+ *               - weight
+ *               - city
  *             properties:
  *               name:
  *                 type: string
@@ -63,6 +70,11 @@ router.get('/main', saveMethodHandler);
  *                 description: Contraseña del usuario (mínimo 8 caracteres)
  *               isAdmin:
  *                 type: boolean
+ *               weight:
+ *                 type: string
+ *                 enum: [Peso pluma, Peso medio, Peso pesado]
+ *               city:
+ *                 type: string
  *     responses:
  *       201:
  *         description: Usuario creado exitosamente

@@ -1,49 +1,60 @@
 import mongoose from "mongoose";
 
 export interface IUser {
-    name: string;
-    birthDate: Date;
-    email: string;
-    password: string;
-    isAdmin: boolean;
-    isHidden: boolean;
+  name: string;
+  birthDate: Date;
+  email: string;
+  password: string;
+  isAdmin: boolean;
+  isHidden: boolean;
+  weight: string; // ✅ nuevo campo
+  city: string;   // ✅ nuevo campo
 }
 
 const userSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true,
-        unique: true // Asegura que el nombre de usuario sea único
-    },
-    birthDate: {
-        type: Date,
-        required: true,
-        default: new Date("2017-01-01T00:00:00.000Z"), // Valor predeterminado
-    },
-    email: {
-        type: String,
-        required: true,
-        unique: true, // Asegura que el correo electrónico sea único
-        match: /^[^\s@]+@(gmail|yahoo|hotmail|outlook|icloud|protonmail)\.(com|es|org|net|edu|gov|info|io|co|us|uk)$/i // Valida proveedores y dominios comunes
-    },
-    password: {
-        type: String,
-        required: true,
-        minlength: 8 // Asegura que la contraseña tenga al menos 8 caracteres
-    },
-    isAdmin: {
-        type: Boolean,
-        default: false
-    },
-    isHidden: {
-        type: Boolean,
-        default: false
-    },
-    googleId: {
-        type: String,
-        unique: true,
-        sparse: true, // Permite valores nulos
-    }
+  name: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  birthDate: {
+    type: Date,
+    required: true,
+    default: new Date("2017-01-01T00:00:00.000Z")
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    match: /^[^\s@]+@(gmail|yahoo|hotmail|outlook|icloud|protonmail)\.(com|es|org|net|edu|gov|info|io|co|us|uk)$/i
+  },
+  password: {
+    type: String,
+    required: true,
+    minlength: 8
+  },
+  isAdmin: {
+    type: Boolean,
+    default: false
+  },
+  isHidden: {
+    type: Boolean,
+    default: false
+  },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  weight: { // ✅ nuevo
+    type: String,
+    enum: ['Peso pluma', 'Peso medio', 'Peso pesado'],
+    required: true
+  },
+  city: { // ✅ nuevo
+    type: String,
+    required: true
+  }
 });
 
 const User = mongoose.model('User', userSchema);

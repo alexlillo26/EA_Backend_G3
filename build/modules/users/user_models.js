@@ -3,23 +3,23 @@ const userSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
-        unique: true // Asegura que el nombre de usuario sea único
+        unique: true
     },
     birthDate: {
         type: Date,
         required: true,
-        default: new Date("2017-01-01T00:00:00.000Z"), // Valor predeterminado
+        default: new Date("2017-01-01T00:00:00.000Z")
     },
     email: {
         type: String,
         required: true,
         unique: true,
-        match: /^[^\s@]+@(gmail|yahoo|hotmail|outlook|icloud|protonmail)\.(com|es|org|net|edu|gov|info|io|co|us|uk)$/i // Valida proveedores y dominios comunes
+        match: /^[^\s@]+@(gmail|yahoo|hotmail|outlook|icloud|protonmail)\.(com|es|org|net|edu|gov|info|io|co|us|uk)$/i
     },
     password: {
         type: String,
         required: true,
-        minlength: 8 // Asegura que la contraseña tenga al menos 8 caracteres
+        minlength: 8
     },
     isAdmin: {
         type: Boolean,
@@ -32,7 +32,16 @@ const userSchema = new mongoose.Schema({
     googleId: {
         type: String,
         unique: true,
-        sparse: true, // Permite valores nulos
+        sparse: true
+    },
+    weight: {
+        type: String,
+        enum: ['Peso pluma', 'Peso medio', 'Peso pesado'],
+        required: true
+    },
+    city: {
+        type: String,
+        required: true
     }
 });
 const User = mongoose.model('User', userSchema);

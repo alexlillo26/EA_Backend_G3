@@ -1,157 +1,119 @@
 // src/services/user_service.ts
+import bcrypt from 'bcrypt'; // ✅ Necesario para login seguro
 import User, { IUser } from '../users/user_models.js';
-import { generateToken, generateRefreshToken, verifyToken } from '../../utils/jwt.handle.js';
-import { encrypt, verified } from '../../utils/bcrypt.handle.js';
 
+// Guardar método (test)
 export const saveMethod = () => {
-    return 'Hola';
+  return 'Hola';
 };
 
-// Crear usuario con validaciones
+// ✅ Crear usuario con validaciones y bcrypt
 export const createUser = async (userData: IUser) => {
-    // Verificar si el nombre de usuario o correo ya existen
-    const existingUser = await User.findOne({
-        $or: [{ name: userData.name }, { email: userData.email }]
-    });
+  const { name, email, password, birthDate, weight, city } = userData;
 
-    if (existingUser) {
-        throw new Error('El nombre de usuario o el correo electrónico ya están en uso');
-    }
+  if (!name || !email || !password || !birthDate || !weight || !city) {
+    throw new Error('Todos los campos son obligatorios: name, email, password, birthDate, weight, city');
+  }
 
-    // Verificar que la contraseña tenga al menos 8 caracteres
-    if (userData.password.length < 8) {
-        throw new Error('La contraseña debe tener al menos 8 caracteres');
-    }
+  const existingUser = await User.findOne({
+    $or: [{ name }, { email }]
+  });
 
-    // Encriptar la contraseña
-    userData.password = await encrypt(userData.password);
+  if (existingUser) {
+    throw new Error('El nombre de usuario o el correo electrónico ya están en uso');
+  }
 
-    const user = new User(userData);
-    return await user.save();
+  if (password.length < 8) {
+    throw new Error('La contraseña debe tener al menos 8 caracteres');
+  }
+
+  const validWeights = ['Peso pluma', 'Peso medio', 'Peso pesado'];
+  if (!validWeights.includes(weight)) {
+    throw new Error(`El peso debe ser uno de los siguientes: ${validWeights.join(', ')}`);
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10); // ✅ Seguridad
+  const newUser = new User({
+    ...userData,
+    password: hashedPassword
+  });
+
+  return await newUser.save();
 };
 
-// Obtener usuarios (solo los visibles)
-export const getAllUsers = async (page: number = 1, pageSize: number = 10, token: string, refreshToken: string) => {
-    let decodedToken;
-    try {
-        decodedToken = verifyToken(token);
-    } catch {
-        const newToken = generateToken(refreshToken);
-        decodedToken = verifyToken(newToken);
-    }
+// ✅ Obtener usuarios (ordenados por isHidden, paginados)
+export const getAllUsers = async (page: number = 1, pageSize: number = 10) => {
+  const skip = (page - 1) * pageSize;
 
-    const skip = (page - 1) * pageSize;
-    const users = await User.find()
-                            .sort({ isHidden: 1 }) // primero los visibles
-                            .skip(skip)
-                            .limit(pageSize);
-    const totalUsers = await User.countDocuments();
-    const totalPages = Math.ceil(totalUsers / pageSize);
-    return {
-        users,
-        totalUsers,
-        totalPages,
-        currentPage: page
-   }; 
+  const users = await User.find()
+    .sort({ isHidden: 1 })
+    .skip(skip)
+    .limit(pageSize);
+
+  const totalUsers = await User.countDocuments();
+  const totalPages = Math.ceil(totalUsers / pageSize);
+
+  return {
+    users,
+    totalUsers,
+    totalPages,
+    currentPage: page
+  };
 };
 
-// Obtener un usuario por ID
-export const getUserById = async (id: string, token: string, refreshToken: string) => {
-    let decodedToken;
-    try {
-        decodedToken = verifyToken(token);
-    } catch {
-        const newToken = generateToken(refreshToken);
-        decodedToken = verifyToken(newToken);
-    }
-
-    const user = await User.findById(id);
-    if (user) {
-        return { ...user.toObject(), age: calculateAge(user.birthDate) };
-    }
-    return null;
+// ✅ Obtener un usuario por ID
+export const getUserById = async (id: string) => {
+  const user = await User.findById(id);
+  if (user) {
+    return { ...user.toObject(), age: calculateAge(user.birthDate) };
+  }
+  return null;
 };
 
-// Actualizar usuario
-export const updateUser = async (id: string, updateData: Partial<IUser>, token: string, refreshToken: string) => {
-    let decodedToken;
-    try {
-        decodedToken = verifyToken(token);
-    } catch {
-        const newToken = generateToken(refreshToken);
-        decodedToken = verifyToken(newToken);
-    }
-
-    return await User.findByIdAndUpdate(id, updateData, { new: true });
+// ✅ Actualizar usuario
+export const updateUser = async (id: string, updateData: Partial<IUser>) => {
+  return await User.findByIdAndUpdate(id, updateData, { new: true });
 };
 
-// Eliminar usuario
-export const deleteUser = async (id: string, token: string, refreshToken: string) => {
-    let decodedToken;
-    try {
-        decodedToken = verifyToken(token);
-    } catch {
-        const newToken = generateToken(refreshToken);
-        decodedToken = verifyToken(newToken);
-    }
-
-    return await User.findByIdAndDelete(id);
+// ✅ Eliminar usuario
+export const deleteUser = async (id: string) => {
+  return await User.findByIdAndDelete(id);
 };
 
-// Ocultar o mostrar usuario
-export const hideUser = async (id: string, isHidden: boolean, token: string, refreshToken: string) => {
-    let decodedToken;
-    try {
-        decodedToken = verifyToken(token);
-    } catch {
-        const newToken = generateToken(refreshToken);
-        decodedToken = verifyToken(newToken);
-    }
-
-    return await User.findByIdAndUpdate(id, { isHidden }, { new: true });
+// ✅ Ocultar o mostrar usuario
+export const hideUser = async (id: string, isHidden: boolean) => {
+  return await User.findByIdAndUpdate(id, { isHidden }, { new: true });
 };
 
-// Iniciar sesión con generación de tokens
+// ✅ Login seguro con bcrypt
 export const loginUser = async (email: string, password: string) => {
-    const user = await User.findOne({ email });
+  const user = await User.findOne({ email });
 
-    if (!user) {
-        throw new Error('Usuario no encontrado');
-    }
+  if (!user) {
+    throw new Error('Usuario no encontrado');
+  }
 
-    // Verificar si el usuario está oculto
-    if (user.isHidden) {
-        throw new Error('Este usuario está oculto y no puede iniciar sesión');
-    }
+  if (user.isHidden) {
+    throw new Error('Este usuario está oculto y no puede iniciar sesión');
+  }
 
-    // Comparar la contraseña ingresada con la almacenada
-    const isCorrect = await verified(password, user.password);
-    if (!isCorrect) {
-        throw new Error('Contraseña incorrecta');
-    }
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+  if (!isPasswordValid) {
+    throw new Error('Contraseña incorrecta');
+  }
 
-    // Generar tokens
-    const token = generateToken(user.id, user.email);
-    const refreshToken = generateRefreshToken(user.id);
-
-    return {
-        token,
-        refreshToken,
-        user
-    };
+  return user;
 };
 
-// Calcular edad a partir de la fecha de nacimiento
+// ✅ Calcular edad
 const calculateAge = (birthDate: Date) => {
-    if (!birthDate) {
-        return null;
-    }
-    const diff = Date.now() - new Date(birthDate).getTime();
-    const ageDate = new Date(diff);
-    return Math.abs(ageDate.getUTCFullYear() - 1970);
+  if (!birthDate) return null;
+  const diff = Date.now() - new Date(birthDate).getTime();
+  const ageDate = new Date(diff);
+  return Math.abs(ageDate.getUTCFullYear() - 1970);
 };
 
-// Contar usuarios (solo los visibles)
+// ✅ Contar usuarios visibles
 export const getUserCount = async () => {
-    return await User.countDocuments({ isHidden: false });
+  return await User.countDocuments({ isHidden: false });
 };
