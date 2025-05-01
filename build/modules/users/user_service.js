@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 // src/services/user_service.ts
 import bcrypt from 'bcrypt'; // ✅ Necesario para login seguro
 import User from '../users/user_models.js';
+import { generateToken, generateRefreshToken } from '../../utils/jwt.handle.js';
 // Guardar método (test)
 export const saveMethod = () => {
     return 'Hola';
@@ -86,7 +87,10 @@ export const loginUser = (email, password) => __awaiter(void 0, void 0, void 0, 
     if (!isPasswordValid) {
         throw new Error('Contraseña incorrecta');
     }
-    return user;
+    // Generate tokens
+    const token = generateToken(user.id, user.email);
+    const refreshToken = generateRefreshToken(user.id);
+    return { token, refreshToken, user };
 });
 // ✅ Calcular edad
 const calculateAge = (birthDate) => {

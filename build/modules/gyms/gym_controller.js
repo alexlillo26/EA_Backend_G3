@@ -28,21 +28,18 @@ export const addGymHandler = (req, res) => __awaiter(void 0, void 0, void 0, fun
     }
 });
 export const getAllGymsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
     try {
-        const token = ((_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(' ')[1]) || '';
-        const refreshToken = req.body.refreshToken || '';
-        const page = parseInt(req.query.page);
-        const pageSize = parseInt(req.query.pageSize);
+        const page = parseInt(req.query.page) || 1;
+        const pageSize = parseInt(req.query.pageSize) || 10;
         if (![10, 25, 50].includes(pageSize)) {
             return res.status(400).json({ message: 'El tamaño de la lista debe ser 10, 25 o 50' });
         }
-        const { gyms, totalGyms, totalPages, currentPage } = yield getAllGyms(page, pageSize, token, refreshToken);
+        const { gyms, totalGyms, totalPages, currentPage } = yield getAllGyms(page, pageSize);
         res.status(200).json({ gyms, totalGyms, totalPages, currentPage });
     }
     catch (error) {
         console.error('Error en getAllGymsHandler:', error);
-        res.status(500).json({ message: 'Error interno del servidor', error });
+        res.status(500).json({ message: error.message });
     }
 });
 export const getGymByIdHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -107,7 +104,7 @@ export const refreshGymTokenHandler = (req, res) => __awaiter(void 0, void 0, vo
         if (!refreshToken) {
             return res.status(400).json({ message: 'Refresh token es requerido' });
         }
-        const newToken = yield refreshGymToken(refreshToken);
+        const newToken = yield refreshGymToken(refreshToken); // Fixed: Ensure refreshToken is passed correctly
         res.status(200).json({ token: newToken });
     }
     catch (error) {

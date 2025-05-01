@@ -4,9 +4,9 @@ const { sign, verify } = pkg;
 const JWT_SECRET = process.env.JWT_SECRET || 'token.010101010101';
 const REFRESH_SECRET = process.env.REFRESH_SECRET || 'refresh.010101010101';
 
-const generateToken = (id: string, email?: string) => {
-    const payload = email ? { id, email } : { id };
-    return sign(payload, JWT_SECRET, { expiresIn: '20s' }); // Cambiado a 1 hora
+const generateToken = (id: string, email: string) => {
+    const payload = { id, email };
+    return sign(payload, JWT_SECRET, { expiresIn: '1h' });
 };
 
 const generateRefreshToken = (id: string) => {

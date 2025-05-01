@@ -117,7 +117,7 @@ router.post('/users/register', createUserHandler);
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/users', checkJwt, getAllUsersHandler); // Add checkJwt here
+router.get('/users', checkJwt, getAllUsersHandler); // Require authentication
 /**
  * @openapi
  * /api/users/{id}:
@@ -193,7 +193,7 @@ router.get('/users/:id', checkJwt, getUserByIdHandler); // Add checkJwt here
  *       404:
  *         description: Usuario no encontrado
  */
-router.put('/users/:id', checkJwt, updateUserHandler); // Added checkJwt
+router.put('/users/:id', checkJwt, updateUserHandler); // Require authentication
 /**
  * @openapi
  * /api/users/{id}:
@@ -214,7 +214,7 @@ router.put('/users/:id', checkJwt, updateUserHandler); // Added checkJwt
  *       404:
  *         description: Usuario no encontrado
  */
-router.delete('/users/:id', checkJwt, deleteUserHandler); // Added checkJwt
+router.delete('/users/:id', checkJwt, deleteUserHandler); // Require authentication
 /**
  * @openapi
  * /api/users/{id}/oculto:

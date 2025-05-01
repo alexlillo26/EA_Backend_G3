@@ -1,6 +1,7 @@
 // src/services/user_service.ts
 import bcrypt from 'bcrypt'; // ✅ Necesario para login seguro
 import User, { IUser } from '../users/user_models.js';
+import { generateToken, generateRefreshToken } from '../../utils/jwt.handle.js';
 
 // Guardar método (test)
 export const saveMethod = () => {
@@ -102,7 +103,11 @@ export const loginUser = async (email: string, password: string) => {
     throw new Error('Contraseña incorrecta');
   }
 
-  return user;
+  // Generate tokens
+  const token = generateToken(user.id, user.email);
+  const refreshToken = generateRefreshToken(user.id);
+
+  return { token, refreshToken, user };
 };
 
 // ✅ Calcular edad

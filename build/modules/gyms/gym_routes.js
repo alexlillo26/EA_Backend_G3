@@ -94,7 +94,7 @@ router.post('/gym', addGymHandler);
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/gym', getAllGymsHandler);
+router.get('/gym', getAllGymsHandler); // No checkJwt middleware
 /**
  * @openapi
  * /api/gym/{id}:
@@ -181,7 +181,7 @@ router.get('/gym/:id', getGymByIdHandler);
  *       404:
  *         description: Gimnasio no encontrado
  */
-router.put('/gym/:id', checkJwt, updateGymHandler);
+router.put('/gym/:id', checkJwt, updateGymHandler); // Require authentication
 /**
  * @openapi
  * /api/gym/{id}:
@@ -202,7 +202,7 @@ router.put('/gym/:id', checkJwt, updateGymHandler);
  *       404:
  *         description: Gimnasio no encontrado
  */
-router.delete('/gym/:id', checkJwt, deleteGymHandler);
+router.delete('/gym/:id', checkJwt, deleteGymHandler); // Require authentication
 /**
  * @openapi
  * /api/gym/{id}/oculto:
@@ -233,7 +233,7 @@ router.delete('/gym/:id', checkJwt, deleteGymHandler);
  *       404:
  *         description: Gimnasio no encontrado
  */
-router.put('/gym/:id/oculto', checkJwt, hideGymHandler);
+router.put('/gym/:id/oculto', checkJwt, hideGymHandler); // Require authentication
 /**
  * @openapi
  * /api/gym/login:
@@ -285,5 +285,5 @@ router.post('/gym/login', loginGymHandler);
  *       403:
  *         description: Refresh token inválido
  */
-router.post('/gym/refresh', refreshGymTokenHandler);
+router.post('/gym/refresh', refreshGymTokenHandler); // Ensure this route is correctly set up
 export default router;

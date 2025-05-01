@@ -15,9 +15,9 @@ const checkJwt = (req: RequestExt, res: Response, next: NextFunction) => {
             return res.status(401).json({ message: 'No token provided' });
         }
 
-        const isUser = verifyToken(jwt);
+        const isUser = verifyToken(jwt) as JwtPayload; // Ensure correct typing
 
-        if (!isUser) {
+        if (!isUser || !isUser.id || !isUser.email) {
             return res.status(401).json({ message: 'Invalid token' });
         }
 

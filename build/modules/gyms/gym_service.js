@@ -8,7 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import Gym from './gym_models.js';
-import { generateToken, generateRefreshToken, verifyToken, verifyRefreshToken } from '../../utils/jwt.handle.js';
+import { generateToken, generateRefreshToken, verifyRefreshToken } from '../../utils/jwt.handle.js';
 import { verified } from '../../utils/bcrypt.handle.js';
 export const addGym = (gymData) => __awaiter(void 0, void 0, void 0, function* () {
     // Verificar si el nombre, correo o lugar ya existen
@@ -33,15 +33,7 @@ export const addGym = (gymData) => __awaiter(void 0, void 0, void 0, function* (
     const gym = new Gym(gymData);
     return yield gym.save();
 });
-export const getAllGyms = (page = 1, pageSize = 10, token, refreshToken) => __awaiter(void 0, void 0, void 0, function* () {
-    let decodedToken;
-    try {
-        decodedToken = verifyToken(token);
-    }
-    catch (_a) {
-        const newToken = generateToken(refreshToken);
-        decodedToken = verifyToken(newToken);
-    }
+export const getAllGyms = (page = 1, pageSize = 10) => __awaiter(void 0, void 0, void 0, function* () {
     const skip = (page - 1) * pageSize;
     const gyms = yield Gym.find()
         .sort({ isHidden: 1 })
@@ -53,7 +45,7 @@ export const getAllGyms = (page = 1, pageSize = 10, token, refreshToken) => __aw
         gyms,
         totalGyms,
         totalPages,
-        currentPage: page
+        currentPage: page,
     };
 });
 export const getGymById = (id) => __awaiter(void 0, void 0, void 0, function* () {
@@ -83,7 +75,7 @@ export const loginGym = (email, password) => __awaiter(void 0, void 0, void 0, f
         throw new Error('Contraseña incorrecta');
     }
     // Generar tokens
-    const token = generateToken(gym.id, gym.email);
+    const token = generateToken(gym.id, gym.email); // Fixed: Added email argument
     const refreshToken = generateRefreshToken(gym.id);
     return {
         token,
@@ -97,6 +89,6 @@ export const refreshGymToken = (refreshToken) => __awaiter(void 0, void 0, void 
     if (!gym) {
         throw new Error('Gimnasio no encontrado');
     }
-    const newToken = generateToken(gym.id, gym.email);
+    const newToken = generateToken(gym.id, gym.email); // Fixed: Added email argument
     return newToken;
 });

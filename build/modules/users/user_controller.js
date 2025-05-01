@@ -38,16 +38,13 @@ export const createUserHandler = (req, res) => __awaiter(void 0, void 0, void 0,
     }
 });
 export const getAllUsersHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
     try {
-        const token = ((_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(' ')[1]) || '';
-        const refreshToken = req.body.refreshToken || '';
-        const page = parseInt(req.query.page);
-        const pageSize = parseInt(req.query.pageSize);
+        const page = parseInt(req.query.page) || 1;
+        const pageSize = parseInt(req.query.pageSize) || 10;
         if (![10, 25, 50].includes(pageSize)) {
             return res.status(400).json({ message: 'El tamaño de la lista debe ser 10, 25 o 50' });
         }
-        const { users, totalUsers, totalPages, currentPage } = yield getAllUsers(page, pageSize, token, refreshToken);
+        const { users, totalUsers, totalPages, currentPage } = yield getAllUsers(page, pageSize);
         res.status(200).json({
             users,
             totalUsers,
@@ -61,11 +58,8 @@ export const getAllUsersHandler = (req, res) => __awaiter(void 0, void 0, void 0
     }
 });
 export const getUserByIdHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b;
     try {
-        const token = ((_b = req.headers.authorization) === null || _b === void 0 ? void 0 : _b.split(' ')[1]) || '';
-        const refreshToken = req.body.refreshToken || '';
-        const data = yield getUserById(req.params.id, token, refreshToken);
+        const data = yield getUserById(req.params.id);
         res.json(data);
     }
     catch (error) {
@@ -73,11 +67,8 @@ export const getUserByIdHandler = (req, res) => __awaiter(void 0, void 0, void 0
     }
 });
 export const updateUserHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _c;
     try {
-        const token = ((_c = req.headers.authorization) === null || _c === void 0 ? void 0 : _c.split(' ')[1]) || '';
-        const refreshToken = req.body.refreshToken || '';
-        const data = yield updateUser(req.params.id, req.body, token, refreshToken);
+        const data = yield updateUser(req.params.id, req.body);
         res.json(data);
     }
     catch (error) {
@@ -85,11 +76,8 @@ export const updateUserHandler = (req, res) => __awaiter(void 0, void 0, void 0,
     }
 });
 export const deleteUserHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _d;
     try {
-        const token = ((_d = req.headers.authorization) === null || _d === void 0 ? void 0 : _d.split(' ')[1]) || '';
-        const refreshToken = req.body.refreshToken || '';
-        const data = yield deleteUser(req.params.id, token, refreshToken);
+        const data = yield deleteUser(req.params.id);
         res.json(data);
     }
     catch (error) {
@@ -97,13 +85,10 @@ export const deleteUserHandler = (req, res) => __awaiter(void 0, void 0, void 0,
     }
 });
 export const hideUserHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _e;
     try {
-        const token = ((_e = req.headers.authorization) === null || _e === void 0 ? void 0 : _e.split(' ')[1]) || '';
-        const refreshToken = req.body.refreshToken || '';
         const { id } = req.params;
         const { isHidden } = req.body;
-        const user = yield hideUser(id, isHidden, token, refreshToken);
+        const user = yield hideUser(id, isHidden);
         if (!user) {
             return res.status(404).json({ message: 'Usuario no encontrado' });
         }
@@ -142,7 +127,7 @@ export const refreshTokenHandler = (req, res) => __awaiter(void 0, void 0, void 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-        const newToken = generateToken(user.id, user.email);
+        const newToken = generateToken(user.id, user.email); // Added email argument
         res.status(200).json({ token: newToken });
     }
     catch (error) {

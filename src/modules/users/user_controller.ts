@@ -29,16 +29,14 @@ export const createUserHandler = async (req: Request, res: Response) => {
 };
 export const getAllUsersHandler = async (req: Request, res: Response) => {
     try {
-        const token = req.headers.authorization?.split(' ')[1] || '';
-        const refreshToken = req.body.refreshToken || '';
-        const page = parseInt(req.query.page as string);
-        const pageSize = parseInt(req.query.pageSize as string);
+        const page = parseInt(req.query.page as string) || 1;
+        const pageSize = parseInt(req.query.pageSize as string) || 10;
 
         if (![10, 25, 50].includes(pageSize)) {
             return res.status(400).json({ message: 'El tamaño de la lista debe ser 10, 25 o 50' });
         }
 
-        const { users, totalUsers, totalPages, currentPage } = await getAllUsers(page, pageSize, token, refreshToken);
+        const { users, totalUsers, totalPages, currentPage } = await getAllUsers(page, pageSize);
 
         res.status(200).json({
             users,
@@ -54,9 +52,7 @@ export const getAllUsersHandler = async (req: Request, res: Response) => {
 
 export const getUserByIdHandler = async (req: Request, res: Response) => {
     try {
-        const token = req.headers.authorization?.split(' ')[1] || '';
-        const refreshToken = req.body.refreshToken || '';
-        const data = await getUserById(req.params.id, token, refreshToken);
+        const data = await getUserById(req.params.id);
         res.json(data);
     } catch (error: any) {
         res.status(500).json({ message: error.message });
@@ -64,9 +60,7 @@ export const getUserByIdHandler = async (req: Request, res: Response) => {
 };
 export const updateUserHandler = async (req: Request, res: Response) => {
     try {
-        const token = req.headers.authorization?.split(' ')[1] || '';
-        const refreshToken = req.body.refreshToken || '';
-        const data = await updateUser(req.params.id, req.body, token, refreshToken);
+        const data = await updateUser(req.params.id, req.body);
         res.json(data);
     } catch (error: any) {
         res.status(500).json({ message: error.message });
@@ -74,9 +68,7 @@ export const updateUserHandler = async (req: Request, res: Response) => {
 };
 export const deleteUserHandler = async (req: Request, res: Response) => {
     try {
-        const token = req.headers.authorization?.split(' ')[1] || '';
-        const refreshToken = req.body.refreshToken || '';
-        const data = await deleteUser(req.params.id, token, refreshToken);
+        const data = await deleteUser(req.params.id);
         res.json(data);
     } catch (error: any) {
         res.status(500).json({ message: error.message });
@@ -84,12 +76,10 @@ export const deleteUserHandler = async (req: Request, res: Response) => {
 };
 export const hideUserHandler = async (req: Request, res: Response) => {
     try {
-        const token = req.headers.authorization?.split(' ')[1] || '';
-        const refreshToken = req.body.refreshToken || '';
         const { id } = req.params;
         const { isHidden } = req.body;
 
-        const user = await hideUser(id, isHidden, token, refreshToken);
+        const user = await hideUser(id, isHidden);
 
         if (!user) {
             return res.status(404).json({ message: 'Usuario no encontrado' });
@@ -134,7 +124,7 @@ export const refreshTokenHandler = async (req: Request, res: Response) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const newToken = generateToken(user.id, user.email);
+        const newToken = generateToken(user.id, user.email); // Added email argument
         res.status(200).json({ token: newToken });
     } catch (error: any) {
         console.error('Error in refreshTokenHandler:', error);

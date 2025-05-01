@@ -31,27 +31,20 @@ export const addGym = async (gymData: IGym) => {
     return await gym.save();
 };
 
-export const getAllGyms = async (page: number = 1, pageSize: number = 10, token: string, refreshToken: string) => {
-    let decodedToken;
-    try {
-        decodedToken = verifyToken(token);
-    } catch {
-        const newToken = generateToken(refreshToken);
-        decodedToken = verifyToken(newToken);
-    }
-
+export const getAllGyms = async (page: number = 1, pageSize: number = 10) => {
     const skip = (page - 1) * pageSize;
     const gyms = await Gym.find()
-                          .sort({ isHidden: 1 })
-                          .skip(skip)
-                          .limit(pageSize);
+        .sort({ isHidden: 1 })
+        .skip(skip)
+        .limit(pageSize);
     const totalGyms = await Gym.countDocuments();
     const totalPages = Math.ceil(totalGyms / pageSize);
-    return { 
+
+    return {
         gyms,
         totalGyms,
         totalPages,
-        currentPage: page
+        currentPage: page,
     };
 };
 
@@ -90,7 +83,7 @@ export const loginGym = async (email: string, password: string) => {
     }
 
     // Generar tokens
-    const token = generateToken(gym.id, gym.email);
+    const token = generateToken(gym.id, gym.email); // Fixed: Added email argument
     const refreshToken = generateRefreshToken(gym.id);
 
     return {
@@ -108,6 +101,6 @@ export const refreshGymToken = async (refreshToken: string) => {
         throw new Error('Gimnasio no encontrado');
     }
 
-    const newToken = generateToken(gym.id, gym.email);
+    const newToken = generateToken(gym.id, gym.email); // Fixed: Added email argument
     return newToken;
 };
