@@ -87,6 +87,7 @@ app.use('/api', gymRoutes);
 app.use('/api', combatRoutes);
 app.use('/api/auth', authRoutes); // Ensure this line is present and correct
 
+
 // Rutes de prova
 app.get('/', (req, res) => {
     res.send('Welcome to my API');

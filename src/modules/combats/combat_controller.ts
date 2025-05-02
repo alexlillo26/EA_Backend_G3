@@ -2,6 +2,7 @@
 import { saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, deleteCombat, getBoxersByCombatId, hideCombat } from '../combats/combat_service.js';
 
 import express, { Request, Response } from 'express';
+import Combat from './combat_models.js';
 
 export const saveMethodHandler = async (req: Request, res: Response) => {
     try {
@@ -80,5 +81,22 @@ export const hideCombatHandler = async (req: Request, res: Response) => {
         res.status(200).json({ message: `Combate ${isHidden ? 'oculto' : 'visible'}`, combat });
     } catch (error: any) {
         res.status(500).json({ message: 'Error interno en el servidor', error });
+    }
+};
+export const getCombatsByBoxerIdHandler = async (req: Request, res: Response) => {
+    try {
+        const { boxerId } = req.params;
+
+        // Buscar combates donde el usuario esté en el campo "boxers"
+        const combats = await Combat.find({ boxers: boxerId }).populate('boxers', 'name email');
+
+        if (!combats || combats.length === 0) {
+            return res.status(404).json({ message: 'No se encontraron combates para este usuario' });
+        }
+
+        res.status(200).json(combats);
+    } catch (error) {
+        console.error('Error al obtener combates:', error);
+        res.status(500).json({ message: 'Error interno del servidor' });
     }
 };

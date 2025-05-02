@@ -9,6 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 // src/controllers/_controller.ts
 import { saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, deleteCombat, getBoxersByCombatId, hideCombat } from '../combats/combat_service.js';
+import Combat from './combat_models.js';
 export const saveMethodHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const combat = saveMethod();
@@ -89,5 +90,20 @@ export const hideCombatHandler = (req, res) => __awaiter(void 0, void 0, void 0,
     }
     catch (error) {
         res.status(500).json({ message: 'Error interno en el servidor', error });
+    }
+});
+export const getCombatsByBoxerIdHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { boxerId } = req.params;
+        // Buscar combates donde el usuario esté en el campo "boxers"
+        const combats = yield Combat.find({ boxers: boxerId }).populate('boxers', 'name email');
+        if (!combats || combats.length === 0) {
+            return res.status(404).json({ message: 'No se encontraron combates para este usuario' });
+        }
+        res.status(200).json(combats);
+    }
+    catch (error) {
+        console.error('Error al obtener combates:', error);
+        res.status(500).json({ message: 'Error interno del servidor' });
     }
 });

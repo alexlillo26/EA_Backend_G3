@@ -8,6 +8,7 @@ import {
     updateCombatHandler,
     deleteCombatHandler,
     getBoxersByCombatIdHandler,
+    getCombatsByBoxerIdHandler,
     hideCombatHandler
 } from '../combats/combat_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
@@ -274,4 +275,57 @@ router.get('/combat/:id/boxers', getBoxersByCombatIdHandler);
  *         description: Combate no encontrado
  */
 router.put('/combat/:id/oculto', checkJwt, hideCombatHandler); // Require authentication
+
+/**
+ * @openapi
+ * /api/combats/boxer/{boxerId}:
+ *   get:
+ *     summary: Obtiene los combates en los que ha participado un usuario
+ *     description: Retorna una lista de combates en los que un usuario específico ha participado.
+ *     tags:
+ *       - Combat
+ *     parameters:
+ *       - name: boxerId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario (boxer)
+ *     responses:
+ *       200:
+ *         description: Lista de combates obtenida exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   date:
+ *                     type: string
+ *                     format: date-time
+ *                   gym:
+ *                     type: string
+ *                   boxers:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         name:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                   isHidden:
+ *                     type: boolean
+ *       404:
+ *         description: Usuario no encontrado o sin combates
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/boxer/:boxerId', getCombatsByBoxerIdHandler);
+
 export default router;
