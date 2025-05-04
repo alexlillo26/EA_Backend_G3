@@ -253,7 +253,7 @@ router.get('/combat/:id/boxers', getBoxersByCombatIdHandler);
 router.put('/combat/:id/oculto', checkJwt, hideCombatHandler); // Require authentication
 /**
  * @openapi
- * /api/combats/boxer/{boxerId}:
+ * /api/combat/boxer/{boxerId}:
  *   get:
  *     summary: Obtiene los combates en los que ha participado un usuario
  *     description: Retorna una lista de combates en los que un usuario específico ha participado.
@@ -276,8 +276,6 @@ router.put('/combat/:id/oculto', checkJwt, hideCombatHandler); // Require authen
  *               items:
  *                 type: object
  *                 properties:
- *                   id:
- *                     type: string
  *                   date:
  *                     type: string
  *                     format: date-time
@@ -286,16 +284,7 @@ router.put('/combat/:id/oculto', checkJwt, hideCombatHandler); // Require authen
  *                   boxers:
  *                     type: array
  *                     items:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: string
- *                         name:
- *                           type: string
- *                         email:
- *                           type: string
- *                   isHidden:
- *                     type: boolean
+ *                       type: string
  *       404:
  *         description: Usuario no encontrado o sin combates
  *       500:

@@ -3,6 +3,8 @@ import { saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, d
 
 import express, { Request, Response } from 'express';
 import Combat from './combat_models.js';
+import mongoose from 'mongoose';
+import { skip } from 'node:test';
 
 export const saveMethodHandler = async (req: Request, res: Response) => {
     try {
@@ -84,17 +86,28 @@ export const hideCombatHandler = async (req: Request, res: Response) => {
     }
 };
 export const getCombatsByBoxerIdHandler = async (req: Request, res: Response) => {
+    console.log(`Solicitud recibida para el boxeador: ${req.params.boxerId}`);
+    console.log(`Query Params - Página: ${req.query.page}, Tamaño: ${req.query.pageSize}`);
+
     try {
         const { boxerId } = req.params;
-
-        // Buscar combates donde el usuario esté en el campo "boxers"
-        const combats = await Combat.find({ boxers: boxerId }).populate('boxers', 'name email');
+        const page = parseInt(req.query.page as string) || 1;
+        const pageSize = parseInt(req.query.pageSize as string) || 10;
+        
+        const boxerObjectId = new mongoose.Types.ObjectId(boxerId);
+        const totalCombats = await Combat.countDocuments({ boxers: boxerId });
+        const totalPages = Math.ceil(totalCombats / pageSize);
+        const combats = await Combat.find({ boxers: new mongoose.Types.ObjectId(boxerId) })
+            .skip((page - 1) * pageSize)
+            .limit(pageSize)
+            .populate('gym') // opcional, si gym es un ID
+            .populate('boxers'); // opcional, si boxers son IDs
 
         if (!combats || combats.length === 0) {
             return res.status(404).json({ message: 'No se encontraron combates para este usuario' });
         }
 
-        res.status(200).json(combats);
+        res.status(200).json({ combats, totalPages });
     } catch (error) {
         console.error('Error al obtener combates:', error);
         res.status(500).json({ message: 'Error interno del servidor' });

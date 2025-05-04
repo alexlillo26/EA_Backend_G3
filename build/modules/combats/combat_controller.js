@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 // src/controllers/_controller.ts
 import { saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, deleteCombat, getBoxersByCombatId, hideCombat } from '../combats/combat_service.js';
 import Combat from './combat_models.js';
+import mongoose from 'mongoose';
 export const saveMethodHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const combat = saveMethod();
@@ -93,14 +94,24 @@ export const hideCombatHandler = (req, res) => __awaiter(void 0, void 0, void 0,
     }
 });
 export const getCombatsByBoxerIdHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log(`Solicitud recibida para el boxeador: ${req.params.boxerId}`);
+    console.log(`Query Params - Página: ${req.query.page}, Tamaño: ${req.query.pageSize}`);
     try {
         const { boxerId } = req.params;
-        // Buscar combates donde el usuario esté en el campo "boxers"
-        const combats = yield Combat.find({ boxers: boxerId }).populate('boxers', 'name email');
+        const page = parseInt(req.query.page) || 1;
+        const pageSize = parseInt(req.query.pageSize) || 10;
+        const boxerObjectId = new mongoose.Types.ObjectId(boxerId);
+        const totalCombats = yield Combat.countDocuments({ boxers: boxerId });
+        const totalPages = Math.ceil(totalCombats / pageSize);
+        const combats = yield Combat.find({ boxers: new mongoose.Types.ObjectId(boxerId) })
+            .skip((page - 1) * pageSize)
+            .limit(pageSize)
+            .populate('gym') // opcional, si gym es un ID
+            .populate('boxers'); // opcional, si boxers son IDs
         if (!combats || combats.length === 0) {
             return res.status(404).json({ message: 'No se encontraron combates para este usuario' });
         }
-        res.status(200).json(combats);
+        res.status(200).json({ combats, totalPages });
     }
     catch (error) {
         console.error('Error al obtener combates:', error);

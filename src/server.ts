@@ -15,7 +15,7 @@ import swaggerJSDoc from 'swagger-jsdoc';
 import cors from 'cors';
 
 const app = express();
-
+ 
 const LOCAL_PORT = process.env.SERVER_PORT || 9000;
 
 // Configuración de Swagger
@@ -106,6 +106,12 @@ app.listen(LOCAL_PORT, () => {
     console.log(`Swagger disponible a http://localhost:${LOCAL_PORT}/api-subjects`);
 });
 
+app.use(cors(
+    {
+        origin: 'http://localhost:3000', // Cambia '*' por la URL de tu frontend si es necesario
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE'], }
+))
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec)); // Ensure Swagger is accessible
 
 console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);

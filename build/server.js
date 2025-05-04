@@ -10,6 +10,7 @@ import { corsHandler } from './middleware/corsHandler.js';
 import { loggingHandler } from './middleware/loggingHandler.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
+import cors from 'cors';
 const app = express();
 const LOCAL_PORT = process.env.SERVER_PORT || 9000;
 // Configuración de Swagger
@@ -91,6 +92,11 @@ app.listen(LOCAL_PORT, () => {
     console.log('Server listening on port: ' + LOCAL_PORT);
     console.log(`Swagger disponible a http://localhost:${LOCAL_PORT}/api-subjects`);
 });
+app.use(cors({
+    origin: 'http://localhost:3000',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+}));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec)); // Ensure Swagger is accessible
 console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
 console.log("GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET);
