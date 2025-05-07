@@ -17,18 +17,27 @@ export const saveMethod = () => {
 };
 // ✅ Crear usuario con validaciones y bcrypt
 export const createUser = (userData) => __awaiter(void 0, void 0, void 0, function* () {
-    const { name, email, password, birthDate, weight, city } = userData;
-    if (!name || !email || !password || !birthDate || !weight || !city) {
-        throw new Error('Todos los campos son obligatorios: name, email, password, birthDate, weight, city');
+    const { name, email, password, birthDate, weight, city, phone } = userData;
+    if (!name || !email || !password || !birthDate || !weight || !city || !phone) {
+        throw new Error('Todos los campos son obligatorios: name, email, password, birthDate, weight, city, phone');
     }
     const existingUser = yield User.findOne({
-        $or: [{ name }, { email }]
+        $or: [{ name }, { email }, { phone }]
     });
     if (existingUser) {
-        throw new Error('El nombre de usuario o el correo electrónico ya están en uso');
+        throw new Error('El nombre de usuario, el correo electrónico o el número de teléfono ya están en uso');
     }
     if (password.length < 8) {
         throw new Error('La contraseña debe tener al menos 8 caracteres');
+    }
+    if (!/^[^\s@]+@(gmail|yahoo|hotmail|outlook|icloud|protonmail)\.(com|es|org|net|edu|gov|info|io|co|us|uk)$/i.test(email)) {
+        throw new Error('El correo electrónico no es válido');
+    }
+    if (!/^\d{9}$/.test(phone)) {
+        throw new Error('El número de teléfono debe tener 9 dígitos');
+    }
+    if (new Date(birthDate) > new Date()) {
+        throw new Error('La fecha de nacimiento no puede ser futura');
     }
     const validWeights = ['Peso pluma', 'Peso medio', 'Peso pesado'];
     if (!validWeights.includes(weight)) {

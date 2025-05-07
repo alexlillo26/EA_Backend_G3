@@ -8,7 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 // src/controllers/user_controller.ts
-import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser, hideUser, loginUser } from '../users/user_service.js';
+import { saveMethod, createUser, getAllUsers, getUserById, deleteUser, hideUser, loginUser } from '../users/user_service.js';
 import { verifyRefreshToken, generateToken } from '../../utils/jwt.handle.js';
 import User from '../users/user_models.js'; // Ensure this import exists
 export const saveMethodHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -68,11 +68,27 @@ export const getUserByIdHandler = (req, res) => __awaiter(void 0, void 0, void 0
 });
 export const updateUserHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const data = yield updateUser(req.params.id, req.body);
-        res.json(data);
+        const { id } = req.params;
+        if (!id) {
+            return res.status(400).json({ message: "El ID del usuario es requerido" });
+        }
+        const updatedData = req.body;
+        // Si se subió una imagen, agrega la ruta al campo profilePicture
+        if (req.file) {
+            updatedData.profilePicture = `/uploads/${req.file.filename}`;
+        }
+        const updatedUser = yield User.findByIdAndUpdate(id, updatedData, {
+            new: true,
+            runValidators: true, // Ejecuta las validaciones del esquema
+        });
+        if (!updatedUser) {
+            return res.status(404).json({ message: "Usuario no encontrado" });
+        }
+        res.status(200).json(updatedUser);
     }
     catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error("Error al actualizar el usuario:", error);
+        res.status(500).json({ message: "Error interno del servidor" });
     }
 });
 export const deleteUserHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {

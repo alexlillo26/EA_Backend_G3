@@ -60,10 +60,32 @@ export const getUserByIdHandler = async (req: Request, res: Response) => {
 };
 export const updateUserHandler = async (req: Request, res: Response) => {
     try {
-        const data = await updateUser(req.params.id, req.body);
-        res.json(data);
+        const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({ message: "El ID del usuario es requerido" });
+        }
+
+        const updatedData = req.body;
+
+        // Si se subió una imagen, agrega la ruta al campo profilePicture
+        if (req.file) {
+            updatedData.profilePicture = `/uploads/${req.file.filename}`;
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(id, updatedData, {
+            new: true, // Devuelve el usuario actualizado
+            runValidators: true, // Ejecuta las validaciones del esquema
+        });
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: "Usuario no encontrado" });
+        }
+
+        res.status(200).json(updatedUser);
     } catch (error: any) {
-        res.status(500).json({ message: error.message });
+        console.error("Error al actualizar el usuario:", error);
+        res.status(500).json({ message: "Error interno del servidor" });
     }
 };
 export const deleteUserHandler = async (req: Request, res: Response) => {

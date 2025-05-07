@@ -13,10 +13,15 @@ import { routeNotFound } from './middleware/routeNotFound.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const app = express();
  
 const LOCAL_PORT = process.env.SERVER_PORT || 9000;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Configuración de Swagger
 const swaggerOptions = {
@@ -81,6 +86,7 @@ app.use('/api-subjects', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(express.json());
 app.use(corsHandler); // Ensure CORS middleware is applied
 app.use(loggingHandler); // Ensure logging middleware is applied
+app.use("/uploads", express.static(path.join(__dirname, "../uploads"))); 
 //rutas
 app.use('/api', userRoutes);
 app.use('/api', gymRoutes);

@@ -1,4 +1,5 @@
 import express from 'express';
+import upload from '../../middleware/uploads.js';
 import {
     saveMethodHandler,
     createUserHandler,
@@ -57,6 +58,7 @@ router.get('/main', saveMethodHandler);
  *               - password
  *               - weight
  *               - city
+ *               - phone
  *             properties:
  *               name:
  *                 type: string
@@ -74,6 +76,8 @@ router.get('/main', saveMethodHandler);
  *                 type: string
  *                 enum: [Peso pluma, Peso medio, Peso pesado]
  *               city:
+ *                 type: string
+ *               phone:
  *                 type: string
  *     responses:
  *       201:
@@ -209,7 +213,7 @@ router.get('/users/:id', checkJwt, getUserByIdHandler); // Add checkJwt here
  *       404:
  *         description: Usuario no encontrado
  */
-router.put('/users/:id', checkJwt, updateUserHandler); // Require authentication
+router.put('/users/:id', checkJwt, updateUserHandler, upload.single("profilePicture")); // Require authentication
 
 /**
  * @openapi

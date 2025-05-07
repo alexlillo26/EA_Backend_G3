@@ -7,8 +7,10 @@ export interface IUser {
   password: string;
   isAdmin: boolean;
   isHidden: boolean;
-  weight: string; // ✅ nuevo campo
-  city: string;   // ✅ nuevo campo
+  weight: string; 
+  city: string;  
+  phone: string; 
+  profilePicture?: string; // URL de la imagen de perfil
 }
 
 const userSchema = new mongoose.Schema({
@@ -46,15 +48,23 @@ const userSchema = new mongoose.Schema({
     unique: true,
     sparse: true
   },
-  weight: { // ✅ nuevo
+  weight: { 
     type: String,
     enum: ['Peso pluma', 'Peso medio', 'Peso pesado'],
     required: true
   },
-  city: { // ✅ nuevo
+  city: { 
     type: String,
     required: true
-  }
+  },
+  phone: { 
+    type: String,
+    required: true
+  },
+  profilePicture: { 
+    type: String,
+    default: null
+  },
 });
 
 const User = mongoose.model('User', userSchema);

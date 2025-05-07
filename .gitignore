@@ -20,3 +20,6 @@ build/
 
 # Ignorar archivos de sistema
 .DS_Store
+
+# Ignorar archivos de uploads
+/uploads
