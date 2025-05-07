@@ -9,7 +9,8 @@ import {
     deleteUserHandler,
     hideUserHandler,
     loginUserHandler,
-    refreshTokenHandler
+    refreshTokenHandler,
+    searchUsersHandler
 } from '../users/user_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
 
@@ -86,6 +87,34 @@ router.get('/main', saveMethodHandler);
  *         description: Error de validación
  */
 router.post('/users/register', createUserHandler);
+
+/**
+ * @openapi
+ * /api/users/search:
+ *   get:
+ *     summary: Buscar usuarios
+ *     description: Busca usuarios por ciudad y categoría de peso
+ *     tags:
+ *       - Users
+ *     parameters:
+ *       - name: city
+ *         in: query
+ *         description: Ciudad para filtrar usuarios
+ *         required: false
+ *         schema:
+ *           type: string
+ *       - name: weight
+ *         in: query
+ *         description: Categoría de peso
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [Peso pluma, Peso medio, Peso pesado]
+ *     responses:
+ *       200:
+ *         description: Lista de usuarios encontrados
+ */
+router.get('/users/search', searchUsersHandler);
 
 /**
  * @openapi

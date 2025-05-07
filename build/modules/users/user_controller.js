@@ -8,7 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 // src/controllers/user_controller.ts
-import { saveMethod, createUser, getAllUsers, getUserById, deleteUser, hideUser, loginUser } from '../users/user_service.js';
+import { saveMethod, createUser, getAllUsers, getUserById, deleteUser, hideUser, loginUser, searchUsers } from '../users/user_service.js';
 import { verifyRefreshToken, generateToken } from '../../utils/jwt.handle.js';
 import User from '../users/user_models.js'; // Ensure this import exists
 export const saveMethodHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -149,5 +149,26 @@ export const refreshTokenHandler = (req, res) => __awaiter(void 0, void 0, void 
     catch (error) {
         console.error('Error in refreshTokenHandler:', error);
         res.status(403).json({ message: 'Invalid refresh token' });
+    }
+});
+export const searchUsersHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        console.log('Search params:', req.query); // 调试日志
+        const { city, weight } = req.query;
+        const users = yield searchUsers(city, weight);
+        console.log('Search results:', users); // 调试日志
+        res.status(200).json({
+            success: true,
+            count: users.length,
+            users
+        });
+    }
+    catch (error) {
+        console.error('Search error:', error); // 调试日志
+        res.status(500).json({
+            success: false,
+            message: 'Error al buscar usuarios',
+            error: error.message
+        });
     }
 });

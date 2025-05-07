@@ -113,3 +113,24 @@ const calculateAge = (birthDate) => {
 export const getUserCount = () => __awaiter(void 0, void 0, void 0, function* () {
     return yield User.countDocuments({ isHidden: false });
 });
+// 搜索用户
+export const searchUsers = (city, weight) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        let query = {};
+        if (city) {
+            query.city = new RegExp(city, 'i'); // 不区分大小写的城市搜索
+        }
+        if (weight && ['Peso pluma', 'Peso medio', 'Peso pesado'].includes(weight)) {
+            query.weight = weight;
+        }
+        console.log('Search query:', query); // 调试日志
+        const users = yield User.find(query)
+            .select('name city weight -_id') // 只返回需要的字段，排除 _id
+            .sort({ name: 1 });
+        return users;
+    }
+    catch (error) {
+        console.error('Error in searchUsers:', error);
+        throw error;
+    }
+});

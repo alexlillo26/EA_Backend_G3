@@ -1,5 +1,5 @@
 // src/controllers/user_controller.ts
-import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser, hideUser, loginUser, getUserCount } from '../users/user_service.js';
+import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser, hideUser, loginUser, getUserCount, searchUsers } from '../users/user_service.js';
 import { verifyRefreshToken, generateToken } from '../../utils/jwt.handle.js';
 import User from '../users/user_models.js'; // Ensure this import exists
 
@@ -151,5 +151,32 @@ export const refreshTokenHandler = async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error('Error in refreshTokenHandler:', error);
         res.status(403).json({ message: 'Invalid refresh token' });
+    }
+};
+
+export const searchUsersHandler = async (req: Request, res: Response) => {
+    try {
+        console.log('Search params:', req.query); 
+        
+        const { city, weight } = req.query;
+        const users = await searchUsers(
+            city as string,
+            weight as string
+        );
+
+        console.log('Search results:', users); 
+
+        res.status(200).json({
+            success: true,
+            count: users.length,
+            users
+        });
+    } catch (error: any) {
+        console.error('Search error:', error); 
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al buscar usuarios',
+            error: error.message 
+        });
     }
 };

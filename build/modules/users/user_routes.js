@@ -1,6 +1,6 @@
 import express from 'express';
 import upload from '../../middleware/uploads.js';
-import { saveMethodHandler, createUserHandler, getAllUsersHandler, getUserByIdHandler, updateUserHandler, deleteUserHandler, hideUserHandler, loginUserHandler, refreshTokenHandler } from '../users/user_controller.js';
+import { saveMethodHandler, createUserHandler, getAllUsersHandler, getUserByIdHandler, updateUserHandler, deleteUserHandler, hideUserHandler, loginUserHandler, refreshTokenHandler, searchUsersHandler } from '../users/user_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
 const router = express.Router();
 /**
@@ -73,6 +73,33 @@ router.get('/main', saveMethodHandler);
  *         description: Error de validación
  */
 router.post('/users/register', createUserHandler);
+/**
+ * @openapi
+ * /api/users/search:
+ *   get:
+ *     summary: Buscar usuarios
+ *     description: Busca usuarios por ciudad y categoría de peso
+ *     tags:
+ *       - Users
+ *     parameters:
+ *       - name: city
+ *         in: query
+ *         description: Ciudad para filtrar usuarios
+ *         required: false
+ *         schema:
+ *           type: string
+ *       - name: weight
+ *         in: query
+ *         description: Categoría de peso
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [Peso pluma, Peso medio, Peso pesado]
+ *     responses:
+ *       200:
+ *         description: Lista de usuarios encontrados
+ */
+router.get('/users/search', searchUsersHandler);
 /**
  * @openapi
  * /api/users:

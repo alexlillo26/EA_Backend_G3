@@ -134,3 +134,28 @@ const calculateAge = (birthDate: Date) => {
 export const getUserCount = async () => {
   return await User.countDocuments({ isHidden: false });
 };
+
+// usuario del motor de búsqueda
+export const searchUsers = async (city?: string, weight?: string) => {
+  try {
+    let query: any = {};
+
+    if (city) {
+      query.city = new RegExp(city, 'i'); // Búsqueda de ciudades sin distinción entre mayúsculas y minúsculas
+    }
+    if (weight && ['Peso pluma', 'Peso medio', 'Peso pesado'].includes(weight)) {
+      query.weight = weight;
+    }
+
+    console.log('Search query:', query); // Debug log
+    // Si no se proporciona ciudad ni peso, devolver todos los usuarios
+    const users = await User.find(query)
+      .select('name city weight -_id') // Devuelve sólo los campos necesarios, excluyendo _id
+      .sort({ name: 1 });
+
+    return users;
+  } catch (error) {
+    console.error('Error in searchUsers:', error);
+    throw error;
+  }
+};
