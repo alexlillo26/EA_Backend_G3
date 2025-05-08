@@ -44,7 +44,7 @@ router.post('/refresh-token', (req: Request, res: Response) => {
             return res.status(401).json({ message: 'Invalid refresh token' });
         }
 
-        const newAccessToken = generateToken(decoded.id, decoded.email); // Added email argument
+        const newAccessToken = generateToken(decoded.id, decoded.email, decoded.username); // Added username argument
 
         return res.json({ token: newAccessToken });
     } catch (e: any) {

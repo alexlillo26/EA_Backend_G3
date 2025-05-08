@@ -116,7 +116,7 @@ export const loginUser = async (email: string, password: string) => {
   }
 
   // Generate tokens
-  const token = generateToken(user.id, user.email);
+  const token = generateToken(user.id, user.email, user.name);
   const refreshToken = generateRefreshToken(user.id);
 
   return { token, refreshToken, user };

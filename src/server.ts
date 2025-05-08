@@ -221,7 +221,16 @@ io.use(async (socket: AuthenticatedSocket, next) => {
 
     try {
         // verifyAccessToken debería devolver el payload del token o lanzar un error
-        const decodedPayload = await verifyToken(token) as AuthenticatedUser; // Asegúrate que verifyAccessToken sea compatible
+        interface DecodedJWTPayload {
+            userId: string;
+            username?: string; // Add other fields as needed
+        }
+        const decodedPayload = await verifyToken(token) as unknown as DecodedJWTPayload; // Convert to 'unknown' first to resolve type conflict
+        const authenticatedUser: AuthenticatedUser = {
+            userId: decodedPayload.userId, // Ensure userId exists in DecodedJWTPayload
+            username: decodedPayload.username // Map other fields as needed
+        };
+        socket.user = authenticatedUser; // Adjuntar información del usuario al socket
         socket.user = decodedPayload; // Adjuntar información del usuario al socket
         console.log(`Socket ${socket.id}: Autenticado correctamente. Usuario: ${decodedPayload.userId}`);
         next(); // Token válido, proceder con la conexión

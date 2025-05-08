@@ -75,7 +75,7 @@ export const loginGym = (email, password) => __awaiter(void 0, void 0, void 0, f
         throw new Error('Contraseña incorrecta');
     }
     // Generar tokens
-    const token = generateToken(gym.id, gym.email); // Fixed: Added email argument
+    const token = generateToken(gym.id, gym.email, gym.name); // Fixed: Added name argument
     const refreshToken = generateRefreshToken(gym.id);
     return {
         token,
@@ -89,6 +89,6 @@ export const refreshGymToken = (refreshToken) => __awaiter(void 0, void 0, void 
     if (!gym) {
         throw new Error('Gimnasio no encontrado');
     }
-    const newToken = generateToken(gym.id, gym.email); // Fixed: Added email argument
+    const newToken = generateToken(gym.id, gym.email, gym.name); // Fixed: Added username argument
     return newToken;
 });

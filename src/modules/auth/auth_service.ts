@@ -60,8 +60,8 @@ export const googleAuth = async (code: string): Promise<{ token: string; refresh
 
         // Generate tokens
         const token = user
-            ? generateToken(user.id, user.email)
-            : generateToken(gym!.id, gym!.email);
+            ? generateToken(user.id, user.email, user.name)
+            : generateToken(gym!.id, gym!.email, gym!.name);
 
         const refreshToken = user
             ? generateRefreshToken(user.id)
@@ -125,7 +125,7 @@ export const googleRegister = async (code: string, password: string): Promise<{ 
         });
 
         // Generate tokens
-        const token = generateToken(user.id, user.email);
+        const token = generateToken(user.id, user.email, user.name);
         const refreshToken = generateRefreshToken(user.id);
 
         return { token, refreshToken, user };

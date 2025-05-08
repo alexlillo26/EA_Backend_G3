@@ -97,7 +97,7 @@ export const loginUser = (email, password) => __awaiter(void 0, void 0, void 0, 
         throw new Error('Contraseña incorrecta');
     }
     // Generate tokens
-    const token = generateToken(user.id, user.email);
+    const token = generateToken(user.id, user.email, user.name);
     const refreshToken = generateRefreshToken(user.id);
     return { token, refreshToken, user };
 });

@@ -180,8 +180,12 @@ io.use((socket, next) => __awaiter(void 0, void 0, void 0, function* () {
         return next(new Error('Authentication error: No token provided'));
     }
     try {
-        // verifyAccessToken debería devolver el payload del token o lanzar un error
-        const decodedPayload = yield verifyToken(token); // Asegúrate que verifyAccessToken sea compatible
+        const decodedPayload = yield verifyToken(token); // Convert to 'unknown' first to resolve type conflict
+        const authenticatedUser = {
+            userId: decodedPayload.userId,
+            username: decodedPayload.username // Map other fields as needed
+        };
+        socket.user = authenticatedUser; // Adjuntar información del usuario al socket
         socket.user = decodedPayload; // Adjuntar información del usuario al socket
         console.log(`Socket ${socket.id}: Autenticado correctamente. Usuario: ${decodedPayload.userId}`);
         next(); // Token válido, proceder con la conexión

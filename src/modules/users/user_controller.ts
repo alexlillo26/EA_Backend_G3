@@ -146,7 +146,7 @@ export const refreshTokenHandler = async (req: Request, res: Response) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const newToken = generateToken(user.id, user.email); // Added email argument
+        const newToken = generateToken(user.id, user.email, user.name); // Added username argument
         res.status(200).json({ token: newToken });
     } catch (error: any) {
         console.error('Error in refreshTokenHandler:', error);

@@ -143,7 +143,7 @@ export const refreshTokenHandler = (req, res) => __awaiter(void 0, void 0, void 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-        const newToken = generateToken(user.id, user.email); // Added email argument
+        const newToken = generateToken(user.id, user.email, user.name); // Added username argument
         res.status(200).json({ token: newToken });
     }
     catch (error) {
