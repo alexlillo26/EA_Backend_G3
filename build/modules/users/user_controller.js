@@ -153,10 +153,10 @@ export const refreshTokenHandler = (req, res) => __awaiter(void 0, void 0, void 
 });
 export const searchUsersHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        console.log('Search params:', req.query); // 调试日志
+        console.log('Search params:', req.query);
         const { city, weight } = req.query;
         const users = yield searchUsers(city, weight);
-        console.log('Search results:', users); // 调试日志
+        console.log('Search results:', users);
         res.status(200).json({
             success: true,
             count: users.length,
@@ -164,7 +164,7 @@ export const searchUsersHandler = (req, res) => __awaiter(void 0, void 0, void 0
         });
     }
     catch (error) {
-        console.error('Search error:', error); // 调试日志
+        console.error('Search error:', error);
         res.status(500).json({
             success: false,
             message: 'Error al buscar usuarios',
