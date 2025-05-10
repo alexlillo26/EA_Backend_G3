@@ -9,10 +9,10 @@ export const saveMethod = () => {
 };
 
 // ✅ Crear usuario con validaciones y bcrypt
-export const createUser = async (userData: IUser) => {
-  const { name, email, password, birthDate, weight, city, phone } = userData;
+export const createUser = async (userData: IUser & {confirmPassword: string}) => {
+  const { name, email, password, confirmPassword, birthDate, weight, city, phone, gender } = userData;
 
-  if (!name || !email || !password || !birthDate || !weight || !city || !phone) {
+  if (!name || !email || !password || confirmPassword || !birthDate || !weight || !city || !phone || !gender) {
     throw new Error('Todos los campos son obligatorios: name, email, password, birthDate, weight, city, phone');
   }
 
@@ -24,8 +24,16 @@ export const createUser = async (userData: IUser) => {
     throw new Error('El nombre de usuario, el correo electrónico o el número de teléfono ya están en uso');
   }
 
+  if (password !== confirmPassword) {
+    throw new Error('Las contraseñas no coinciden');
+  }
+
   if (password.length < 8) {
     throw new Error('La contraseña debe tener al menos 8 caracteres');
+  }
+
+  if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(password)) {
+    throw new Error('La contraseña debe contener al menos una mayúscula, una minúscula, un número y un caracter especial');
   }
 
   if (!/^[^\s@]+@(gmail|yahoo|hotmail|outlook|icloud|protonmail)\.(com|es|org|net|edu|gov|info|io|co|us|uk)$/i.test(email)) {
@@ -43,6 +51,11 @@ export const createUser = async (userData: IUser) => {
   const validWeights = ['Peso pluma', 'Peso medio', 'Peso pesado'];
   if (!validWeights.includes(weight)) {
     throw new Error(`El peso debe ser uno de los siguientes: ${validWeights.join(', ')}`);
+  }
+
+  const validGenders = ['Hombre', 'Mujer'];
+  if(!validGenders.includes(gender)) {
+    throw new Error(`El género debe ser uno de los siguientes: ${validGenders.join(', ')}`);
   }
 
   const hashedPassword = await bcrypt.hash(password, 10); // ✅ Seguridad
