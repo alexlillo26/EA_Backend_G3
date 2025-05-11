@@ -10,6 +10,7 @@ export interface IUser {
   weight: string; 
   city: string;  
   phone: string; 
+  gender: string;
   profilePicture?: string; // URL de la imagen de perfil
 }
 
@@ -65,6 +66,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  gender:{
+    type: String,
+    enum: ['Hombre', 'Mujer'],
+    required: true
+  }
 });
 
 const User = mongoose.model('User', userSchema);

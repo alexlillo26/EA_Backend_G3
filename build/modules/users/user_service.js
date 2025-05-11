@@ -17,8 +17,8 @@ export const saveMethod = () => {
 };
 // ✅ Crear usuario con validaciones y bcrypt
 export const createUser = (userData) => __awaiter(void 0, void 0, void 0, function* () {
-    const { name, email, password, birthDate, weight, city, phone } = userData;
-    if (!name || !email || !password || !birthDate || !weight || !city || !phone) {
+    const { name, email, password, birthDate, weight, city, phone, gender } = userData;
+    if (!name || !email || !password || !birthDate || !weight || !city || !phone || !gender) {
         throw new Error('Todos los campos son obligatorios: name, email, password, birthDate, weight, city, phone');
     }
     const existingUser = yield User.findOne({
@@ -42,6 +42,10 @@ export const createUser = (userData) => __awaiter(void 0, void 0, void 0, functi
     const validWeights = ['Peso pluma', 'Peso medio', 'Peso pesado'];
     if (!validWeights.includes(weight)) {
         throw new Error(`El peso debe ser uno de los siguientes: ${validWeights.join(', ')}`);
+    }
+    const validGenders = ['Hombre', 'Mujer'];
+    if (!validGenders.includes(gender)) {
+        throw new Error(`El género debe ser uno de los siguientes: ${validGenders.join(', ')}`);
     }
     const hashedPassword = yield bcrypt.hash(password, 10); // ✅ Seguridad
     const newUser = new User(Object.assign(Object.assign({}, userData), { password: hashedPassword }));
