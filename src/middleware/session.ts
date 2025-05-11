@@ -8,6 +8,8 @@ interface RequestExt extends Request {
 
 const checkJwt = (req: RequestExt, res: Response, next: NextFunction) => {
     try {
+        console.log("Token recibido:", req.headers.authorization); // Log para verificar el token recibido
+
         const jwtByUser = req.headers.authorization || null;
         const jwt = jwtByUser?.split(' ').pop();
 

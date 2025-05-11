@@ -1,5 +1,5 @@
 // src/services/user_service.ts
-import bcrypt from 'bcrypt'; // ✅ Necesario para login seguro
+import bcrypt from 'bcryptjs'; // ✅ Necesario para login seguro
 import User, { IUser } from '../users/user_models.js';
 import { generateToken, generateRefreshToken } from '../../utils/jwt.handle.js';
 
