@@ -115,7 +115,7 @@ app.get('/', (req, res) => {
 // Conexión a MongoDB
 //mongoose;
 mongoose
-    .connect(process.env.MONGODB_URI || 'mongodb://mongo:27017/proyecto')
+    .connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/proyecto')
     //.connect(process.env.MONGO_URI || 'mongodb://mongo:27017/proyecto')
     .then(() => console.log('Connected to DB'))
     .catch((error) => console.error('DB Connection Error:', error));
