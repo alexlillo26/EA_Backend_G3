@@ -30,7 +30,7 @@ const generateRefreshToken = (id: string) => {
 interface DecodedJWTPayload {
     id: string;         // Este se convertirá en socket.user.userId
     email: string;
-    name: string;   // Este se convertirá en socket.user.username
+    username: string;   // Este se convertirá en socket.user.username
     iat?: number;       // Issued at (lo añade jsonwebtoken)
     exp?: number;       // Expiration time (lo añade jsonwebtoken)
 }

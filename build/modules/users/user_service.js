@@ -17,8 +17,8 @@ export const saveMethod = () => {
 };
 // ✅ Crear usuario con validaciones y bcrypt
 export const createUser = (userData) => __awaiter(void 0, void 0, void 0, function* () {
-    const { name, email, password, birthDate, weight, city, phone, gender } = userData;
-    if (!name || !email || !password || !birthDate || !weight || !city || !phone || !gender) {
+    const { name, email, password, confirmPassword, birthDate, weight, city, phone, gender } = userData;
+    if (!name || !email || !password || confirmPassword || !birthDate || !weight || !city || !phone || !gender) {
         throw new Error('Todos los campos son obligatorios: name, email, password, birthDate, weight, city, phone');
     }
     const existingUser = yield User.findOne({
@@ -27,8 +27,14 @@ export const createUser = (userData) => __awaiter(void 0, void 0, void 0, functi
     if (existingUser) {
         throw new Error('El nombre de usuario, el correo electrónico o el número de teléfono ya están en uso');
     }
+    if (password !== confirmPassword) {
+        throw new Error('Las contraseñas no coinciden');
+    }
     if (password.length < 8) {
         throw new Error('La contraseña debe tener al menos 8 caracteres');
+    }
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(password)) {
+        throw new Error('La contraseña debe contener al menos una mayúscula, una minúscula, un número y un caracter especial');
     }
     if (!/^[^\s@]+@(gmail|yahoo|hotmail|outlook|icloud|protonmail)\.(com|es|org|net|edu|gov|info|io|co|us|uk)$/i.test(email)) {
         throw new Error('El correo electrónico no es válido');

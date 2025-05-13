@@ -124,7 +124,9 @@ export const loginUserHandler = async (req: Request, res: Response) => {
             message: 'Inicio de sesión completado',
             token,
             refreshToken,
-            user
+            userId: user._id,
+            username: user.name,
+          
         });
     } catch (error: any) {
         res.status(500).json({ message: error.message });

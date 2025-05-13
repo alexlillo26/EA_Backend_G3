@@ -125,7 +125,8 @@ export const loginUserHandler = (req, res) => __awaiter(void 0, void 0, void 0, 
             message: 'Inicio de sesión completado',
             token,
             refreshToken,
-            user
+            userId: user._id,
+            username: user.name,
         });
     }
     catch (error) {

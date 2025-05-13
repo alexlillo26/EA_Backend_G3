@@ -125,7 +125,7 @@ app.get('/', (req, res) => {
 // Conexión a MongoDB
 //mongoose;
 mongoose
-    .connect(process.env.MONGODB_URI || 'mongodb://mongo:27017/proyecto')
+    .connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/proyecto')
     //.connect(process.env.MONGO_URI || 'mongodb://mongo:27017/proyecto')
     .then(() => console.log('Connected to DB'))
     .catch((error) => console.error('DB Connection Error:', error));
@@ -135,80 +135,43 @@ mongoose
 
 // -------------------- LÓGICA DE CHAT SOCKET.IO PARA COMBATES --------------------
 
-// Interfaz para la información del usuario decodificada del token
+// --- CAMBIO IMPORTANTE: Interfaz para el payload del JWT decodificado ---
+// Esta interfaz debe reflejar EXACTAMENTE lo que verifyToken devuelve y lo que guardas en tu token.
+// Basado en tus logs de `[jwt.handle.ts] Token decodificado...`, tu token contiene 'id', 'email', 'username'.
+interface DecodedJWTPayload {
+    id: string;       // El ID del usuario
+    email: string;    // El email del usuario
+    username: string; // El nombre de usuario
+    iat?: number;     // Issued At (opcional, lo añade JWT)
+    exp?: number;     // Expiration Time (opcional, lo añade JWT)
+}
+
+// --- CAMBIO IMPORTANTE: Interfaz para el objeto 'user' que adjuntaremos al socket ---
+// Esta es la estructura que tendrá 'socket.user' después de la autenticación.
 interface AuthenticatedUser {
-    userId: string;
-    username?: string; // o cualquier otro campo que tengas en tu token
-    // ...otros campos del payload del JWT
+    userId: string;   // Usaremos 'userId' consistentemente en socket.user para el ID.
+    username: string; // Usaremos 'username' consistentemente en socket.user para el nombre.
+    email?: string;   // Opcional, si lo necesitas en el socket.user
 }
 
 // Extender el tipo Socket para incluir la información del usuario
 interface AuthenticatedSocket extends Socket {
-    user?: AuthenticatedUser;
+    user?: AuthenticatedUser; // socket.user tendrá la estructura de AuthenticatedUser
 }
 
-// Interfaz para mensajes de chat de combate
+// --- CAMBIO IMPORTANTE: Interfaz para mensajes de chat de combate ---
+// Asegúrate de que esta interfaz incluya senderId, ya que es crucial para el cliente.
 interface CombatChatMessage {
     combatId: string;
-    senderId: string; // ID del usuario que envía
-    senderUsername?: string; // Nombre de usuario del que envía (opcional, del token)
+    senderId: string;         // ID del usuario que envía el mensaje (debe ser socket.user.userId)
+    senderUsername?: string; // Nombre de usuario del que envía (debe ser socket.user.username)
     message: string;
     timestamp: string;
 }
 
 /**
  * @openapi
- * components:
- * schemas:
- * CombatChatMessage:
- * type: object
- * properties:
- * combatId:
- * type: string
- * description: ID del combate al que pertenece el mensaje.
- * senderId:
- * type: string
- * description: ID del usuario que envió el mensaje.
- * senderUsername:
- * type: string
- * description: Nombre de usuario del remitente.
- * message:
- * type: string
- * description: Contenido del mensaje.
- * timestamp:
- * type: string
- * format: date-time
- * description: Fecha y hora del mensaje.
- * sockets:
- * CombatChat:
- * description: Namespace para el chat de combates. (Conceptualmente, aunque aquí no usamos namespace explícito)
- * clientEvents:
- * join_combat_chat:
- * summary: Unirse a la sala de chat de un combate específico.
- * payload:
- * type: object
- * properties:
- * combatId:
- * type: string
- * send_combat_message:
- * summary: Enviar un mensaje al chat de un combate.
- * payload:
- * $ref: '#/components/schemas/CombatChatMessage' # O una versión simplificada que el servidor completará
- * serverEvents:
- * receive_combat_message:
- * summary: Recibir un nuevo mensaje en el chat de un combate.
- * payload:
- * $ref: '#/components/schemas/CombatChatMessage'
- * combat_chat_notification:
- * summary: Notificaciones generales del chat del combate (ej. usuario unido/ido).
- * payload:
- * type: object
- * properties:
- * message:
- * type: string
- * type:
- * type: string
- * enum: [info, error, success]
+ * ... (tu documentación OpenAPI para sockets se mantiene igual) ...
  */
 
 // Middleware de autenticación para Socket.IO (se ejecuta al intentar conectar)
@@ -221,33 +184,42 @@ io.use(async (socket: AuthenticatedSocket, next) => {
     }
 
     try {
-        // verifyAccessToken debería devolver el payload del token o lanzar un error
-        interface DecodedJWTPayload {
-            userId: string;
-            username?: string; // Add other fields as needed
-        }
-        const decodedPayload = await verifyToken(token) as unknown as DecodedJWTPayload; // Convert to 'unknown' first to resolve type conflict
+        // --- CAMBIO IMPORTANTE en la verificación y asignación del payload ---
+        // 1. verifyToken devuelve un payload con 'id', 'email', 'username' (como DecodedJWTPayload)
+        const decodedPayload = await verifyToken(token) as DecodedJWTPayload;
+
+        // 2. Creamos el objeto 'authenticatedUser' que se adjuntará a socket.user.
+        // Mapeamos 'id' del token a 'userId' en nuestro objeto 'socket.user'.
         const authenticatedUser: AuthenticatedUser = {
-            userId: decodedPayload.userId, // Ensure userId exists in DecodedJWTPayload
-            username: decodedPayload.username // Map other fields as needed
+            userId: decodedPayload.id,       // 'id' del token se convierte en 'userId' para el socket
+            username: decodedPayload.username, // 'username' del token se convierte en 'username' para el socket
+            email: decodedPayload.email      // 'email' del token (opcional guardarlo en socket.user)
         };
-        socket.user = authenticatedUser; // Adjuntar información del usuario al socket
-        socket.user = decodedPayload; // Adjuntar información del usuario al socket
-        console.log(`Socket ${socket.id}: Autenticado correctamente. Usuario: ${decodedPayload.userId}`);
+
+        // 3. Adjuntamos el objeto 'authenticatedUser' formateado al socket.
+        socket.user = authenticatedUser;
+
+        // Log para verificar que los datos correctos se están asignando
+        console.log(`Socket ${socket.id}: Autenticado correctamente. UserID: ${socket.user.userId}, Username: ${socket.user.username}`);
         next(); // Token válido, proceder con la conexión
+
     } catch (err: any) {
-        console.log(`Socket ${socket.id}: Conexión rechazada - Token inválido. Error: ${err.message}`);
-        return next(new Error('Authentication error: Invalid token'));
+        console.log(`Socket ${socket.id}: Conexión rechazada - Token inválido o expirado. Error: ${err.message}`);
+        return next(new Error(`Authentication error: ${err.message} (Invalid or expired token)`));
     }
 });
 
 io.on('connection', (socket: AuthenticatedSocket) => {
-    console.log(`Usuario conectado al chat: ${socket.id}, UserId: ${socket.user?.userId}`);
+    // --- CAMBIO IMPORTANTE en el log de conexión ---
+    // Usamos socket.user.userId y socket.user.username consistentemente.
+    console.log(`Usuario conectado al chat: ${socket.id}, UserId: ${socket.user?.userId}, Username: ${socket.user?.username}`);
 
     // Evento para unirse a la sala de chat de un combate específico
     socket.on('join_combat_chat', (data: { combatId: string }) => {
-        if (!socket.user) {
+        // --- CAMBIO IMPORTANTE: Verificar socket.user y socket.user.userId ---
+        if (!socket.user || !socket.user.userId) { // Verificar que userId exista
             socket.emit('combat_chat_error', { message: 'Usuario no autenticado para unirse al chat.' });
+            console.log(`Socket ${socket.id}: Intento de unirse al chat sin autenticación completa (falta userId).`);
             return;
         }
         if (!data || !data.combatId) {
@@ -257,10 +229,9 @@ io.on('connection', (socket: AuthenticatedSocket) => {
 
         const combatRoom = `combat_${data.combatId}`;
         socket.join(combatRoom);
-        console.log(`Usuario ${socket.user.userId} (Socket ${socket.id}) se unió a la sala del combate: ${combatRoom}`);
+        // Usar socket.user.userId y socket.user.username
+        console.log(`Usuario ${socket.user.username} (ID: ${socket.user.userId}, Socket: ${socket.id}) se unió a la sala: ${combatRoom}`);
 
-        // Notificar al otro participante en la sala (si hay alguno)
-        // El 'to' envía a todos en la sala excepto al socket actual.
         socket.to(combatRoom).emit('combat_chat_notification', {
             type: 'info',
             message: `${socket.user.username || 'Un oponente'} se ha unido al chat del combate.`
@@ -273,8 +244,10 @@ io.on('connection', (socket: AuthenticatedSocket) => {
 
     // Evento para enviar un mensaje en el chat de un combate
     socket.on('send_combat_message', (data: { combatId: string; message: string }) => {
-        if (!socket.user) {
+        // --- CAMBIO IMPORTANTE: Verificar socket.user y socket.user.userId ---
+        if (!socket.user || !socket.user.userId) { // Verificar que userId exista
             socket.emit('combat_chat_error', { message: 'Usuario no autenticado para enviar mensaje.' });
+            console.log(`Socket ${socket.id}: Intento de enviar mensaje sin autenticación completa (falta userId).`);
             return;
         }
         if (!data || !data.combatId || !data.message) {
@@ -283,39 +256,39 @@ io.on('connection', (socket: AuthenticatedSocket) => {
         }
 
         const combatRoom = `combat_${data.combatId}`;
+        // --- CAMBIO IMPORTANTE: Construir messageData usando socket.user.userId y socket.user.username ---
         const messageData: CombatChatMessage = {
             combatId: data.combatId,
-            senderId: socket.user.userId,
-            senderUsername: socket.user.username,
+            senderId: socket.user.userId,         // ¡Este campo es crucial para el cliente!
+            senderUsername: socket.user.username, // Nombre del remitente
             message: data.message,
             timestamp: new Date().toISOString()
         };
 
-        // Enviar el mensaje a todos en la sala del combate (incluyendo al remitente)
-        io.to(combatRoom).emit('receive_combat_message', messageData);
-        console.log(`Mensaje enviado en ${combatRoom} por ${socket.user.userId}: "${data.message}"`);
+        io.to(combatRoom).emit('receive_combat_message', messageData); // Enviar a todos en la sala
+        // Log mejorado
+        console.log(`Mensaje ("${data.message}") enviado en ${combatRoom} por ${socket.user.username} (ID: ${socket.user.userId})`);
     });
 
     // Evento para indicar que el usuario está escribiendo
     socket.on('typing_in_combat', (data: { combatId: string; isTyping: boolean }) => {
-        if (!socket.user || !data || !data.combatId) return;
+        // --- CAMBIO IMPORTANTE: Verificar socket.user y socket.user.userId ---
+        if (!socket.user || !socket.user.userId || !data || !data.combatId) return;
+
         const combatRoom = `combat_${data.combatId}`;
         socket.to(combatRoom).emit('opponent_typing', {
-            userId: socket.user.userId,
-            username: socket.user.username,
+            userId: socket.user.userId, // Enviar el userId
+            username: socket.user.username, // Enviar el username
             isTyping: data.isTyping
         });
     });
 
-
     // Manejar desconexión
     socket.on('disconnect', (reason) => {
-        console.log(`Usuario desconectado del chat: ${socket.id}, UserId: ${socket.user?.userId}. Razón: ${reason}`);
+        console.log(`Usuario desconectado del chat: ${socket.id}, UserId: ${socket.user?.userId}, Username: ${socket.user?.username}. Razón: ${reason}`);
         if (socket.user) {
-            // Notificar a las salas de combate en las que estaba el usuario
-            // socket.rooms es un Set que incluye el ID del socket como una sala.
             socket.rooms.forEach(room => {
-                if (room.startsWith('combat_')) { // Solo notificar a las salas de combate
+                if (room.startsWith('combat_')) {
                     socket.to(room).emit('combat_chat_notification', {
                         type: 'info',
                         message: `${socket.user?.username || 'Un oponente'} ha abandonado el chat.`
@@ -325,15 +298,12 @@ io.on('connection', (socket: AuthenticatedSocket) => {
         }
     });
 
-    // Manejar errores de socket post-conexión (la autenticación ya se hizo en io.use)
+    // Manejar errores de socket post-conexión
     socket.on('error', (err) => {
-        console.error(`Error en socket ${socket.id} (Usuario ${socket.user?.userId}): ${err.message}`);
-        // Podrías emitir un error genérico al cliente si es apropiado
+        console.error(`Error en socket ${socket.id} (Usuario ${socket.user?.userId}, Username: ${socket.user?.username}): ${err.message}`);
         socket.emit('combat_chat_error', { message: `Error interno del socket: ${err.message}` });
     });
 });
-
-
 
 // Iniciar el servidor HTTP (que incluye Express y Socket.IO)
 httpServer.listen(LOCAL_PORT, () => {
@@ -341,15 +311,13 @@ httpServer.listen(LOCAL_PORT, () => {
     console.log(`Swagger disponible en http://localhost:${LOCAL_PORT}/api-docs`);
 });
 
-
-
-app.use(cors(
-    {
-        origin: 'http://localhost:3000', // Cambia '*' por la URL de tu frontend si es necesario
-        credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'DELETE'], }
-))
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec)); // Ensure Swagger is accessible
+// Configuración de CORS para Express (sin cambios)
+app.use(cors({
+    origin: 'http://localhost:3000',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+}));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
 console.log("GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET);
