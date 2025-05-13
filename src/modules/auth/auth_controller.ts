@@ -42,7 +42,7 @@ export const googleAuthCallback = async (req: Request, res: Response) => {
             return res.redirect('/login?error=authentication_failed');
         }
 
-        const { token, refreshToken, } = authData; // Asegúrate de desestructurar refreshToken
+        const { token, refreshToken } = authData; // Ensure refreshToken is included
 
         res.cookie('token', token, {
             httpOnly: true,
@@ -51,16 +51,9 @@ export const googleAuthCallback = async (req: Request, res: Response) => {
             maxAge: 86400000, // 1 día
         });
 
-        res.cookie('refreshToken', refreshToken, { // Ahora refreshToken está definido
-            httpOnly: true,
-            secure: false,
-            sameSite: 'none',
-            maxAge: 7 * 86400000, // 7 días
-        });
-
         const redirectMap: Record<string, string> = {
-            frontend: `http://localhost:4200/user-dashboard?token=${token}`,
-            webreact: `http://localhost:3000/?token=${token}`,
+            frontend: `http://localhost:4200/user-dashboard?token=${token}&refreshToken=${refreshToken}`,
+            webreact: `http://localhost:3000/?token=${token}&refreshToken=${refreshToken}`,
         };
 
         const redirectUrl = redirectMap[origin] || redirectMap['frontend']; // Redirigir según el origen

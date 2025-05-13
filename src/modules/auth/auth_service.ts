@@ -65,11 +65,11 @@ export const googleAuth = async (code: string): Promise<{ token: string; refresh
 
         const refreshToken = user
             ? generateRefreshToken(user.id)
-            : generateRefreshToken(gym!.id);
+            : generateRefreshToken(gym!.id); // Ensure refreshToken is generated
 
-            console.log("Generated refresh token for Google user:", refreshToken); // Debugging log
+        console.log("Generated refresh token for Google user:", refreshToken); // Debugging log
 
-        return { token, refreshToken, user, gym };
+        return { token, refreshToken, user, gym }; // Ensure refreshToken is returned
     } catch (error: any) {
         console.error('Google Auth Error:', error.response?.data || error.message);
         throw new Error('Error en autenticación con Google');
