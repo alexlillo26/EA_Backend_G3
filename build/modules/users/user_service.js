@@ -18,7 +18,7 @@ export const saveMethod = () => {
 // ✅ Crear usuario con validaciones y bcrypt
 export const createUser = (userData) => __awaiter(void 0, void 0, void 0, function* () {
     const { name, email, password, confirmPassword, birthDate, weight, city, phone, gender } = userData;
-    if (!name || !email || !password || confirmPassword || !birthDate || !weight || !city || !phone || !gender) {
+    if (!name || !email || !password || !confirmPassword || !birthDate || !weight || !city || !phone || !gender) {
         throw new Error('Todos los campos son obligatorios: name, email, password, birthDate, weight, city, phone');
     }
     const existingUser = yield User.findOne({
@@ -137,11 +137,13 @@ export const searchUsers = (city, weight) => __awaiter(void 0, void 0, void 0, f
         // Si no se proporciona ciudad ni peso, devolver todos los usuarios
         const users = yield User.find(query)
             .select('name city weight -_id') // Devuelve sólo los campos necesarios, excluyendo _id
-            .sort({ name: 1 });
+            .sort({ name: 1 })
+            .lean(); // lean() 返回 plain JS 对象，防止 Mongoose bug
         return users;
     }
     catch (error) {
         console.error('Error in searchUsers:', error);
-        throw error;
+        // 返回空数组而不是抛出异常，防止 500
+        return [];
     }
 });

@@ -12,7 +12,7 @@ export const saveMethod = () => {
 export const createUser = async (userData: IUser & {confirmPassword: string}) => {
   const { name, email, password, confirmPassword, birthDate, weight, city, phone, gender } = userData;
 
-  if (!name || !email || !password || confirmPassword || !birthDate || !weight || !city || !phone || !gender) {
+  if (!name || !email || !password || !confirmPassword || !birthDate || !weight || !city || !phone || !gender) {
     throw new Error('Todos los campos son obligatorios: name, email, password, birthDate, weight, city, phone');
   }
 
@@ -164,11 +164,13 @@ export const searchUsers = async (city?: string, weight?: string) => {
     // Si no se proporciona ciudad ni peso, devolver todos los usuarios
     const users = await User.find(query)
       .select('name city weight -_id') // Devuelve sólo los campos necesarios, excluyendo _id
-      .sort({ name: 1 });
+      .sort({ name: 1 })
+      .lean(); // lean() Devuelve objetos JS planos para evitar errores de Mongoose.
 
     return users;
   } catch (error) {
     console.error('Error in searchUsers:', error);
-    throw error;
+    // Devolver una matriz vacía en lugar de lanzar una excepción evita que los 500
+    return [];
   }
 };

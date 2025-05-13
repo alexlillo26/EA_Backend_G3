@@ -26,6 +26,7 @@ export const createUserHandler = (req, res) => __awaiter(void 0, void 0, void 0,
         res.status(201).json(data);
     }
     catch (error) {
+        console.error('Error in createUserHandler:', error);
         if (error.name === 'ValidationError') {
             res.status(400).json({ message: 'El correo electrónico no es válido o la contraseña es demasiado corta' });
         }

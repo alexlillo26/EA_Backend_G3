@@ -18,6 +18,7 @@ export const createUserHandler = async (req: Request, res: Response) => {
         const data = await createUser(req.body);
         res.status(201).json(data);
     } catch (error: any) {
+        console.error('Error in createUserHandler:', error);
         if (error.name === 'ValidationError') {
             res.status(400).json({ message: 'El correo electrónico no es válido o la contraseña es demasiado corta' });
         } else if (error.message.includes('ya están en uso')) {
