@@ -138,12 +138,12 @@ export const searchUsers = (city, weight) => __awaiter(void 0, void 0, void 0, f
         const users = yield User.find(query)
             .select('name city weight -_id') // Devuelve sólo los campos necesarios, excluyendo _id
             .sort({ name: 1 })
-            .lean(); // lean() 返回 plain JS 对象，防止 Mongoose bug
+            .lean(); // lean() Devuelve objetos JS planos para evitar errores de Mongoose.
         return users;
     }
     catch (error) {
         console.error('Error in searchUsers:', error);
-        // 返回空数组而不是抛出异常，防止 500
+        // Devolver una matriz vacía en lugar de lanzar una excepción evita que los 500
         return [];
     }
 });

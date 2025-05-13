@@ -13,13 +13,11 @@ import express from 'express';
 import mongoose from 'mongoose';
 import http from 'http'; // Necesario para Socket.IO
 import { Server as SocketIOServer } from 'socket.io'; // Importar Server y Socket de socket.io
-// ASUNCIÓN: Tu verifyToken está en './utils/jwt.handle.js' y devuelve un payload como:
-// { id: string, email: string, username: string, iat?: number, exp?: number }
-import { verifyToken } from './utils/jwt.handle.js';
-import userRoutes from './modules/users/user_routes.js';
-import gymRoutes from './modules/gyms/gym_routes.js';
+import { verifyToken } from './utils/jwt.handle.js'; // Cambia a verifyToken
+import userRoutes from './modules/users/user_routes.js'; // Nota el .js al final
+import gymRoutes from './modules/gyms/gym_routes.js'; // Nota el .js al final
 import combatRoutes from './modules/combats/combat_routes.js';
-import authRoutes from './modules/auth/auth_routes.js';
+import authRoutes from './modules/auth/auth_routes.js'; // Ensure this file exists
 import { corsHandler } from './middleware/corsHandler.js';
 import { loggingHandler } from './middleware/loggingHandler.js';
 import swaggerUi from 'swagger-ui-express';
@@ -27,21 +25,26 @@ import swaggerJSDoc from 'swagger-jsdoc';
 import cors from 'cors';
 const app = express();
 const LOCAL_PORT = process.env.SERVER_PORT || 9000;
+// Crear un servidor HTTP a partir de la app de Express
 const httpServer = http.createServer(app);
+// Configurar Socket.IO, adjuntándolo al mismo servidor HTTP
 const io = new SocketIOServer(httpServer, {
     cors: {
         origin: [
             "http://localhost:3000",
             "http://localhost",
+            // Para emulador Android, el host es 10.0.2.2. Flutter se conectará a esta IP y al puerto LOCAL_PORT
             "http://10.0.2.2",
-            process.env.FLUTTER_APP_ORIGIN || "*"
+            // Añade aquí la URL de tu app Flutter cuando esté en producción o en pruebas en dispositivo físico
+            // Ejemplo: si tu servidor está en 192.168.1.100, Flutter se conectaría a http://192.168.1.100:LOCAL_PORT
+            // Considera usar una variable de entorno para el origen en producción.
+            process.env.FLUTTER_APP_ORIGIN || "*" // En desarrollo puedes usar '*', pero sé específico en producción
         ],
         methods: ["GET", "POST"],
         credentials: true
     }
 });
-// Configuración de Swagger (sin cambios)
-// ... (tu código de swaggerOptions y swaggerSpec se mantiene igual) ...
+// Configuración de Swagger
 const swaggerOptions = {
     definition: {
         openapi: '3.0.0',
@@ -50,29 +53,70 @@ const swaggerOptions = {
             version: '1.0.0',
             description: 'Documentación de la API de Usuarios'
         },
-        tags: [ /* ... tus tags ... */],
-        servers: [{ url: `http://localhost:${LOCAL_PORT}` }],
-        components: { /* ... tus componentes ... */},
-        security: [ /* ... tu seguridad ... */]
+        tags: [
+            {
+                name: 'Users',
+                description: 'Rutas relacionadas con la gestión de usuarios',
+            },
+            {
+                name: 'Gym',
+                description: 'Rutas relacionadas con los gimnasios',
+            },
+            {
+                name: 'Main',
+                description: 'Rutas principales de la API',
+            },
+            {
+                name: 'Combat',
+                description: 'Rutas relacionadas con los combates',
+            },
+            {
+                name: 'Auth',
+                description: 'Rutas relacionadas con la autenticación',
+            }
+        ],
+        servers: [
+            {
+                url: `http://localhost:${LOCAL_PORT}`
+            }
+        ],
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT'
+                }
+            }
+        },
+        security: [
+            {
+                bearerAuth: []
+            }
+        ]
     },
-    apis: ['./modules/users/*.js', './modules/gyms/*.js', './modules/combats/*.js', './modules/auth/*.ts']
+    apis: ['./modules/users/*.js', './modules/gyms/*.js', './modules/combats/*.js', './modules/auth/*.ts'] // Incluye auth/*.ts
 };
 const swaggerSpec = swaggerJSDoc(swaggerOptions);
 app.use('/api-subjects', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-// Middleware (sin cambios)
+// Middleware
 app.use(express.json());
-app.use(corsHandler);
-app.use(loggingHandler);
-//rutas (sin cambios)
+app.use(corsHandler); // Ensure CORS middleware is applied
+app.use(loggingHandler); // Ensure logging middleware is applied
+//rutas
 app.use('/api', userRoutes);
 app.use('/api', gymRoutes);
 app.use('/api', combatRoutes);
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authRoutes); // Ensure this line is present and correct
+// Rutes de prova
 app.get('/', (req, res) => {
     res.send('Welcome to my API');
 });
+// Conexión a MongoDB
+//mongoose;
 mongoose
     .connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/proyecto')
+    //.connect(process.env.MONGO_URI || 'mongodb://mongo:27017/proyecto')
     .then(() => console.log('Connected to DB'))
     .catch((error) => console.error('DB Connection Error:', error));
 /**
