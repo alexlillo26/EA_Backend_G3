@@ -105,3 +105,36 @@ export const refreshGymTokenHandler = async (req: Request, res: Response) => {
         res.status(403).json({ message: 'Refresh token inválido' });
     }
 };
+
+export const getCurrentGymHandler = async (req: any, res: Response) => {
+    try {
+        // 日志方便排查
+        console.log('Received token:', req.headers.authorization);
+        console.log('Decoded user:', req.user);
+
+        const gymId = req.user?.id;
+
+        if (!gymId) {
+            return res.status(401).json({
+                error: 'No se encontró el ID del gimnasio en el token'
+            });
+        }
+
+        const gym = await Gym.findById(gymId)
+            .select('-password')
+            .lean();
+
+        if (!gym) {
+            return res.status(404).json({
+                error: 'Gimnasio no encontrado'
+            });
+        }
+
+        res.status(200).json(gym);
+    } catch (error) {
+        console.error('Error en getCurrentGymHandler:', error);
+        res.status(500).json({
+            error: 'Error al obtener información del gimnasio'
+        });
+    }
+};

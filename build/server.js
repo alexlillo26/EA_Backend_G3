@@ -103,6 +103,11 @@ app.use('/api-subjects', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(express.json());
 app.use(corsHandler); // Ensure CORS middleware is applied
 app.use(loggingHandler); // Ensure logging middleware is applied
+app.use(cors({
+    origin: 'http://localhost:3000',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+}));
 //rutas
 app.use('/api', userRoutes);
 app.use('/api', gymRoutes);
@@ -248,11 +253,6 @@ httpServer.listen(LOCAL_PORT, () => {
     console.log(`Swagger disponible en http://localhost:${LOCAL_PORT}/api-docs`);
 });
 // Configuración de CORS para Express (sin cambios)
-app.use(cors({
-    origin: 'http://localhost:3000',
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-}));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
 console.log("GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET);

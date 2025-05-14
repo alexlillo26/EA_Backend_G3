@@ -3,12 +3,12 @@ import { verifyToken } from '../utils/jwt.handle.js';
 import { JwtPayload } from 'jsonwebtoken';
 
 interface RequestExt extends Request {
-    user?: string | JwtPayload;
+    user?: any;
 }
 
 const checkJwt = (req: RequestExt, res: Response, next: NextFunction) => {
     try {
-        console.log("Token recibido:", req.headers.authorization); // Log para verificar el token recibido
+        console.log("Token recibido:", req.headers.authorization);
 
         const jwtByUser = req.headers.authorization || null;
         const jwt = jwtByUser?.split(' ').pop();
@@ -17,14 +17,22 @@ const checkJwt = (req: RequestExt, res: Response, next: NextFunction) => {
             return res.status(401).json({ message: 'No token provided' });
         }
 
-        const isUser = verifyToken(jwt) as JwtPayload; // Ensure correct typing
+        const decodedToken = verifyToken(jwt) as any;
 
-        if (!isUser || !isUser.id || !isUser.email) {
+        if (!decodedToken || !decodedToken.id || !decodedToken.email) {
             return res.status(401).json({ message: 'Invalid token' });
         }
 
-        req.user = isUser;
-        next(); // Proceed only if the token is valid
+        // 统一设置 req.user 字段，便于后续控制器使用
+        req.user = {
+            id: decodedToken.id,
+            email: decodedToken.email,
+            name: decodedToken.username || decodedToken.name // 兼容 username 字段
+        };
+
+        console.log("Decoded user:", req.user);
+
+        next();
     } catch (e: any) {
         if (e.message === 'Token expired') {
             return res.status(401).json({ message: 'Token expired' });
