@@ -92,3 +92,20 @@ export const refreshGymToken = (refreshToken) => __awaiter(void 0, void 0, void 
     const newToken = generateToken(gym.id, gym.email, gym.name); // Fixed: Added username argument
     return newToken;
 });
+export const getCurrentGym = (userId) => __awaiter(void 0, void 0, void 0, function* () {
+    const gym = yield Gym.findById(userId).select('-password');
+    if (!gym) {
+        throw new Error('Gimnasio no encontrado');
+    }
+    if (gym.isHidden) {
+        throw new Error('Este gimnasio está oculto');
+    }
+    return {
+        id: gym._id,
+        name: gym.name,
+        email: gym.email,
+        phone: gym.phone,
+        place: gym.place,
+        price: gym.price
+    };
+});

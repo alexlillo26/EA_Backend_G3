@@ -8,6 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { addGym, deleteGym, getAllGyms, getGymById, updateGym, hideGym, loginGym, refreshGymToken } from './gym_service.js';
+import Gym from './gym_models.js'; // Added missing import
 export const addGymHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("ADD GYM!!!!");
     try {
@@ -109,5 +110,34 @@ export const refreshGymTokenHandler = (req, res) => __awaiter(void 0, void 0, vo
     }
     catch (error) {
         res.status(403).json({ message: 'Refresh token inválido' });
+    }
+});
+export const getCurrentGymHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        // 日志方便排查
+        console.log('Received token:', req.headers.authorization);
+        console.log('Decoded user:', req.user);
+        const gymId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (!gymId) {
+            return res.status(401).json({
+                error: 'No se encontró el ID del gimnasio en el token'
+            });
+        }
+        const gym = yield Gym.findById(gymId)
+            .select('-password')
+            .lean();
+        if (!gym) {
+            return res.status(404).json({
+                error: 'Gimnasio no encontrado'
+            });
+        }
+        res.status(200).json(gym);
+    }
+    catch (error) {
+        console.error('Error en getCurrentGymHandler:', error);
+        res.status(500).json({
+            error: 'Error al obtener información del gimnasio'
+        });
     }
 });
