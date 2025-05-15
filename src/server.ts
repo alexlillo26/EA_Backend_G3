@@ -316,6 +316,12 @@ httpServer.listen(LOCAL_PORT, () => {
     console.log(`Swagger disponible en http://localhost:${LOCAL_PORT}/api-docs`);
 });
 
+app.use(cors({
+    origin: ['http://localhost:3000', 'http://192.168.10.188:3000'], // Añade la IP del servidor
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+}));
+
 // Configuración de CORS para Express (sin cambios)
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
