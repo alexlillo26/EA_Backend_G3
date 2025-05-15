@@ -111,7 +111,7 @@ app.use(express.json());
 app.use(corsHandler); // Ensure CORS middleware is applied
 app.use(loggingHandler); // Ensure logging middleware is applied
 app.use(cors({
-    origin: 'http://localhost:3000',
+    origin: '*',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
@@ -317,7 +317,7 @@ httpServer.listen(LOCAL_PORT, () => {
 });
 
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://192.168.10.188:3000'], // Añade la IP del servidor
+    origin: ['*'], // Añade la IP del servidor
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
