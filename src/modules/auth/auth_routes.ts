@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { verifyRefreshToken, generateToken } from '../../utils/jwt.handle.js';
 import { googleAuthCtrl, googleAuthCallback, googleRegisterCtrl } from "../auth/auth_controller.js";
+import User from '../users/user_models.js'; // Add this import
 
 const router = Router();
 
@@ -30,7 +31,7 @@ const router = Router();
  *       500:
  *         description: Error interno del servidor
  */
-router.post('/refresh-token', (req: Request, res: Response) => {
+router.post('/refresh-token', async (req: Request, res: Response) => {
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
@@ -44,7 +45,13 @@ router.post('/refresh-token', (req: Request, res: Response) => {
             return res.status(401).json({ message: 'Invalid refresh token' });
         }
 
-        const newAccessToken = generateToken(decoded.id, decoded.email, decoded.username); // Added username argument
+        const user = await User.findById(decoded.id); // Busca al usuario en la base de datos
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Genera un nuevo token con id, email y username
+        const newAccessToken = generateToken(user.id, user.email, user.name);
 
         return res.json({ token: newAccessToken });
     } catch (e: any) {

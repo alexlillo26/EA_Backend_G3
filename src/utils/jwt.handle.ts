@@ -12,9 +12,9 @@ const generateToken = (id: string, email: string, username: string) => { // Aña
     // Es crucial que 'userId' (o como lo llames, aquí es 'id') esté presente
     // También añadimos 'username' para usarlo en el chat server-side
     const payload = {
-        id: id,         // Este será tu 'userId' en el backend del chat.
-        email: email,
-        username: username // Añadimos el nombre de usuario al payload
+        id,         // Este será tu 'userId' en el backend del chat.
+        email,
+        username // Añadimos el nombre de usuario al payload
     };
     // Firmamos el token con el payload, la clave secreta y un tiempo de expiración
     return sign(payload, JWT_SECRET, { expiresIn: '20s' });
