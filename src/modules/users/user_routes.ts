@@ -70,6 +70,8 @@ router.get('/main', saveMethodHandler);
  *                 type: string
  *               password:
  *                 type: string
+ *               confirmPassword:
+ *                 type: string
  *                 description: Contraseña del usuario (mínimo 8 caracteres)
  *               isAdmin:
  *                 type: boolean
@@ -79,6 +81,9 @@ router.get('/main', saveMethodHandler);
  *               city:
  *                 type: string
  *               phone:
+ *                 type: string
+ *               gender:
+ *                 enum: [Hombre, Mujer]
  *                 type: string
  *     responses:
  *       201:

@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./EA-BackEnd-G3/EA_Backend_G3
+      dockerfile: Dockerfile
+    ports:
+      - "9000:9000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://admin:1234@mongo:27017/proyecto?authSource=admin
+      - SERVER_PORT=9000
+    networks:
+      - backend_network
+
+  frontend:
+    build:
+      context: ./EA-FrontEnd-G3/EA_Frontend_G3
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - frontend_network
+
+  webreact:  # ✅ Correctamente alineado con 'frontend' y 'backend'
+    build:
+      context: ./EA-WebREACT-G3/EA_WebReact_G3
+      dockerfile: Dockerfile
+    ports:
+      - "3001:80"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - frontend_network
+
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    environment: # --- AÑADIDO: Para crear el usuario root/admin ---
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: 1234
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - backend_network
+    healthcheck: # --- AÑADIDO: Para que depends_on: condition: service_healthy funcione ---
+      test: |
+        mongosh --eval "try { rs.status().ok } catch (er) { db.adminCommand('ping').ok }" --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+networks:
+  frontend_network:
+  backend_network:
+
+volumes:
+  mongo-data:

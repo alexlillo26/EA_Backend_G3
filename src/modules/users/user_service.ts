@@ -12,10 +12,10 @@ export const saveMethod = () => {
 export const createUser = async (userData: IUser & {confirmPassword: string}) => {
   const { name, email, password, confirmPassword, birthDate, weight, city, phone, gender } = userData;
 
-  if (!name || !email || !password || !confirmPassword || !birthDate || !weight || !city || !phone || !gender) {
-    throw new Error('Todos los campos son obligatorios: name, email, password, birthDate, weight, city, phone');
-  }
-
+  // En user_service.ts, dentro de createUser
+if (!name || !email || !password || !confirmPassword || !birthDate || !weight || !city || !phone || !gender) {
+  throw new Error('Todos los campos son obligatorios: name, email, password, confirmPassword, birthDate, weight, city, phone, gender'); // <--- MENSAJE ACTUALIZADO
+}
   const existingUser = await User.findOne({
     $or: [{ name }, { email }, { phone }]
   });
