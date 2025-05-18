@@ -1,4 +1,3 @@
-
 import mongoose from 'mongoose';
 import Combat, { ICombat } from '../combats/combat_models.js';
 
@@ -76,4 +75,29 @@ export const getBoxersByCombatId = async (id: string) => {
 
 export const hideCombat = async (id: string, isHidden: boolean) => {
     return await Combat.updateOne({ _id: id }, { $set: { isHidden } });
+};
+
+export const getCombatsByGymId = async (gymId: string, page: number, pageSize: number) => {
+    try {
+        const skip = (page - 1) * pageSize;
+        // gym字段是ObjectId类型，查询时需转换
+        const query = { gym: new mongoose.Types.ObjectId(gymId), isHidden: false };
+        const totalCombats = await Combat.countDocuments(query);
+        const totalPages = Math.ceil(totalCombats / pageSize);
+        const combats = await Combat.find(query)
+            .skip(skip)
+            .limit(pageSize)
+            .populate('gym')
+            .populate('boxers');
+        return {
+            combats,
+            totalCombats,
+            totalPages,
+            currentPage: page,
+            pageSize
+        };
+    } catch (error) {
+        console.error('Error in getCombatsByGymId:', error);
+        throw error;
+    }
 };  

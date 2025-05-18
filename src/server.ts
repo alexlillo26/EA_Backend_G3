@@ -71,7 +71,13 @@ const swaggerOptions = {
         },
         security: [{ bearerAuth: [] }]
     },
-    apis: ['./src/server.ts']
+    apis: [
+        './src/server.ts',
+        './src/modules/auth/*.ts',
+        './src/modules/users/*.ts',
+        './src/modules/gyms/*.ts',
+        './src/modules/combats/*.ts'
+    ]
 };
 const swaggerSpec = swaggerJSDoc(swaggerOptions);
 // Este console.log es CRUCIAL para depurar qué está generando swagger-jsdoc
@@ -104,7 +110,7 @@ app.use(loggingHandler);
 app.use('/api/auth', authRoutes);
 app.use('/api', userRoutes);
 app.use('/api', gymRoutes);
-app.use('/api', combatRoutes);
+app.use('/api/combat', combatRoutes);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
 
@@ -116,7 +122,7 @@ app.get('/ping', (_req, res) => {
     res.send('pong');
 });
 
-const mongoUriToConnect = process.env.MONGODB_URI || 'mongodb://mongo:27017/proyecto';
+const mongoUriToConnect = process.env.MONGODB_URI || 'mongodb://localhost:27017/proyecto';
 mongoose
     .connect(mongoUriToConnect)
     .then(() => console.log('Conectado a MongoDB exitosamente'))
