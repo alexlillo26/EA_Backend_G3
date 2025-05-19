@@ -31,6 +31,7 @@ const io = new SocketIOServer(httpServer, {
             "http://localhost:3000",     // Desarrollo local frontend Angular
             "http://localhost:3001",     // Desarrollo local frontend WebReact
             "http://localhost",          // Pruebas generales API local
+            "http://localhost:54385", // Origen de Flutter web debug
             `http://localhost:${LOCAL_PORT}`, // Para Swagger UI local si accedes por localhost
             "http://10.0.2.2",           // Emulador Android
             process.env.FLUTTER_APP_ORIGIN || "*" // Para Flutter (ser específico en producción)
@@ -87,6 +88,8 @@ app.use(cors({
         "http://ea3-back.upc.edu",
         "http://localhost:3000",
         "http://localhost:3001",
+        "http://localhost:54385", // Origen de Flutter web debug
+
         // Añade otros orígenes de desarrollo si los necesitas
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
