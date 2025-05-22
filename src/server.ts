@@ -27,14 +27,14 @@ const httpServer = http.createServer(app);
 const io = new SocketIOServer(httpServer, {
     cors: {
         origin: [
-            "http://ea3.upc.edu",         // Frontend Angular (proxy)
-            "http://ea3-back.upc.edu",   // Frontend WebReact (proxy)
-            "http://localhost:3000",     // Desarrollo local frontend Angular
-            "http://localhost:3001",     // Desarrollo local frontend WebReact
-            "http://localhost",          // Pruebas generales API local
-            "http://localhost:54385", // Origen de Flutter web debug
-            `http://localhost:${LOCAL_PORT}`, // Para Swagger UI local si accedes por localhost
-            "http://10.0.2.2",           // Emulador Android
+            "https://ea3.upc.edu",         // Frontend Angular (proxy)
+            "https://ea3-back.upc.edu",   // Frontend WebReact (proxy)
+            "https://localhost:3000",     // Desarrollo local frontend Angular
+            "https://localhost:3001",     // Desarrollo local frontend WebReact
+            "https://localhost",          // Pruebas generales API local
+            "https://localhost:54385", // Origen de Flutter web debug
+            `https://localhost:${LOCAL_PORT}`, // Para Swagger UI local si accedes por localhost
+            "https://10.0.2.2",           // Emulador Android
             process.env.FLUTTER_APP_ORIGIN || "*" // Para Flutter (ser específico en producción)
         ],
         methods: ["GET", "POST"],
@@ -59,7 +59,7 @@ const swaggerOptions = {
             { name: 'Main', description: 'Rutas Principales y de Prueba' }
         ],
         servers: [
-            { url: 'http://ea3-api.upc.edu', description: 'Servidor Desplegado (UPC)' },
+            { url: 'https://ea3-api.upc.edu', description: 'Servidor Desplegado (UPC)' },
             { url: `http://localhost:${LOCAL_PORT}`, description: 'Servidor Local de Desarrollo' }
         ],
         components: {
@@ -85,11 +85,11 @@ app.use(express.json());
 // Colocar ANTES de las rutas.
 app.use(cors({
     origin: [
-        "http://ea3.upc.edu",
-        "http://ea3-back.upc.edu",
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:54385", // Origen de Flutter web debug
+        "https://ea3.upc.edu",
+        "https://ea3-back.upc.edu",
+        "https://localhost:3000",
+        "https://localhost:3001",
+        "https://localhost:54385", // Origen de Flutter web debug
 
         // Añade otros orígenes de desarrollo si los necesitas
     ],
@@ -254,8 +254,8 @@ io.on('connection', (socket: AuthenticatedSocket) => {
 
 // Iniciar el servidor HTTP (que incluye Express y Socket.IO)
 httpServer.listen(LOCAL_PORT, '0.0.0.0', () => { 
-    console.log(`Servidor Express y Chat Socket.IO escuchando en http://ea3-api.upc.edu (internamente en VM puerto ${LOCAL_PORT})`);
-    console.log(`Swagger UI disponible en http://ea3-api.upc.edu/api-docs (y localmente en http://localhost:${LOCAL_PORT}/api-docs si usas port-forwarding o corres local)`);
+    console.log(`Servidor Express y Chat Socket.IO escuchando en https://ea3-api.upc.edu (internamente en VM puerto ${LOCAL_PORT})`);
+    console.log(`Swagger UI disponible en https://ea3-api.upc.edu/api-docs (y localmente en http://localhost:${LOCAL_PORT}/api-docs si usas port-forwarding o corres local)`);
 });
 
 // Logs de variables de Google (se leen del .env que se copia a la imagen)
