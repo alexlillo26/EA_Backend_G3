@@ -18,8 +18,9 @@ export const saveMethod = () => {
 // ✅ Crear usuario con validaciones y bcrypt
 export const createUser = (userData) => __awaiter(void 0, void 0, void 0, function* () {
     const { name, email, password, confirmPassword, birthDate, weight, city, phone, gender } = userData;
+    // En user_service.ts, dentro de createUser
     if (!name || !email || !password || !confirmPassword || !birthDate || !weight || !city || !phone || !gender) {
-        throw new Error('Todos los campos son obligatorios: name, email, password, birthDate, weight, city, phone');
+        throw new Error('Todos los campos son obligatorios: name, email, password, confirmPassword, birthDate, weight, city, phone, gender'); // <--- MENSAJE ACTUALIZADO
     }
     const existingUser = yield User.findOne({
         $or: [{ name }, { email }, { phone }]
