@@ -29,12 +29,12 @@ const io = new SocketIOServer(httpServer, {
         origin: [
             "https://ea3.upc.edu",         // Frontend Angular (proxy)
             "https://ea3-back.upc.edu",   // Frontend WebReact (proxy)
-            "https://localhost:3000",     // Desarrollo local frontend Angular
-            "https://localhost:3001",     // Desarrollo local frontend WebReact
-            "https://localhost",          // Pruebas generales API local
-            "https://localhost:54385", // Origen de Flutter web debug
-            `https://localhost:${LOCAL_PORT}`, // Para Swagger UI local si accedes por localhost
-            "https://10.0.2.2",           // Emulador Android
+            "http://localhost:3000",     // Desarrollo local frontend Angular
+            "http://localhost:3001",     // Desarrollo local frontend WebReact
+            "http://localhost",          // Pruebas generales API local
+            "http://localhost:54385", // Origen de Flutter web debug
+            `http://localhost:${LOCAL_PORT}`, // Para Swagger UI local si accedes por localhost
+            "http://10.0.2.2",           // Emulador Android
             process.env.FLUTTER_APP_ORIGIN || "*" // Para Flutter (ser específico en producción)
         ],
         methods: ["GET", "POST"],
@@ -89,10 +89,9 @@ app.use(cors({
         "https://ea3-back.upc.edu",
         "https://localhost:3000",
         "https://localhost:3001",
-        "https://localhost:54385",
-        `https://localhost:${LOCAL_PORT}`,
-        "https://10.0.2.2",
-        process.env.FLUTTER_APP_ORIGIN || "*"
+        "http://localhost:54385", // Origen de Flutter web debug
+
+        // Añade otros orígenes de desarrollo si los necesitas
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],

@@ -84,23 +84,23 @@ console.log('Generated Swagger Spec:', JSON.stringify(swaggerSpec, null, 2));
 // --- Middlewares de Express ---
 // Parsear JSON bodies
 app.use(express.json());
-// CORS para desarrollo local y producción
+// Configuración CORS para Express (usando la librería 'cors')
+// Colocar ANTES de las rutas.
 app.use(cors({
     origin: [
-        "http://localhost:3000",
         "https://ea3.upc.edu",
         "https://ea3-back.upc.edu",
         "https://localhost:3000",
         "https://localhost:3001",
-        "https://localhost:54385",
-        `https://localhost:${LOCAL_PORT}`,
-        "https://10.0.2.2",
-        process.env.FLUTTER_APP_ORIGIN || "*"
+        "https://localhost:54385", // Origen de Flutter web debug
+        // Añade otros orígenes de desarrollo si los necesitas
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
 }));
+// Si prefieres usar tu corsHandler personalizado:
+// app.use(corsHandler); // Asegúrate que permita los orígenes correctos.
 app.use(loggingHandler);
 // --- Rutas de la API ---
 app.use('/api/auth', authRoutes);
