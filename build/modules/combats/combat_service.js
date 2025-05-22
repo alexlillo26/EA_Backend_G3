@@ -71,3 +71,28 @@ export const getBoxersByCombatId = (id) => __awaiter(void 0, void 0, void 0, fun
 export const hideCombat = (id, isHidden) => __awaiter(void 0, void 0, void 0, function* () {
     return yield Combat.updateOne({ _id: id }, { $set: { isHidden } });
 });
+export const getCombatsByGymId = (gymId, page, pageSize) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const skip = (page - 1) * pageSize;
+        // gym字段是ObjectId类型，查询时需转换
+        const query = { gym: new mongoose.Types.ObjectId(gymId), isHidden: false };
+        const totalCombats = yield Combat.countDocuments(query);
+        const totalPages = Math.ceil(totalCombats / pageSize);
+        const combats = yield Combat.find(query)
+            .skip(skip)
+            .limit(pageSize)
+            .populate('gym')
+            .populate('boxers');
+        return {
+            combats,
+            totalCombats,
+            totalPages,
+            currentPage: page,
+            pageSize
+        };
+    }
+    catch (error) {
+        console.error('Error in getCombatsByGymId:', error);
+        throw error;
+    }
+});

@@ -52,8 +52,8 @@ export const googleAuthCallback = async (req: Request, res: Response) => {
         });
 
         const redirectMap: Record<string, string> = {
-            frontend: `http://localhost:4200/user-dashboard?token=${token}&refreshToken=${refreshToken}`,
-            webreact: `http://localhost:3000/?token=${token}&refreshToken=${refreshToken}`,
+            frontend: `http://localhost:4200/?token=${token}&refreshToken=${refreshToken}&type=user`, // Updated for Angular
+            webreact: `http://localhost:3000/?token=${token}&refreshToken=${refreshToken}`, // No changes for React
         };
 
         const redirectUrl = redirectMap[origin] || redirectMap['frontend']; // Redirigir según el origen

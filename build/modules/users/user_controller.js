@@ -131,7 +131,8 @@ export const loginUserHandler = (req, res) => __awaiter(void 0, void 0, void 0, 
         });
     }
     catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Error en loginUserHandler:', error);
+        res.status(500).json({ message: 'Error interno del servidor' });
     }
 });
 export const refreshTokenHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {

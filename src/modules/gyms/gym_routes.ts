@@ -1,8 +1,26 @@
 import express from 'express';
-import { addGymHandler, deleteGymHandler, getAllGymsHandler, getGymByIdHandler, updateGymHandler, hideGymHandler, loginGymHandler, refreshGymTokenHandler } from './gym_controller.js';
+import { addGymHandler, deleteGymHandler, getAllGymsHandler, getGymByIdHandler, updateGymHandler, hideGymHandler, loginGymHandler, refreshGymTokenHandler, getCurrentGymHandler } from './gym_controller.js';
 import { checkJwt } from '../../middleware/session.js';
 
 const router = express.Router();
+
+/**
+ * @openapi
+ * /api/gym/current:
+ *   get:
+ *     summary: Obtiene la información del gimnasio actual
+ *     description: Retorna la información del gimnasio autenticado
+ *     tags:
+ *       - Gym
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Éxito
+ *       401:
+ *         description: No autorizado
+ */
+router.get('/gym/current', checkJwt, getCurrentGymHandler);
 
 /**
  * @openapi

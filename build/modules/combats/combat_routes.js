@@ -1,6 +1,6 @@
 // src/routes/user_routes.ts
 import express from 'express';
-import { createCombatHandler, getAllCombatsHandler, getCombatByIdHandler, updateCombatHandler, deleteCombatHandler, getBoxersByCombatIdHandler, getCombatsByBoxerIdHandler, hideCombatHandler } from '../combats/combat_controller.js';
+import { createCombatHandler, getAllCombatsHandler, getCombatByIdHandler, updateCombatHandler, deleteCombatHandler, getBoxersByCombatIdHandler, getCombatsByBoxerIdHandler, hideCombatHandler, getCombatsByGymIdHandler } from '../combats/combat_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
 const router = express.Router();
 /**
@@ -36,7 +36,7 @@ const router = express.Router();
  *       400:
  *         description: Datos inválidos
  */
-router.post('/combat', checkJwt, createCombatHandler); // Require authentication
+router.post('/', checkJwt, createCombatHandler);
 /**
  * @openapi
  * /api/combat:
@@ -83,7 +83,7 @@ router.post('/combat', checkJwt, createCombatHandler); // Require authentication
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/combat', checkJwt, getAllCombatsHandler); // Require authentication
+router.get('/', checkJwt, getAllCombatsHandler);
 /**
  * @openapi
  * /api/combat/{id}:
@@ -121,7 +121,8 @@ router.get('/combat', checkJwt, getAllCombatsHandler); // Require authentication
  *       404:
  *         description: Combate no encontrado
  */
-router.get('/combat/:id', getCombatByIdHandler);
+router.get('/gym/:gymId', getCombatsByGymIdHandler);
+router.get('/:id', getCombatByIdHandler);
 /**
  * @openapi
  * /api/combat/{id}:
@@ -161,7 +162,7 @@ router.get('/combat/:id', getCombatByIdHandler);
  *       404:
  *         description: Combate no encontrado
  */
-router.put('/combat/:id', checkJwt, updateCombatHandler); // Require authentication
+router.put('/:id', checkJwt, updateCombatHandler);
 /**
  * @openapi
  * /api/combat/{id}:
@@ -182,7 +183,7 @@ router.put('/combat/:id', checkJwt, updateCombatHandler); // Require authenticat
  *       404:
  *         description: Combate no encontrado
  */
-router.delete('/combat/:id', checkJwt, deleteCombatHandler); // Require authentication
+router.delete('/:id', checkJwt, deleteCombatHandler);
 /**
  * @openapi
  * /api/combat/{id}/boxers:
@@ -219,7 +220,7 @@ router.delete('/combat/:id', checkJwt, deleteCombatHandler); // Require authenti
  *       404:
  *         description: Combate no encontrado
  */
-router.get('/combat/:id/boxers', getBoxersByCombatIdHandler);
+router.get('/:id/boxers', getBoxersByCombatIdHandler);
 /**
  * @openapi
  * /api/combat/{id}/oculto:
@@ -250,7 +251,7 @@ router.get('/combat/:id/boxers', getBoxersByCombatIdHandler);
  *       404:
  *         description: Combate no encontrado
  */
-router.put('/combat/:id/oculto', checkJwt, hideCombatHandler); // Require authentication
+router.put('/:id/oculto', checkJwt, hideCombatHandler); // Require authentication
 /**
  * @openapi
  * /api/combat/boxer/{boxerId}:

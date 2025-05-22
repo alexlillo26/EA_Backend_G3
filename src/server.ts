@@ -14,6 +14,7 @@ import authRoutes from './modules/auth/auth_routes.js';
 // import { corsHandler } from './middleware/corsHandler.js'; // Comentado para usar la librería cors estándar
 import { loggingHandler } from './middleware/loggingHandler.js';
 // import { routeNotFound } from './middleware/routeNotFound.js'; // Descomenta si lo usas
+// import { routeNotFound } from './middleware/routeNotFound.js'; // Descomenta si lo usas
 import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 import cors from 'cors'; // Importar la librería cors
@@ -184,7 +185,6 @@ io.use(async (socket: AuthenticatedSocket, next) => {
         return next(new Error(`Authentication error: ${err.message} (Invalid or expired token)`));
     }
 });
-
 io.on('connection', (socket: AuthenticatedSocket) => {
     console.log(`Usuario conectado al chat: ${socket.id}, UserId: ${socket.user?.userId}, Username: ${socket.user?.username}`);
 

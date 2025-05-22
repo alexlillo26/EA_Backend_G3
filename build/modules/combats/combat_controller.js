@@ -8,7 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 // src/controllers/_controller.ts
-import { saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, deleteCombat, getBoxersByCombatId, hideCombat } from '../combats/combat_service.js';
+import { saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, deleteCombat, getBoxersByCombatId, hideCombat, getCombatsByGymId } from '../combats/combat_service.js';
 import Combat from './combat_models.js';
 import mongoose from 'mongoose';
 export const saveMethodHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -116,5 +116,17 @@ export const getCombatsByBoxerIdHandler = (req, res) => __awaiter(void 0, void 0
     catch (error) {
         console.error('Error al obtener combates:', error);
         res.status(500).json({ message: 'Error interno del servidor' });
+    }
+});
+export const getCombatsByGymIdHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { gymId } = req.params;
+        const page = parseInt(req.query.page) || 1;
+        const pageSize = parseInt(req.query.pageSize) || 10;
+        const result = yield getCombatsByGymId(gymId, page, pageSize);
+        res.status(200).json(result);
+    }
+    catch (error) {
+        res.status(500).json({ message: error.message });
     }
 });
