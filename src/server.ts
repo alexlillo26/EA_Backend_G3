@@ -89,7 +89,7 @@ app.use(cors({
         "https://ea3-back.upc.edu",
         "https://localhost:3000",
         "https://localhost:3001",
-        "https://localhost:54385", // Origen de Flutter web debug
+        "http://localhost:54385", // Origen de Flutter web debug
 
         // Añade otros orígenes de desarrollo si los necesitas
     ],
