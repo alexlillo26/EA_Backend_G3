@@ -64,7 +64,12 @@ export const getAllUsers = (page = 1, pageSize = 10) => __awaiter(void 0, void 0
     const users = yield User.find()
         .sort({ isHidden: 1 })
         .skip(skip)
-        .limit(pageSize);
+        .limit(pageSize)
+        .lean()
+        .then(users => users.map(user => {
+        var _a;
+        return (Object.assign(Object.assign({}, user), { id: (_a = user._id) === null || _a === void 0 ? void 0 : _a.toString() }));
+    }));
     const totalUsers = yield User.countDocuments();
     const totalPages = Math.ceil(totalUsers / pageSize);
     return {
@@ -78,7 +83,7 @@ export const getAllUsers = (page = 1, pageSize = 10) => __awaiter(void 0, void 0
 export const getUserById = (id) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield User.findById(id);
     if (user) {
-        return Object.assign(Object.assign({}, user.toObject()), { age: calculateAge(user.birthDate) });
+        return Object.assign(Object.assign({}, user.toObject()), { age: calculateAge(user.birthDate), id: user._id.toString() });
     }
     return null;
 });
@@ -137,9 +142,13 @@ export const searchUsers = (city, weight) => __awaiter(void 0, void 0, void 0, f
         console.log('Search query:', query); // Debug log
         // Si no se proporciona ciudad ni peso, devolver todos los usuarios
         const users = yield User.find(query)
-            .select('name city weight -_id') // Devuelve sólo los campos necesarios, excluyendo _id
+            .select('name city weight') // conserva _id
             .sort({ name: 1 })
-            .lean(); // lean() Devuelve objetos JS planos para evitar errores de Mongoose.
+            .lean()
+            .then(users => users.map(user => {
+            var _a;
+            return (Object.assign(Object.assign({}, user), { id: (_a = user._id) === null || _a === void 0 ? void 0 : _a.toString() }));
+        }));
         return users;
     }
     catch (error) {

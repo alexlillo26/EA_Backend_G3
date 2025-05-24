@@ -74,7 +74,12 @@ export const getAllUsers = async (page: number = 1, pageSize: number = 10) => {
   const users = await User.find()
     .sort({ isHidden: 1 })
     .skip(skip)
-    .limit(pageSize);
+    .limit(pageSize)
+    .lean()
+    .then(users => users.map(user => ({
+      ...user,
+      id: user._id?.toString(),
+    })));
 
   const totalUsers = await User.countDocuments();
   const totalPages = Math.ceil(totalUsers / pageSize);
@@ -91,7 +96,7 @@ export const getAllUsers = async (page: number = 1, pageSize: number = 10) => {
 export const getUserById = async (id: string) => {
   const user = await User.findById(id);
   if (user) {
-    return { ...user.toObject(), age: calculateAge(user.birthDate)};
+    return { ...user.toObject(), age: calculateAge(user.birthDate), id: user._id.toString() };
   }
   return null;
 };
@@ -163,10 +168,13 @@ export const searchUsers = async (city?: string, weight?: string) => {
     console.log('Search query:', query); // Debug log
     // Si no se proporciona ciudad ni peso, devolver todos los usuarios
     const users = await User.find(query)
-      .select('name city weight -_id') // Devuelve sólo los campos necesarios, excluyendo _id
+      .select('name city weight') // conserva _id
       .sort({ name: 1 })
-      .lean(); // lean() Devuelve objetos JS planos para evitar errores de Mongoose.
-
+      .lean()
+      .then(users => users.map(user => ({
+        ...user,
+        id: user._id?.toString(),
+      })));
     return users;
   } catch (error) {
     console.error('Error in searchUsers:', error);

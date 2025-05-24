@@ -17,7 +17,7 @@ export const saveMethodHandler = (req, res) => __awaiter(void 0, void 0, void 0,
         res.json(data);
     }
     catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
     }
 });
 export const createUserHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -30,11 +30,11 @@ export const createUserHandler = (req, res) => __awaiter(void 0, void 0, void 0,
         if (error.name === 'ValidationError') {
             res.status(400).json({ message: 'El correo electrónico no es válido o la contraseña es demasiado corta' });
         }
-        else if (error.message.includes('ya están en uso')) {
+        else if ((error === null || error === void 0 ? void 0 : error.message) && error.message.includes('ya están en uso')) {
             res.status(400).json({ message: error.message });
         }
         else {
-            res.status(500).json({ message: 'Error interno en el servidor', error });
+            res.status(500).json({ message: 'Error interno en el servidor', error: error === null || error === void 0 ? void 0 : error.message });
         }
     }
 });
@@ -55,7 +55,7 @@ export const getAllUsersHandler = (req, res) => __awaiter(void 0, void 0, void 0
     }
     catch (error) {
         console.error('Error en getAllUsersHandler:', error);
-        res.status(500).json({ message: 'Error interno en el servidor', error });
+        res.status(500).json({ message: 'Error interno en el servidor', error: error === null || error === void 0 ? void 0 : error.message });
     }
 });
 export const getUserByIdHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -64,7 +64,7 @@ export const getUserByIdHandler = (req, res) => __awaiter(void 0, void 0, void 0
         res.json(data);
     }
     catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
     }
 });
 export const updateUserHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -89,7 +89,7 @@ export const updateUserHandler = (req, res) => __awaiter(void 0, void 0, void 0,
     }
     catch (error) {
         console.error("Error al actualizar el usuario:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        res.status(500).json({ message: "Error interno del servidor", error: error === null || error === void 0 ? void 0 : error.message });
     }
 });
 export const deleteUserHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -98,7 +98,7 @@ export const deleteUserHandler = (req, res) => __awaiter(void 0, void 0, void 0,
         res.json(data);
     }
     catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
     }
 });
 export const hideUserHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -115,7 +115,7 @@ export const hideUserHandler = (req, res) => __awaiter(void 0, void 0, void 0, f
         });
     }
     catch (error) {
-        res.status(500).json({ message: 'Error interno en el servidor', error });
+        res.status(500).json({ message: 'Error interno en el servidor', error: error === null || error === void 0 ? void 0 : error.message });
     }
 });
 export const loginUserHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -132,7 +132,7 @@ export const loginUserHandler = (req, res) => __awaiter(void 0, void 0, void 0, 
     }
     catch (error) {
         console.error('Error en loginUserHandler:', error);
-        res.status(500).json({ message: 'Error interno del servidor' });
+        res.status(500).json({ message: 'Error interno del servidor', error: error === null || error === void 0 ? void 0 : error.message });
     }
 });
 export const refreshTokenHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -151,7 +151,7 @@ export const refreshTokenHandler = (req, res) => __awaiter(void 0, void 0, void 
     }
     catch (error) {
         console.error('Error in refreshTokenHandler:', error);
-        res.status(403).json({ message: 'Invalid refresh token' });
+        res.status(403).json({ message: 'Invalid refresh token', error: error === null || error === void 0 ? void 0 : error.message });
     }
 });
 export const searchUsersHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -171,7 +171,7 @@ export const searchUsersHandler = (req, res) => __awaiter(void 0, void 0, void 0
         res.status(500).json({
             success: false,
             message: 'Error al buscar usuarios',
-            error: error.message
+            error: error === null || error === void 0 ? void 0 : error.message
         });
     }
 });

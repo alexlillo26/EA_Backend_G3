@@ -1,6 +1,6 @@
 // src/routes/user_routes.ts
 import express from 'express';
-import { createCombatHandler, getAllCombatsHandler, getCombatByIdHandler, updateCombatHandler, deleteCombatHandler, getBoxersByCombatIdHandler, getCombatsByBoxerIdHandler, hideCombatHandler, getCombatsByGymIdHandler } from '../combats/combat_controller.js';
+import { createCombatHandler, getCombatByIdHandler, updateCombatHandler, deleteCombatHandler, getBoxersByCombatIdHandler, getCombatsByBoxerIdHandler, hideCombatHandler, getPendingInvitationsHandler, respondToInvitationHandler, getFutureCombatsHandler, getInvitationsHandler, getSentInvitationsHandler, getFilteredCombatsHandler } from '../combats/combat_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
 const router = express.Router();
 /**
@@ -36,7 +36,7 @@ const router = express.Router();
  *       400:
  *         description: Datos inválidos
  */
-router.post('/', checkJwt, createCombatHandler);
+router.post('/combat', checkJwt, createCombatHandler);
 /**
  * @openapi
  * /api/combat:
@@ -83,7 +83,7 @@ router.post('/', checkJwt, createCombatHandler);
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/', checkJwt, getAllCombatsHandler);
+router.get('/combat', checkJwt, getFilteredCombatsHandler);
 /**
  * @openapi
  * /api/combat/{id}:
@@ -121,8 +121,7 @@ router.get('/', checkJwt, getAllCombatsHandler);
  *       404:
  *         description: Combate no encontrado
  */
-router.get('/gym/:gymId', getCombatsByGymIdHandler);
-router.get('/:id', getCombatByIdHandler);
+router.get('/combat/:id', getCombatByIdHandler);
 /**
  * @openapi
  * /api/combat/{id}:
@@ -162,7 +161,7 @@ router.get('/:id', getCombatByIdHandler);
  *       404:
  *         description: Combate no encontrado
  */
-router.put('/:id', checkJwt, updateCombatHandler);
+router.put('/combat/:id', checkJwt, updateCombatHandler);
 /**
  * @openapi
  * /api/combat/{id}:
@@ -183,7 +182,7 @@ router.put('/:id', checkJwt, updateCombatHandler);
  *       404:
  *         description: Combate no encontrado
  */
-router.delete('/:id', checkJwt, deleteCombatHandler);
+router.delete('/combat/:id', checkJwt, deleteCombatHandler);
 /**
  * @openapi
  * /api/combat/{id}/boxers:
@@ -220,7 +219,7 @@ router.delete('/:id', checkJwt, deleteCombatHandler);
  *       404:
  *         description: Combate no encontrado
  */
-router.get('/:id/boxers', getBoxersByCombatIdHandler);
+router.get('/combat/:id/boxers', getBoxersByCombatIdHandler);
 /**
  * @openapi
  * /api/combat/{id}/oculto:
@@ -251,7 +250,7 @@ router.get('/:id/boxers', getBoxersByCombatIdHandler);
  *       404:
  *         description: Combate no encontrado
  */
-router.put('/:id/oculto', checkJwt, hideCombatHandler); // Require authentication
+router.put('/combat/:id/oculto', checkJwt, hideCombatHandler); // Require authentication
 /**
  * @openapi
  * /api/combat/boxer/{boxerId}:
@@ -291,5 +290,130 @@ router.put('/:id/oculto', checkJwt, hideCombatHandler); // Require authenticatio
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/boxer/:boxerId', getCombatsByBoxerIdHandler);
+router.get('/combat/boxer/:boxerId', getCombatsByBoxerIdHandler);
+/**
+ * @openapi
+ * /api/combat/invitations/pending:
+ *   get:
+ *     summary: Obtiene las invitaciones pendientes
+ *     description: Retorna una lista de las invitaciones pendientes para un usuario.
+ *     tags:
+ *       - Combat
+ *     responses:
+ *       200:
+ *         description: Lista de invitaciones obtenida exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                     description: ID de la invitación
+ *                   combatId:
+ *                     type: string
+ *                     description: ID del combate
+ *                   from:
+ *                     type: string
+ *                     description: ID del usuario que envió la invitación
+ *                   status:
+ *                     type: string
+ *                     enum: [pending, accepted, rejected]
+ *       404:
+ *         description: Usuario no encontrado o sin invitaciones pendientes
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/combat/invitations/pending', checkJwt, getPendingInvitationsHandler);
+/**
+ * @openapi
+ * /api/combat/future:
+ *   get:
+ *     summary: Obtiene los combates futuros
+ *     description: Retorna una lista de los combates programados para el futuro.
+ *     tags:
+ *       - Combat
+ *     responses:
+ *       200:
+ *         description: Lista de combates futuros obtenida exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   date:
+ *                     type: string
+ *                     format: date-time
+ *                   gym:
+ *                     type: string
+ *                   boxers:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *       404:
+ *         description: No se encontraron combates futuros
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/combat/future', checkJwt, getFutureCombatsHandler);
+/**
+ * @openapi
+ * /api/combat/{id}/respond:
+ *   post:
+ *     summary: Responde a una invitación
+ *     description: Acepta o rechaza una invitación a un combate.
+ *     tags:
+ *       - Combat
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               response:
+ *                 type: string
+ *                 enum: [accepted, rejected]
+ *                 description: Respuesta a la invitación
+ *     responses:
+ *       200:
+ *         description: Respuesta a la invitación procesada exitosamente
+ *       404:
+ *         description: Invitación no encontrada
+ */
+router.patch('/combat/:id/respond', checkJwt, respondToInvitationHandler);
+/**
+ * @openapi
+ * /api/combat/invitations:
+ *   get:
+ *     summary: Obtiene las invitaciones recibidas (pendientes)
+ *     tags:
+ *       - Combat
+ *     responses:
+ *       200:
+ *         description: Invitaciones recibidas
+ */
+router.get('/combat/invitations', checkJwt, getInvitationsHandler);
+/**
+ * @openapi
+ * /api/combat/sent-invitations:
+ *   get:
+ *     summary: Obtiene las invitaciones enviadas (pendientes)
+ *     tags:
+ *       - Combat
+ *     responses:
+ *       200:
+ *         description: Invitaciones enviadas
+ */
+router.get('/combat/sent-invitations', checkJwt, getSentInvitationsHandler);
 export default router;

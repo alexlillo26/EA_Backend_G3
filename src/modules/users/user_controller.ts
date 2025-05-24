@@ -10,7 +10,7 @@ export const saveMethodHandler = async (req: Request, res: Response) => {
         const data = saveMethod();
         res.json(data);
     } catch (error: any) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: error?.message });
     }
 };
 export const createUserHandler = async (req: Request, res: Response) => {
@@ -21,10 +21,10 @@ export const createUserHandler = async (req: Request, res: Response) => {
         console.error('Error in createUserHandler:', error);
         if (error.name === 'ValidationError') {
             res.status(400).json({ message: 'El correo electrónico no es válido o la contraseña es demasiado corta' });
-        } else if (error.message.includes('ya están en uso')) {
+        } else if (error?.message && error.message.includes('ya están en uso')) {
             res.status(400).json({ message: error.message });
         } else {
-            res.status(500).json({ message: 'Error interno en el servidor', error });
+            res.status(500).json({ message: 'Error interno en el servidor', error: error?.message });
         }
     }
 };
@@ -47,7 +47,7 @@ export const getAllUsersHandler = async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('Error en getAllUsersHandler:', error);
-        res.status(500).json({ message: 'Error interno en el servidor', error });
+        res.status(500).json({ message: 'Error interno en el servidor', error: error?.message });
     }
 };
 
@@ -56,7 +56,7 @@ export const getUserByIdHandler = async (req: Request, res: Response) => {
         const data = await getUserById(req.params.id);
         res.json(data);
     } catch (error: any) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: error?.message });
     }
 };
 export const updateUserHandler = async (req: Request, res: Response) => {
@@ -86,7 +86,7 @@ export const updateUserHandler = async (req: Request, res: Response) => {
         res.status(200).json(updatedUser);
     } catch (error: any) {
         console.error("Error al actualizar el usuario:", error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        res.status(500).json({ message: "Error interno del servidor", error: error?.message });
     }
 };
 export const deleteUserHandler = async (req: Request, res: Response) => {
@@ -94,7 +94,7 @@ export const deleteUserHandler = async (req: Request, res: Response) => {
         const data = await deleteUser(req.params.id);
         res.json(data);
     } catch (error: any) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: error?.message });
     }
 };
 export const hideUserHandler = async (req: Request, res: Response) => {
@@ -113,7 +113,7 @@ export const hideUserHandler = async (req: Request, res: Response) => {
             user
         });
     } catch (error: any) {
-        res.status(500).json({ message: 'Error interno en el servidor', error });
+        res.status(500).json({ message: 'Error interno en el servidor', error: error?.message });
     }
 };
 export const loginUserHandler = async (req: Request, res: Response) => {
@@ -130,7 +130,7 @@ export const loginUserHandler = async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('Error en loginUserHandler:', error);
-        res.status(500).json({ message: 'Error interno del servidor' });
+        res.status(500).json({ message: 'Error interno del servidor', error: error?.message });
     }
 };
 
@@ -153,7 +153,7 @@ export const refreshTokenHandler = async (req: Request, res: Response) => {
         res.status(200).json({ token: newToken });
     } catch (error: any) {
         console.error('Error in refreshTokenHandler:', error);
-        res.status(403).json({ message: 'Invalid refresh token' });
+        res.status(403).json({ message: 'Invalid refresh token', error: error?.message });
     }
 };
 
@@ -179,7 +179,7 @@ export const searchUsersHandler = async (req: Request, res: Response) => {
         res.status(500).json({ 
             success: false, 
             message: 'Error al buscar usuarios',
-            error: error.message 
+            error: error?.message 
         });
     }
 };

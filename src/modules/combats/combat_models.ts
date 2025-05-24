@@ -1,34 +1,51 @@
-import mongoose, { Types, model, ObjectId, Schema } from "mongoose";
+import mongoose, { Types, model, Schema } from "mongoose";
 
-export interface ICombat{
-    
-    date : Date;
-    gym : Types.ObjectId;
-    boxers : Types.ObjectId[];
-    isHidden : boolean;
-
+export interface ICombat {
+    creator: Types.ObjectId;
+    opponent: Types.ObjectId;
+    date: Date;
+    time: string;
+    level: string;
+    gym: Types.ObjectId;
+    status: 'pending' | 'accepted' | 'rejected';
+    createdAt?: Date;
+    updatedAt?: Date;
 }
 
 const combatSchema = new Schema<ICombat>({
-    date :{
+    creator: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+    },
+    opponent: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+    },
+    date: {
         type: Date,
-        required : true
+        required: true
+    },
+    time: {
+        type: String,
+        required: true
+    },
+    level: {
+        type: String,
+        required: true
     },
     gym: {
         type: Schema.Types.ObjectId,
         ref: "Gym",
-        required : true
+        required: true
     },
-    boxers: [{
-        type : Schema.Types.ObjectId,  
-        ref: "User",
-        required : true
-    }],
-    isHidden: {
-        type : Boolean,
-        default : false
+    status: {
+        type: String,
+        enum: ['pending', 'accepted', 'rejected'],
+        default: 'pending'
     }
-});
+}, { timestamps: true });
 
 const Combat = model('Combat', combatSchema);
 export default Combat;

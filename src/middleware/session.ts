@@ -15,7 +15,8 @@ const checkJwt = (req: RequestExt, res: Response, next: NextFunction) => {
         console.log("Token recibido:", req.headers.authorization);
 
         const jwtByUser = req.headers.authorization || null;
-        const jwt = jwtByUser?.split(' ').pop();
+        // Permite "Bearer <token>" o solo "<token>"
+        const jwt = jwtByUser?.split(' ').length === 2 ? jwtByUser.split(' ')[1] : jwtByUser;
 
         if (!jwt) {
             return res.status(401).json({ message: 'No token provided' });

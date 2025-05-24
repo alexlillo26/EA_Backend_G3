@@ -17,7 +17,7 @@ const generateToken = (id: string, email: string, username: string) => { // Aña
         username // Añadimos el nombre de usuario al payload
     };
     // Firmamos el token con el payload, la clave secreta y un tiempo de expiración
-    return sign(payload, JWT_SECRET, { expiresIn: '120s' });
+    return sign(payload, JWT_SECRET, { expiresIn: '10m' });
 };
 
 // Función para generar el refresh token (parece estar bien, solo usa 'id')

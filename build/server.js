@@ -26,6 +26,7 @@ import { loggingHandler } from './middleware/loggingHandler.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 import cors from 'cors'; // Importar la librería cors
+import { setSocketIoInstance } from './modules/combats/combat_controller.js';
 const app = express();
 const LOCAL_PORT = parseInt(process.env.SERVER_PORT || '9000', 10); // Parseado a entero
 const httpServer = http.createServer(app);
@@ -35,12 +36,12 @@ const io = new SocketIOServer(httpServer, {
         origin: [
             "https://ea3.upc.edu",
             "https://ea3-back.upc.edu",
-            "https://localhost:3000",
-            "https://localhost:3001",
-            "https://localhost",
-            "https://localhost:54385",
-            `https://localhost:${LOCAL_PORT}`,
-            "https://10.0.2.2",
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "http://localhost",
+            "http://localhost:54385",
+            `http://localhost:${LOCAL_PORT}`,
+            "http://10.0.2.2",
             process.env.FLUTTER_APP_ORIGIN || "*" // Para Flutter (ser específico en producción)
         ],
         methods: ["GET", "POST"],
@@ -84,23 +85,21 @@ console.log('Generated Swagger Spec:', JSON.stringify(swaggerSpec, null, 2));
 // --- Middlewares de Express ---
 // Parsear JSON bodies
 app.use(express.json());
-// Configuración CORS para Express (usando la librería 'cors')
-// Colocar ANTES de las rutas.
+// CORS para desarrollo local y producción
 app.use(cors({
     origin: [
+        "http://localhost:3000",
         "https://ea3.upc.edu",
         "https://ea3-back.upc.edu",
         "https://localhost:3000",
         "https://localhost:3001",
-        "https://localhost:54385", // Origen de Flutter web debug
+        "http://localhost:54385", // Origen de Flutter web debug
         // Añade otros orígenes de desarrollo si los necesitas
     ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
 }));
-// Si prefieres usar tu corsHandler personalizado:
-// app.use(corsHandler); // Asegúrate que permita los orígenes correctos.
 app.use(loggingHandler);
 // --- Rutas de la API ---
 app.use('/api/auth', authRoutes);
@@ -147,7 +146,9 @@ mongoose.connect(mongoUriToConnect || 'mongodb://mongo:27017/proyecto_fallback_d
     .catch((error) => {
     console.error('ERROR DE CONEXIÓN A MONGODB:');
     console.error('URI Intentada:', mongoUriToConnect || 'mongodb://mongo:27017/proyecto_fallback_db');
-    console.error('Error Detallado:', error.name, error.message);
+    // Corrige acceso a error.message
+    const msg = (error && error.message) ? error.message : String(error);
+    console.error('Error Detallado:', error.name, msg);
     if (error.reason && error.reason.servers) {
         try {
             console.error('Detalles de los servidores de MongoDB (error.reason.servers):', JSON.stringify(error.reason.servers, null, 2));
@@ -157,7 +158,10 @@ mongoose.connect(mongoUriToConnect || 'mongodb://mongo:27017/proyecto_fallback_d
         }
     }
 });
+// --- Socket.IO user-socket mapping ---
+const userSocketMap = new Map();
 io.use((socket, next) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     const token = socket.handshake.auth.token;
     if (!token) {
         console.log(`Socket ${socket.id}: Conexión rechazada - Sin token.`);
@@ -169,8 +173,10 @@ io.use((socket, next) => __awaiter(void 0, void 0, void 0, function* () {
             userId: decodedPayload.id,
             username: decodedPayload.username,
             email: decodedPayload.email
-        }; // Asignación única y correcta
-        console.log(`Socket ${socket.id}: Autenticado correctamente. UserID: ${socket.user.userId}, Username: ${socket.user.username}`);
+        };
+        if ((_a = socket.user) === null || _a === void 0 ? void 0 : _a.userId) {
+            userSocketMap.set(socket.user.userId, socket.id);
+        }
         next();
     }
     catch (err) {
@@ -179,8 +185,28 @@ io.use((socket, next) => __awaiter(void 0, void 0, void 0, function* () {
     }
 }));
 io.on('connection', (socket) => {
-    var _a, _b;
+    var _a, _b, _c;
     console.log(`Usuario conectado al chat: ${socket.id}, UserId: ${(_a = socket.user) === null || _a === void 0 ? void 0 : _a.userId}, Username: ${(_b = socket.user) === null || _b === void 0 ? void 0 : _b.username}`);
+    // Unir a la sala personal del usuario
+    if ((_c = socket.user) === null || _c === void 0 ? void 0 : _c.userId) {
+        socket.join(socket.user.userId);
+    }
+    // Evento para enviar invitación de combate a un oponente específico
+    socket.on('sendCombatInvitation', ({ opponentId, combat }) => {
+        const targetSocketId = userSocketMap.get(opponentId);
+        if (targetSocketId) {
+            console.log(`📨 Enviando invitación de combate a ${opponentId}`);
+            io.to(targetSocketId).emit("new_invitation", combat);
+        }
+        else {
+            console.log(`⚠️ Usuario ${opponentId} no está conectado`);
+        }
+    });
+    // Responder a invitación (broadcast a todos menos al emisor)
+    socket.on('respond_combat', ({ combatId, status }) => {
+        console.log(`🔄 Respuesta a combate ${combatId}: ${status}`);
+        socket.broadcast.emit("combat_response", { combatId, status });
+    });
     socket.on('join_combat_chat', (data) => {
         if (!socket.user || !socket.user.userId) {
             socket.emit('combat_chat_error', { message: 'Usuario no autenticado para unirse al chat.' });
@@ -223,15 +249,10 @@ io.on('connection', (socket) => {
         socket.to(combatRoom).emit('opponent_typing', { userId: socket.user.userId, username: socket.user.username, isTyping: data.isTyping });
     });
     socket.on('disconnect', (reason) => {
-        var _a, _b;
-        console.log(`Usuario desconectado del chat: ${socket.id}, UserId: ${(_a = socket.user) === null || _a === void 0 ? void 0 : _a.userId}, Username: ${(_b = socket.user) === null || _b === void 0 ? void 0 : _b.username}. Razón: ${reason}`);
-        if (socket.user) {
-            socket.rooms.forEach(room => {
-                var _a;
-                if (room.startsWith('combat_')) {
-                    socket.to(room).emit('combat_chat_notification', { type: 'info', message: `${((_a = socket.user) === null || _a === void 0 ? void 0 : _a.username) || 'Un oponente'} ha abandonado el chat.` });
-                }
-            });
+        var _a;
+        if ((_a = socket.user) === null || _a === void 0 ? void 0 : _a.userId) {
+            userSocketMap.delete(socket.user.userId);
+            console.log(`❌ Usuario desconectado: ${socket.user.userId}`);
         }
     });
     socket.on('error', (err) => {
@@ -241,6 +262,8 @@ io.on('connection', (socket) => {
     });
 });
 // --- Fin Lógica de Socket.IO ---
+// Pasa la instancia de io al controlador de combates para emitir eventos desde handlers HTTP
+setSocketIoInstance(io);
 // Iniciar el servidor HTTP (que incluye Express y Socket.IO)
 httpServer.listen(LOCAL_PORT, '0.0.0.0', () => {
     console.log(`Servidor Express y Chat Socket.IO escuchando en https://ea3-api.upc.edu (internamente en VM puerto ${LOCAL_PORT})`);

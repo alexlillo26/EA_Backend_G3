@@ -18,6 +18,8 @@ import { loggingHandler } from './middleware/loggingHandler.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 import cors from 'cors'; // Importar la librería cors
+import Combat from './modules/combats/combat_models.js';
+import { setSocketIoInstance } from './modules/combats/combat_controller.js';
 
 const app = express();
 const LOCAL_PORT = parseInt(process.env.SERVER_PORT || '9000', 10); // Parseado a entero
@@ -93,7 +95,7 @@ app.use(cors({
 
         // Añade otros orígenes de desarrollo si los necesitas
     ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
 }));
@@ -150,7 +152,9 @@ mongoose.connect(mongoUriToConnect || 'mongodb://mongo:27017/proyecto_fallback_d
     .catch((error) => {
         console.error('ERROR DE CONEXIÓN A MONGODB:');
         console.error('URI Intentada:', mongoUriToConnect || 'mongodb://mongo:27017/proyecto_fallback_db');
-        console.error('Error Detallado:', error.name, error.message);
+        // Corrige acceso a error.message
+        const msg = (error && error.message) ? error.message : String(error);
+        console.error('Error Detallado:', error.name, msg);
         if (error.reason && error.reason.servers) {
             try {
                 console.error('Detalles de los servidores de MongoDB (error.reason.servers):', JSON.stringify(error.reason.servers, null, 2));
@@ -166,28 +170,56 @@ interface AuthenticatedUser { userId: string; username: string; email?: string; 
 interface AuthenticatedSocket extends Socket { user?: AuthenticatedUser; }
 interface CombatChatMessage { combatId: string; senderId: string; senderUsername?: string; message: string; timestamp: string; }
 
-io.use(async (socket: AuthenticatedSocket, next) => {
+// --- Socket.IO user-socket mapping ---
+const userSocketMap = new Map<string, string>();
+
+io.use(async (socket: any, next) => {
     const token = socket.handshake.auth.token as string | undefined;
     if (!token) {
         console.log(`Socket ${socket.id}: Conexión rechazada - Sin token.`);
         return next(new Error('Authentication error: No token provided'));
     }
     try {
-        const decodedPayload = await verifyToken(token) as DecodedJWTPayload;
-        socket.user = { 
-            userId: decodedPayload.id, 
-            username: decodedPayload.username, 
-            email: decodedPayload.email 
-        }; // Asignación única y correcta
-        console.log(`Socket ${socket.id}: Autenticado correctamente. UserID: ${socket.user.userId}, Username: ${socket.user.username}`);
+        const decodedPayload = await verifyToken(token);
+        socket.user = {
+            userId: decodedPayload.id,
+            username: decodedPayload.username,
+            email: decodedPayload.email
+        };
+        if (socket.user?.userId) {
+            userSocketMap.set(socket.user.userId, socket.id);
+        }
         next();
     } catch (err: any) {
         console.log(`Socket ${socket.id}: Conexión rechazada - Token inválido o expirado. Error: ${err.message}`);
         return next(new Error(`Authentication error: ${err.message} (Invalid or expired token)`));
     }
 });
-io.on('connection', (socket: AuthenticatedSocket) => {
+
+io.on('connection', (socket: any) => {
     console.log(`Usuario conectado al chat: ${socket.id}, UserId: ${socket.user?.userId}, Username: ${socket.user?.username}`);
+
+    // Unir a la sala personal del usuario
+    if (socket.user?.userId) {
+        socket.join(socket.user.userId);
+    }
+
+    // Evento para enviar invitación de combate a un oponente específico
+    socket.on('sendCombatInvitation', ({ opponentId, combat }: { opponentId: string, combat: any }) => {
+        const targetSocketId = userSocketMap.get(opponentId);
+        if (targetSocketId) {
+            console.log(`📨 Enviando invitación de combate a ${opponentId}`);
+            io.to(targetSocketId).emit("new_invitation", combat);
+        } else {
+            console.log(`⚠️ Usuario ${opponentId} no está conectado`);
+        }
+    });
+
+    // Responder a invitación (broadcast a todos menos al emisor)
+    socket.on('respond_combat', ({ combatId, status }: { combatId: string, status: string }) => {
+        console.log(`🔄 Respuesta a combate ${combatId}: ${status}`);
+        socket.broadcast.emit("combat_response", { combatId, status });
+    });
 
     socket.on('join_combat_chat', (data: { combatId: string }) => {
         if (!socket.user || !socket.user.userId) {
@@ -232,23 +264,22 @@ io.on('connection', (socket: AuthenticatedSocket) => {
         socket.to(combatRoom).emit('opponent_typing', { userId: socket.user.userId, username: socket.user.username, isTyping: data.isTyping });
     });
 
-    socket.on('disconnect', (reason) => {
-        console.log(`Usuario desconectado del chat: ${socket.id}, UserId: ${socket.user?.userId}, Username: ${socket.user?.username}. Razón: ${reason}`);
-        if (socket.user) {
-            socket.rooms.forEach(room => {
-                if (room.startsWith('combat_')) {
-                    socket.to(room).emit('combat_chat_notification', { type: 'info', message: `${socket.user?.username || 'Un oponente'} ha abandonado el chat.` });
-                }
-            });
+    socket.on('disconnect', (reason: string) => {
+        if (socket.user?.userId) {
+            userSocketMap.delete(socket.user.userId);
+            console.log(`❌ Usuario desconectado: ${socket.user.userId}`);
         }
     });
 
-    socket.on('error', (err) => {
+    socket.on('error', (err: Error) => {
         console.error(`Error en socket ${socket.id} (Usuario ${socket.user?.userId}, Username: ${socket.user?.username}): ${err.message}`);
         socket.emit('combat_chat_error', { message: `Error interno del socket: ${err.message}` });
     });
 });
 // --- Fin Lógica de Socket.IO ---
+
+// Pasa la instancia de io al controlador de combates para emitir eventos desde handlers HTTP
+setSocketIoInstance(io);
 
 // Iniciar el servidor HTTP (que incluye Express y Socket.IO)
 httpServer.listen(LOCAL_PORT, '0.0.0.0', () => { 

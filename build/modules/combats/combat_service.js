@@ -13,22 +13,61 @@ export const saveMethod = () => {
     return 'Hola';
 };
 export const createCombat = (combatData) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        // Asegúrate de que gym es un ObjectId válido.
-        if (typeof combatData.gym === 'string') {
-            combatData.gym = new mongoose.Types.ObjectId(combatData.gym);
-        }
-        // Asegúrate de que boxers es un array ObjectId válido.
-        if (Array.isArray(combatData.boxers)) {
-            combatData.boxers = combatData.boxers.map(id => typeof id === 'string' ? new mongoose.Types.ObjectId(id) : id);
-        }
-        console.log('Datos de combate procesados:', combatData);
-        const combat = new Combat(combatData);
-        return yield combat.save();
+    // Validar y convertir IDs a ObjectId si son string
+    if (combatData.creator && typeof combatData.creator === 'string') {
+        combatData.creator = new mongoose.Types.ObjectId(combatData.creator);
     }
-    catch (error) {
-        console.error('Createcombat error:', error);
-        throw error;
+    if (combatData.opponent && typeof combatData.opponent === 'string') {
+        combatData.opponent = new mongoose.Types.ObjectId(combatData.opponent);
+    }
+    if (combatData.gym && typeof combatData.gym === 'string') {
+        combatData.gym = new mongoose.Types.ObjectId(combatData.gym);
+    }
+    const combat = new Combat(combatData);
+    return yield combat.save();
+});
+// Devuelve todos los combates aceptados donde el usuario es creator u opponent
+export const getFutureCombats = (userId) => __awaiter(void 0, void 0, void 0, function* () {
+    return Combat.find({
+        status: 'accepted',
+        $or: [{ creator: userId }, { opponent: userId }]
+    })
+        .populate('creator')
+        .populate('opponent')
+        .populate('gym');
+});
+// Devuelve todas las invitaciones pendientes donde el usuario es opponent
+export const getPendingInvitations = (userId) => __awaiter(void 0, void 0, void 0, function* () {
+    return Combat.find({ opponent: userId, status: 'pending' })
+        .populate('creator')
+        .populate('opponent')
+        .populate('gym');
+});
+// Devuelve todas las invitaciones pendientes enviadas por el usuario (creator)
+export const getSentInvitations = (userId) => __awaiter(void 0, void 0, void 0, function* () {
+    return Combat.find({ creator: userId, status: 'pending' })
+        .populate('creator')
+        .populate('opponent')
+        .populate('gym');
+});
+// Permite que solo el opponent acepte o rechace la invitación
+export const respondToCombatInvitation = (combatId, userId, status) => __awaiter(void 0, void 0, void 0, function* () {
+    const combat = yield Combat.findById(combatId);
+    if (!combat)
+        throw new Error('Combate no encontrado');
+    if (combat.opponent.toString() !== userId)
+        throw new Error('Solo el usuario invitado puede responder');
+    if (status === 'accepted') {
+        combat.status = 'accepted';
+        yield combat.save();
+        return combat;
+    }
+    else if (status === 'rejected') {
+        yield Combat.deleteOne({ _id: combatId });
+        return { deleted: true };
+    }
+    else {
+        throw new Error('Estado inválido');
     }
 });
 export const getAllCombats = (page, pageSize) => __awaiter(void 0, void 0, void 0, function* () {
@@ -56,7 +95,10 @@ export const getAllCombats = (page, pageSize) => __awaiter(void 0, void 0, void 
     }
 });
 export const getCombatById = (id) => __awaiter(void 0, void 0, void 0, function* () {
-    return yield Combat.findById(id).populate('boxers');
+    return yield Combat.findById(id)
+        .populate('creator')
+        .populate('opponent')
+        .populate('gym');
 });
 export const updateCombat = (id, updateData) => __awaiter(void 0, void 0, void 0, function* () {
     return yield Combat.updateOne({ _id: id }, { $set: updateData });
@@ -65,8 +107,16 @@ export const deleteCombat = (id) => __awaiter(void 0, void 0, void 0, function* 
     return yield Combat.deleteOne({ _id: id });
 });
 export const getBoxersByCombatId = (id) => __awaiter(void 0, void 0, void 0, function* () {
-    const combat = yield Combat.findById(id).populate('boxers');
-    return combat ? combat.boxers : [];
+    const combat = yield Combat.findById(id)
+        .populate('creator')
+        .populate('opponent');
+    if (!combat)
+        return [];
+    // Devuelve creator y opponent como "boxers"
+    return [
+        combat.creator,
+        combat.opponent
+    ];
 });
 export const hideCombat = (id, isHidden) => __awaiter(void 0, void 0, void 0, function* () {
     return yield Combat.updateOne({ _id: id }, { $set: { isHidden } });
@@ -82,7 +132,8 @@ export const getCombatsByGymId = (gymId, page, pageSize) => __awaiter(void 0, vo
             .skip(skip)
             .limit(pageSize)
             .populate('gym')
-            .populate('boxers');
+            .populate('creator')
+            .populate('opponent');
         return {
             combats,
             totalCombats,
