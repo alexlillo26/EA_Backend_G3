@@ -50,7 +50,7 @@ const router = express.Router();
  *         description: Datos inválidos
  */
 
-router.post('/', checkJwt, createCombatHandler);
+router.post('/combat', checkJwt, createCombatHandler);
 
 /**
  * @openapi
@@ -98,7 +98,48 @@ router.post('/', checkJwt, createCombatHandler);
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/', checkJwt, getAllCombatsHandler);
+router.get('/combat', checkJwt, getAllCombatsHandler);
+
+/**
+ * @openapi
+ * /api/combat/boxer/{boxerId}:
+ *   get:
+ *     summary: Obtiene los combates en los que ha participado un usuario
+ *     description: Retorna una lista de combates en los que un usuario específico ha participado.
+ *     tags:
+ *       - Combat
+ *     parameters:
+ *       - name: boxerId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario (boxer)
+ *     responses:
+ *       200:
+ *         description: Lista de combates obtenida exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   date:
+ *                     type: string
+ *                     format: date-time
+ *                   gym:
+ *                     type: string
+ *                   boxers:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *       404:
+ *         description: Usuario no encontrado o sin combates
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/combat/boxer/:boxerId', getCombatsByBoxerIdHandler);
 
 /**
  * @openapi
@@ -138,9 +179,9 @@ router.get('/', checkJwt, getAllCombatsHandler);
  *         description: Combate no encontrado
  */
 
-router.get('/gym/:gymId', getCombatsByGymIdHandler);
+router.get('/combat/gym/:gymId', getCombatsByGymIdHandler);
 
-router.get('/:id', getCombatByIdHandler);
+router.get('/combat/:id', getCombatByIdHandler);
 
 /**
  * @openapi
@@ -182,7 +223,7 @@ router.get('/:id', getCombatByIdHandler);
  *         description: Combate no encontrado
  */
 
-router.put('/:id', checkJwt, updateCombatHandler);
+router.put('/combat/:id', checkJwt, updateCombatHandler);
 
 /**
  * @openapi
@@ -205,7 +246,7 @@ router.put('/:id', checkJwt, updateCombatHandler);
  *         description: Combate no encontrado
  */
 
-router.delete('/:id', checkJwt, deleteCombatHandler);
+router.delete('/combat/:id', checkJwt, deleteCombatHandler);
 
 /**
  * @openapi
@@ -244,7 +285,7 @@ router.delete('/:id', checkJwt, deleteCombatHandler);
  *         description: Combate no encontrado
  */
 
-router.get('/:id/boxers', getBoxersByCombatIdHandler);
+router.get('/combat/:id/boxers', getBoxersByCombatIdHandler);
 
 /**
  * @openapi
@@ -276,47 +317,7 @@ router.get('/:id/boxers', getBoxersByCombatIdHandler);
  *       404:
  *         description: Combate no encontrado
  */
-router.put('/:id/oculto', checkJwt, hideCombatHandler); // Require authentication
+router.put('/combat/:id/oculto', checkJwt, hideCombatHandler); // Require authentication
 
-/**
- * @openapi
- * /api/combat/boxer/{boxerId}:
- *   get:
- *     summary: Obtiene los combates en los que ha participado un usuario
- *     description: Retorna una lista de combates en los que un usuario específico ha participado.
- *     tags:
- *       - Combat
- *     parameters:
- *       - name: boxerId
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del usuario (boxer)
- *     responses:
- *       200:
- *         description: Lista de combates obtenida exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   date:
- *                     type: string
- *                     format: date-time
- *                   gym:
- *                     type: string
- *                   boxers:
- *                     type: array
- *                     items:
- *                       type: string
- *       404:
- *         description: Usuario no encontrado o sin combates
- *       500:
- *         description: Error interno del servidor
- */
-router.get('/boxer/:boxerId', getCombatsByBoxerIdHandler);
 
 export default router;
