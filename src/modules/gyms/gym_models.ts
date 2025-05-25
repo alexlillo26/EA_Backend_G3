@@ -9,7 +9,7 @@ export interface IGym {
     place: string;
     price: number;
     password: string;
-    isHidden: boolean;
+    isHidden?: boolean;
     googleId?: string;
 }
 

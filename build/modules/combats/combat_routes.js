@@ -8,7 +8,7 @@ const router = express.Router();
  * /api/combat:
  *   post:
  *     summary: Crea un nuevo combate
- *     description: Añade un nuevo combate con fecha, gimnasio y boxeadores.
+ *     description: Añade un nuevo combate con todos los campos requeridos.
  *     tags:
  *       - Combat
  *     requestBody:
@@ -17,19 +17,42 @@ const router = express.Router();
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - creator
+ *               - opponent
+ *               - date
+ *               - time
+ *               - level
+ *               - gym
+ *               - status
  *             properties:
+ *               creator:
+ *                 type: string
+ *                 description: ID del usuario creador
+ *               opponent:
+ *                 type: string
+ *                 description: ID del oponente
  *               date:
  *                 type: string
- *                 format: date-time
- *                 description: Fecha y hora del combate
+ *                 format: date
+ *                 description: Fecha del combate (YYYY-MM-DD)
+ *                 example: "2024-06-01"
+ *               time:
+ *                 type: string
+ *                 description: Hora del combate (HH:mm)
+ *                 example: "18:00"
+ *               level:
+ *                 type: string
+ *                 description: Nivel del combate
+ *                 example: "avanzado"
  *               gym:
  *                 type: string
- *                 description: ID del gimnasio donde se lleva a cabo el combate
- *               boxers:
- *                 type: array
- *                 items:
- *                   type: string
- *                 description: Lista de IDs de los boxeadores participantes
+ *                 description: ID del gimnasio
+ *               status:
+ *                 type: string
+ *                 enum: [pending, accepted, rejected]
+ *                 description: Estado del combate
+ *                 example: pending
  *     responses:
  *       201:
  *         description: Combate creado exitosamente

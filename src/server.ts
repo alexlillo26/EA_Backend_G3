@@ -11,6 +11,7 @@ import userRoutes from './modules/users/user_routes.js';
 import gymRoutes from './modules/gyms/gym_routes.js';
 import combatRoutes from './modules/combats/combat_routes.js';
 import authRoutes from './modules/auth/auth_routes.js';
+import ratingRoutes from './modules/ratings/rating_routes.js'; 
 // import { corsHandler } from './middleware/corsHandler.js'; // Comentado para usar la librería cors estándar
 import { loggingHandler } from './middleware/loggingHandler.js';
 // import { routeNotFound } from './middleware/routeNotFound.js'; // Descomenta si lo usas
@@ -58,6 +59,7 @@ const swaggerOptions = {
             { name: 'Users', description: 'Gestión de Usuarios' },
             { name: 'Gym', description: 'Gestión de Gimnasios' },
             { name: 'Combat', description: 'Gestión de Combates' },
+            { name: 'Ratings', description: 'Valoraciones de Combates' },
             { name: 'Main', description: 'Rutas Principales y de Prueba' }
         ],
         servers: [
@@ -107,6 +109,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api', userRoutes);    // Si en user_routes.js las rutas son ej. /users, la URL será /api/users
 app.use('/api', gymRoutes);     // Si en gym_routes.js las rutas son ej. /gym, la URL será /api/gym
 app.use('/api', combatRoutes);  // Si en combat_routes.js las rutas son ej. /combat, la URL será /api/combat
+app.use('/api', ratingRoutes);  // Si en rating_routes.js las rutas son ej. /ratings, la URL será /api/ratings
 
 // --- Ruta para Swagger UI ---
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
