@@ -21,6 +21,12 @@ import swaggerJSDoc from 'swagger-jsdoc';
 import cors from 'cors'; // Importar la librería cors
 import Combat from './modules/combats/combat_models.js';
 import { setSocketIoInstance } from './modules/combats/combat_controller.js';
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Definir __filename y __dirname para ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const LOCAL_PORT = parseInt(process.env.SERVER_PORT || '9000', 10); // Parseado a entero
@@ -84,6 +90,9 @@ console.log('Generated Swagger Spec:', JSON.stringify(swaggerSpec, null, 2));
 // --- Middlewares de Express ---
 // Parsear JSON bodies
 app.use(express.json()); 
+
+// Servir archivos estáticos de /uploads
+app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
 // CORS para desarrollo local y producción
 app.use(cors({

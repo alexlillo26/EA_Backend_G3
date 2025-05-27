@@ -73,7 +73,15 @@ export const updateUserHandler = (req, res) => __awaiter(void 0, void 0, void 0,
         if (!id) {
             return res.status(400).json({ message: "El ID del usuario es requerido" });
         }
-        const updatedData = req.body;
+        const updatedData = Object.assign({}, req.body);
+        // Convertir birthDate a Date si está presente
+        if (updatedData.birthDate) {
+            updatedData.birthDate = new Date(updatedData.birthDate);
+        }
+        // Si el password viene vacío, eliminarlo para no sobrescribir
+        if (updatedData.password === undefined || updatedData.password === '') {
+            delete updatedData.password;
+        }
         // Si se subió una imagen, agrega la ruta al campo profilePicture
         if (req.file) {
             updatedData.profilePicture = `/uploads/${req.file.filename}`;
