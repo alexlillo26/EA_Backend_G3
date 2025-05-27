@@ -13,6 +13,7 @@ import {
     searchUsersHandler
 } from '../users/user_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
+import User from './user_models.js';
 
 const router = express.Router();
 
@@ -247,7 +248,7 @@ router.get('/users/:id', checkJwt, getUserByIdHandler); // Add checkJwt here
  *       404:
  *         description: Usuario no encontrado
  */
-router.put('/users/:id', checkJwt, updateUserHandler, upload.single("profilePicture")); // Require authentication
+router.put('/users/:id', checkJwt, upload.single("profilePicture"), updateUserHandler); // Corrige el orden
 
 /**
  * @openapi
@@ -380,5 +381,20 @@ router.post('/users/refresh', refreshTokenHandler);
  *         description: Refresh token inválido
  */
 router.post('/users/refresh-token', refreshTokenHandler);
+
+// Ruta protegida para obtener el perfil del usuario autenticado
+router.get('/users/me', checkJwt, async (req: any, res: express.Response) => {
+  try {
+    const user = await User.findById(req.user?.id).select('-password');
+    if (!user) {
+      res.status(404).json({ message: 'Usuario no encontrado' });
+      return;
+    }
+    res.json(user);
+  } catch (err) {
+    console.error('Error al obtener usuario:', err);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
 
 export default router;

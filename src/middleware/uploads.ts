@@ -1,12 +1,17 @@
 import multer from "multer";
 import path from "path";
+import { fileURLToPath } from "url";
+
+// Solución a __dirname en ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, "../../uploads")); // Carpeta donde se guardarán las imágenes
+    cb(null, path.join(__dirname, "../../uploads")); // ✅ ruta válida
   },
   filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`); // Nombre único para cada archivo
+    cb(null, `${Date.now()}-${file.originalname}`);
   },
 });
 
