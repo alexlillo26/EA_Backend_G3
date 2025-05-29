@@ -10,6 +10,7 @@ export interface ICombat {
     status: 'pending' | 'accepted' | 'rejected';
     createdAt?: Date;
     updatedAt?: Date;
+    image?: string;
 }
 
 const combatSchema = new Schema<ICombat>({
@@ -44,6 +45,10 @@ const combatSchema = new Schema<ICombat>({
         type: String,
         enum: ['pending', 'accepted', 'rejected'],
         default: 'pending'
+    },
+    image: {
+        type: String,
+        default: null
     }
 }, { timestamps: true });
 

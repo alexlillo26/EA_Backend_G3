@@ -93,7 +93,7 @@ console.log('Generated Swagger Spec:', JSON.stringify(swaggerSpec, null, 2));
 // Parsear JSON bodies
 app.use(express.json());
 // Servir archivos estáticos de /uploads
-app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 // CORS para desarrollo local y producción
 app.use(cors({
     origin: [

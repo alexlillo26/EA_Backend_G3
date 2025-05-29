@@ -16,9 +16,11 @@ import {
     getFutureCombatsHandler,
     getInvitationsHandler,
     getSentInvitationsHandler,
-    getFilteredCombatsHandler
+    getFilteredCombatsHandler,
+    updateCombatImageHandler
 } from '../combats/combat_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
+import upload from '../../middleware/uploads.js'; 
 
 const router = express.Router();
 
@@ -219,7 +221,7 @@ router.get('/combat/boxer/:boxerId', getCombatsByBoxerIdHandler);
  *         description: Datos inválidos
  */
 
-router.post('/combat', checkJwt, createCombatHandler);
+router.post('/combat', checkJwt, upload.single('image'), createCombatHandler);
 
 /**
  * @openapi
@@ -485,7 +487,7 @@ router.put('/combat/:id/oculto', checkJwt, hideCombatHandler); // Require authen
 router.patch('/combat/:id/respond', checkJwt, respondToInvitationHandler);
 
 
-
+router.put('/combat/:id/image', checkJwt, upload.single('image'), updateCombatImageHandler);
 
 
 export default router;

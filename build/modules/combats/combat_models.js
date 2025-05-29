@@ -31,6 +31,10 @@ const combatSchema = new Schema({
         type: String,
         enum: ['pending', 'accepted', 'rejected'],
         default: 'pending'
+    },
+    image: {
+        type: String,
+        default: null
     }
 }, { timestamps: true });
 const Combat = model('Combat', combatSchema);

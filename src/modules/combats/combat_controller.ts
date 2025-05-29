@@ -1,13 +1,14 @@
 // src/controllers/_controller.ts
 import {
     saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, deleteCombat, getBoxersByCombatId, hideCombat, getCombatsByGymId,
-    getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation
+    getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation, updateCombatImage
 } from '../combats/combat_service.js';
 
 import express, { Request, Response } from 'express';
 import Combat from './combat_models.js';
 import mongoose from 'mongoose';
 import { Server as SocketIOServer } from 'socket.io';
+import path from 'path';
 
 // --- Socket.IO instance holder ---
 let io: SocketIOServer | undefined;
@@ -40,7 +41,13 @@ export const createCombatHandler = async (req: Request, res: Response) => {
         ) {
             return res.status(400).json({ message: 'Faltan campos obligatorios o IDs inválidos' });
         }
-        const combat = await createCombat({ creator, opponent, date, time, level, gym, status: 'pending' });
+        let imagePath: string | undefined = undefined;
+        console.log('Archivo recibido:', req.file);
+        if (req.file) {
+            imagePath = path.join('uploads', req.file.filename).replace(/\\/g, '/');
+            console.log('Ruta de la imagen:', imagePath);
+        }
+        const combat = await createCombat({ creator, opponent, date, time, level, gym, status: 'pending' }, imagePath);
         // Notificar al oponente por socket.io si está conectado
         if (io && opponent) {
             io.to(opponent.toString()).emit('new_invitation', combat);
@@ -271,5 +278,25 @@ export const getFilteredCombatsHandler = async (req: Request, res: Response) => 
     } catch (error: any) {
         console.error("Error filtrando combates:", error);
         res.status(500).json({ message: error?.message || String(error) });
+    }
+};
+
+export const updateCombatImageHandler = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        if (!req.file) {
+            return res.status(400).json({ message: 'No se ha enviado ninguna imagen.' });
+        }
+        // Normaliza la ruta para la web
+        const imagePath = `uploads/${req.file.filename}`;
+        const updatedCombat = await updateCombatImage(id, imagePath);
+
+        if (!updatedCombat) {
+            return res.status(404).json({ message: 'Combate no encontrado.' });
+        }
+
+        res.status(200).json({ message: 'Imagen actualizada correctamente.', combat: updatedCombat });
+    } catch (error: any) {
+        res.status(500).json({ message: error?.message });
     }
 };

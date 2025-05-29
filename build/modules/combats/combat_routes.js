@@ -1,7 +1,8 @@
 // src/routes/user_routes.ts
 import express from 'express';
-import { createCombatHandler, getCombatByIdHandler, updateCombatHandler, deleteCombatHandler, getBoxersByCombatIdHandler, getCombatsByBoxerIdHandler, hideCombatHandler, getPendingInvitationsHandler, respondToInvitationHandler, getFutureCombatsHandler, getInvitationsHandler, getSentInvitationsHandler, getFilteredCombatsHandler } from '../combats/combat_controller.js';
+import { createCombatHandler, getCombatByIdHandler, updateCombatHandler, deleteCombatHandler, getBoxersByCombatIdHandler, getCombatsByBoxerIdHandler, hideCombatHandler, getPendingInvitationsHandler, respondToInvitationHandler, getFutureCombatsHandler, getInvitationsHandler, getSentInvitationsHandler, getFilteredCombatsHandler, updateCombatImageHandler } from '../combats/combat_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
+import upload from '../../middleware/uploads.js';
 const router = express.Router();
 /**
  * @openapi
@@ -192,7 +193,7 @@ router.get('/combat/boxer/:boxerId', getCombatsByBoxerIdHandler);
  *       400:
  *         description: Datos inválidos
  */
-router.post('/combat', checkJwt, createCombatHandler);
+router.post('/combat', checkJwt, upload.single('image'), createCombatHandler);
 /**
  * @openapi
  * /api/combat:
@@ -439,4 +440,5 @@ router.put('/combat/:id/oculto', checkJwt, hideCombatHandler); // Require authen
  *         description: Invitación no encontrada
  */
 router.patch('/combat/:id/respond', checkJwt, respondToInvitationHandler);
+router.put('/combat/:id/image', checkJwt, upload.single('image'), updateCombatImageHandler);
 export default router;

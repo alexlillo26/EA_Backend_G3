@@ -12,7 +12,7 @@ import Combat from '../combats/combat_models.js';
 export const saveMethod = () => {
     return 'Hola';
 };
-export const createCombat = (combatData) => __awaiter(void 0, void 0, void 0, function* () {
+export const createCombat = (combatData, imagePath) => __awaiter(void 0, void 0, void 0, function* () {
     // Validar y convertir IDs a ObjectId si son string
     if (combatData.creator && typeof combatData.creator === 'string') {
         combatData.creator = new mongoose.Types.ObjectId(combatData.creator);
@@ -22,6 +22,9 @@ export const createCombat = (combatData) => __awaiter(void 0, void 0, void 0, fu
     }
     if (combatData.gym && typeof combatData.gym === 'string') {
         combatData.gym = new mongoose.Types.ObjectId(combatData.gym);
+    }
+    if (imagePath) {
+        combatData.image = imagePath;
     }
     const combat = new Combat(combatData);
     return yield combat.save();
@@ -146,4 +149,9 @@ export const getCombatsByGymId = (gymId, page, pageSize) => __awaiter(void 0, vo
         console.error('Error in getCombatsByGymId:', error);
         throw error;
     }
+});
+export const updateCombatImage = (combatId, imagePath) => __awaiter(void 0, void 0, void 0, function* () {
+    // Asegura que la ruta se guarde con barras normales para la web
+    const normalizedPath = imagePath.replace(/\\/g, '/');
+    return yield Combat.findByIdAndUpdate(combatId, { $set: { image: normalizedPath } }, { new: true });
 });
