@@ -26,7 +26,7 @@ const gymSchema = new mongoose.Schema({
     },
     price: {
         type: Number,
-        required: true
+        required: false
     },
     isHidden: {
         type: Boolean,
@@ -40,11 +40,11 @@ const gymSchema = new mongoose.Schema({
     },
     phone: {
         type: String,
-        required: true
+        required: false
     },
     password: {
         type: String,
-        required: true
+        required: false
     },
     googleId: {
         type: String,
@@ -53,9 +53,10 @@ const gymSchema = new mongoose.Schema({
     }
 });
 
-gymSchema.pre('save', async function (next) {
-    if (this.isModified('password')) {
-        this.password = await encrypt(this.password);
+gymSchema.pre('save', async function (next) { //
+    // Solo encripta si la contraseña se modifica y existe
+    if (this.isModified('password') && this.password) { //
+        this.password = await encrypt(this.password); //
     }
     next();
 });

@@ -108,6 +108,9 @@ export const loginUser = (email, password) => __awaiter(void 0, void 0, void 0, 
     if (user.isHidden) {
         throw new Error('Este usuario está oculto y no puede iniciar sesión');
     }
+    if (!user.password || typeof user.password !== 'string') {
+        throw new Error('El usuario no tiene una contraseña válida');
+    }
     const isPasswordValid = yield bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
         throw new Error('Contraseña incorrecta');

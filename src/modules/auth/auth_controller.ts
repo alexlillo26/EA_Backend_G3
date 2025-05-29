@@ -32,36 +32,59 @@ export const googleAuthCtrl = async (req: Request, res: Response) => {
 
 export const googleAuthCallback = async (req: Request, res: Response) => {
     try {
-        const code = req.query.code as string;
-        const origin = req.query.state as string || 'frontend'; // Cambiado a 'frontend' por defecto
-        if (!code) {
-            return res.status(400).json({ message: 'Código de autorización faltante' });
+        const code = req.query.code as string; //
+        const origin = req.query.state as string || 'frontend'; //
+        
+        const flutterErrorRedirectBase = 'http://localhost:54385/login'; // Asumimos que esta es la URL de tu Flutter web local para errores
+        const defaultErrorRedirectBase = 'http://localhost:4200/login'; //
+        const errorRedirectBase = origin === 'flutter_local_web' ? flutterErrorRedirectBase : defaultErrorRedirectBase;
+
+
+        if (!code) { //
+            return res.status(400).json({ message: 'Código de autorización faltante' }); //
         }
-        const authData = await googleAuth(code);
-        if (!authData) {
-            return res.redirect('/login?error=authentication_failed');
+        const authData = await googleAuth(code); //
+        if (!authData) { //
+            return res.redirect(`${errorRedirectBase}?error=authentication_failed`);
         }
 
-        const { token, refreshToken } = authData; // Ensure refreshToken is included
+        const { token, refreshToken, user, gym } = authData; //
 
-        res.cookie('token', token, {
-            httpOnly: true,
-            secure: false,
-            sameSite: 'none',
-            maxAge: 86400000, // 1 día
+        // No modificamos el manejo de cookies, ya que es general.
+        res.cookie('token', token, { //
+            httpOnly: true, //
+            secure: false, // En desarrollo; debería ser true en producción con HTTPS //
+            sameSite: 'none', // Ajustar según necesidades de producción, 'lax' o 'strict' son más seguros //
+            maxAge: 86400000, // 1 día //
         });
 
-        const redirectMap: Record<string, string> = {
-            frontend: `http://localhost:4200/?token=${token}&refreshToken=${refreshToken}&type=user`, // Updated for Angular
-            webreact: `http://localhost:3000/?token=${token}&refreshToken=${refreshToken}`, // No changes for React
+        // Preparamos datos adicionales para la redirección de Flutter
+        const userIdForRedirect = user ? user._id : (gym ? gym._id : '');
+        const usernameForRedirect = user ? user.name : (gym ? gym.name : '');
+        const accountTypeForRedirect = user ? 'user' : (gym ? 'gym' : 'unknown');
+
+        const redirectMap: Record<string, string> = { //
+            // Mantenemos las redirecciones existentes sin cambios en sus parámetros
+            frontend: `http://localhost:4200/?token=${token}&refreshToken=${refreshToken}&type=user`, //
+            webreact: `http://localhost:3000/?token=${token}&refreshToken=${refreshToken}`, //
+            // Nueva entrada para Flutter Web Local
+            flutter_local_web: `http://localhost:54385/?token=${token}&refreshToken=${refreshToken}&userId=${userIdForRedirect}&username=${usernameForRedirect}&type=${accountTypeForRedirect}`
         };
 
-        const redirectUrl = redirectMap[origin] || redirectMap['frontend']; // Redirigir según el origen
-        console.log(`Redirecting to: ${redirectUrl}`);
-        res.redirect(redirectUrl);
-    } catch (error: any) {
-        console.error('Error en callback de Google:', error);
-        res.redirect('http://localhost:4200/login?error=server_error');
+        const redirectUrl = redirectMap[origin] || redirectMap['frontend']; //
+        console.log(`Redirecting to: ${redirectUrl} for origin: ${origin}`); //
+        res.redirect(redirectUrl); //
+    } catch (error: any) { //
+        console.error('Error en callback de Google:', error); //
+        // Determinar la URL de redirección de error basada en el origin si es posible
+        const originFromError = (error.request && error.request.query && error.request.query.state) 
+                               ? error.request.query.state as string 
+                               : 'frontend';
+        const flutterErrorRedirectBase = 'http://localhost:54385/login';
+        const defaultErrorRedirectBase = 'http://localhost:4200/login'; //
+        const errorRedirectBase = originFromError === 'flutter_local_web' ? flutterErrorRedirectBase : defaultErrorRedirectBase;
+        
+        res.redirect(`${errorRedirectBase}?error=server_error`);
     }
 };
 

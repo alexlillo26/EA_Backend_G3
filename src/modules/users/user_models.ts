@@ -1,12 +1,14 @@
 import mongoose from "mongoose";
 
 export interface IUser {
+  _id?: string; // ID opcional para permitir la creación de nuevos usuarios sin especificar un ID
   name: string;
   birthDate: Date;
   email: string;
   password: string;
   isAdmin: boolean;
   isHidden: boolean;
+  googleId?: string; 
   weight: string; 
   city: string;  
   phone: string; 
@@ -33,7 +35,7 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
+    required: false,
     minlength: 8
   },
   isAdmin: {
@@ -52,15 +54,15 @@ const userSchema = new mongoose.Schema({
   weight: { 
     type: String,
     enum: ['Peso pluma', 'Peso medio', 'Peso pesado'],
-    required: true
+    required: false
   },
   city: { 
     type: String,
-    required: true
+    required: false
   },
   phone: { 
     type: String,
-    required: true
+    required: false
   },
   profilePicture: { 
     type: String,

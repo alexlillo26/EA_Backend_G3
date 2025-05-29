@@ -70,6 +70,9 @@ export const loginGym = (email, password) => __awaiter(void 0, void 0, void 0, f
         throw new Error('Este gimnasio está oculto y no puede iniciar sesión');
     }
     // Comparar la contraseña ingresada con la almacenada
+    if (!gym.password) {
+        throw new Error('La contraseña del gimnasio no está definida');
+    }
     const isCorrect = yield verified(password, gym.password);
     if (!isCorrect) {
         throw new Error('Contraseña incorrecta');

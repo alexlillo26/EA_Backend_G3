@@ -77,6 +77,9 @@ export const loginGym = async (email: string, password: string) => {
     }
 
     // Comparar la contraseña ingresada con la almacenada
+    if (!gym.password) {
+        throw new Error('La contraseña del gimnasio no está definida');
+    }
     const isCorrect = await verified(password, gym.password);
     if (!isCorrect) {
         throw new Error('Contraseña incorrecta');

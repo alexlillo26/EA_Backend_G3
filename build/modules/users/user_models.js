@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true,
+        required: false,
         minlength: 8
     },
     isAdmin: {
@@ -37,15 +37,15 @@ const userSchema = new mongoose.Schema({
     weight: {
         type: String,
         enum: ['Peso pluma', 'Peso medio', 'Peso pesado'],
-        required: true
+        required: false
     },
     city: {
         type: String,
-        required: true
+        required: false
     },
     phone: {
         type: String,
-        required: true
+        required: false
     },
     profilePicture: {
         type: String,

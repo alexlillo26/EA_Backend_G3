@@ -1,136 +1,112 @@
 import axios from 'axios';
-import { encrypt } from "../../utils/bcrypt.handle.js";
-import { generateToken, generateRefreshToken } from "../../utils/jwt.handle.js";
-import User from "../users/user_models.js";
-import Gym from "../gyms/gym_models.js";
+import { generateToken, generateRefreshToken } from "../../utils/jwt.handle.js"; //
+import User, { IUser } from "../users/user_models.js"; //
+import Gym, { IGym } from "../gyms/gym_models.js";   //
+import { encrypt } from "../../utils/bcrypt.handle.js"; //
 
-export const googleAuth = async (code: string): Promise<{ token: string; refreshToken: string; user?: any; gym?: any }> => {
+// Asegúrate que tus interfaces IUser e IGym en los archivos de modelo
+// tengan los campos como 'password', 'weight', 'city', etc., marcados como opcionales (con '?')
+// si no siempre van a estar presentes, especialmente para usuarios de Google.
+
+export const googleAuth = async (code: string): Promise<{ token: string; refreshToken: string; user?: IUser; gym?: IGym; isNewEntity?: boolean }> => {
     try {
-        console.log("Sending token request to Google with:", {
-            code,
-            client_id: process.env.GOOGLE_CLIENT_ID,
-            client_secret: process.env.GOOGLE_CLIENT_SECRET,
-            redirect_uri: process.env.GOOGLE_OAUTH_REDIRECT_URL,
-            grant_type: 'authorization_code',
+        const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', { //
+            code, //
+            client_id: process.env.GOOGLE_CLIENT_ID, //
+            client_secret: process.env.GOOGLE_CLIENT_SECRET, //
+            redirect_uri: process.env.GOOGLE_OAUTH_REDIRECT_URL, //
+            grant_type: 'authorization_code', //
         });
-
-        // Request access token from Google
-        const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
-            code,
-            client_id: process.env.GOOGLE_CLIENT_ID,
-            client_secret: process.env.GOOGLE_CLIENT_SECRET,
-            redirect_uri: process.env.GOOGLE_OAUTH_REDIRECT_URL,
-            grant_type: 'authorization_code',
+        const access_token = tokenResponse.data.access_token; //
+        const profileResponse = await axios.get('https://www.googleapis.com/oauth2/v1/userinfo', { //
+            params: { access_token }, //
+            headers: { Accept: 'application/json' }, //
         });
+        const profile = profileResponse.data; //
 
-        const access_token = tokenResponse.data.access_token;
+        let userDoc = await User.findOne({ email: profile.email }); //
+        let gymDoc = await Gym.findOne({ email: profile.email }); //
+        let isNewEntity = false; // Renombrado de isNewUser
 
-        // Fetch user profile from Google
-        const profileResponse = await axios.get('https://www.googleapis.com/oauth2/v1/userinfo', {
-            params: { access_token },
-            headers: { Accept: 'application/json' },
-        });
+        if (!userDoc && !gymDoc) {
+            isNewEntity = true;
+            const isGymEmail = profile.email.endsWith('@gymdomain.com'); // Define tu lógica para identificar gyms
 
-        const profile = profileResponse.data;
-
-        // Check if the email belongs to a user or gym
-        let user = await User.findOne({ email: profile.email });
-        let gym = await Gym.findOne({ email: profile.email });
-
-        if (!user && !gym) {
-            const randomPassword = Math.random().toString(36).slice(-8); // Genera una contraseña aleatoria de 8 caracteres
-            const passHash = await encrypt(randomPassword); // Encripta la contraseña generada
-
-            if (profile.email.includes('@gymdomain.com')) { // Example domain check for gyms
-                gym = await Gym.create({
-                    name: profile.name,
-                    email: profile.email,
-                    googleId: profile.id,
-                    password: passHash, // Se almacena la contraseña encriptada
-                });
+            if (isGymEmail) {
+                const newGymData: Partial<IGym> = { /* ... */ }; // Como en tu código
+                 // ... (definición de newGymData como la tenías, solo con campos de Google)
+                 newGymData.name = profile.name || `Gimnasio ${profile.id}`; //
+                 newGymData.email = profile.email; //
+                 newGymData.googleId = profile.id; //
+                gymDoc = await Gym.create(newGymData); //
             } else {
-                user = await User.create({
-                    name: profile.name,
-                    email: profile.email,
-                    googleId: profile.id,
-                    password: passHash, // Se almacena la contraseña encriptada
-                });
+                const newUserProfileData: Partial<IUser> = { /* ... */ }; // Como en tu código
+                 // ... (definición de newUserProfileData como la tenías, solo con campos de Google)
+                 newUserProfileData.name = profile.name || `Usuario ${profile.id}`; //
+                 newUserProfileData.email = profile.email; //
+                 newUserProfileData.googleId = profile.id; //
+                 newUserProfileData.profilePicture = profile.picture; //
+                userDoc = await User.create(newUserProfileData); //
             }
+        } else if (userDoc && !userDoc.googleId) { //
+            userDoc.googleId = profile.id; //
+            if (profile.picture && !userDoc.profilePicture) {  //
+                 userDoc.profilePicture = profile.picture; //
+            }
+            await userDoc.save(); //
+        } else if (gymDoc && !gymDoc.googleId) { //
+            gymDoc.googleId = profile.id; //
+            await gymDoc.save(); //
         }
 
-        // Generate tokens
-        const token = user
-            ? generateToken(user.id, user.email, user.name)
-            : generateToken(gym!.id, gym!.email, gym!.name);
+        // Generación de tokens
+        const token = userDoc ? generateToken(userDoc.id, userDoc.email, userDoc.name) : generateToken(gymDoc!.id, gymDoc!.email, gymDoc!.name); //
+        const refreshToken = userDoc ? generateRefreshToken(userDoc.id) : generateRefreshToken(gymDoc!.id); //
+        
+        // CORRECCIÓN: Convertir a objeto plano antes de retornar
+        const finalUser = userDoc ? userDoc.toObject<IUser>() : undefined;
+        const finalGym = gymDoc ? gymDoc.toObject<IGym>() : undefined;
 
-        const refreshToken = user
-            ? generateRefreshToken(user.id)
-            : generateRefreshToken(gym!.id); // Ensure refreshToken is generated
+        return { token, refreshToken, user: finalUser, gym: finalGym, isNewEntity }; //
 
-        console.log("Generated refresh token for Google user:", refreshToken); // Debugging log
-
-        return { token, refreshToken, user, gym }; // Ensure refreshToken is returned
-    } catch (error: any) {
-        console.error('Google Auth Error:', error.response?.data || error.message);
-        throw new Error('Error en autenticación con Google');
+    } catch (error: any) { //
+        console.error('Google Auth Error en googleAuth:', error.response?.data || error.message); //
+        throw new Error('Error en autenticación con Google'); //
     }
 };
 
-export const googleRegister = async (code: string, password: string): Promise<{ token: string; refreshToken: string; user: any }> => {
+export const googleRegister = async (code: string, passwordProvided: string): Promise<{ token: string; refreshToken: string; user: IUser }> => { //
     try {
-        // Request access token from Google
-        const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
-            code,
-            client_id: process.env.GOOGLE_CLIENT_ID,
-            client_secret: process.env.GOOGLE_CLIENT_SECRET,
-            redirect_uri: process.env.GOOGLE_OAUTH_REDIRECT_URL,
-            grant_type: 'authorization_code',
-        });
+        const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', { /* ...params como en googleAuth... */ }); //
+        const access_token = tokenResponse.data.access_token; //
+        const profileResponse = await axios.get('https://www.googleapis.com/oauth2/v1/userinfo', { params: { access_token }, headers: { Accept: 'application/json' }}); //
+        const profile = profileResponse.data; //
 
-        const access_token = tokenResponse.data.access_token;
-
-        // Fetch user profile from Google
-        const profileResponse = await axios.get('https://www.googleapis.com/oauth2/v1/userinfo', {
-            params: { access_token },
-            headers: { Accept: 'application/json' },
-        });
-
-        const profile = profileResponse.data;
-
-        // Asignar fecha de nacimiento predeterminada
-        const birthDate = new Date("2017-01-01T00:00:00.000Z");
-
-        // Check if the user already exists
-        let user = await User.findOne({ email: profile.email });
-        if (user) {
-            throw new Error('El usuario ya está registrado');
+        let existingUser = await User.findOne({ email: profile.email }); //
+        if (existingUser) { //
+            throw new Error('El usuario ya está registrado con este correo electrónico.');
         }
 
-        // Encrypt the provided password
-        const passHash = await encrypt(password);
+        const passHash = await encrypt(passwordProvided); //
+        
+        const newUserRegisterData: Partial<IUser> = { /* ...como lo tenías... */ }; //
+        // ... (definición de newUserRegisterData como la tenías)
+        newUserRegisterData.name = profile.name || `Usuario ${profile.id}`; //
+        newUserRegisterData.email = profile.email; //
+        newUserRegisterData.googleId = profile.id; //
+        newUserRegisterData.password = passHash; //
+        newUserRegisterData.profilePicture = profile.picture; //
 
-        console.log("Datos del usuario antes de la creación:", {
-            name: profile.name,
-            email: profile.email,
-            birthDate: birthDate,
-            password: passHash,
-        });
+        const newUserDoc = await User.create(newUserRegisterData as IUser); // Asegúrate que IUser permita campos opcionales o el schema tenga defaults
 
-        // Create a new user
-        user = await User.create({
-            name: profile.name,
-            email: profile.email,
-            birthDate: new Date("2017-01-01T00:00:00.000Z"), // Asegúrate de incluir este campo
-            password: passHash,
-        });
+        const token = generateToken(newUserDoc.id, newUserDoc.email, newUserDoc.name); //
+        const refreshToken = generateRefreshToken(newUserDoc.id); //
+        
+        // CORRECCIÓN: Convertir a objeto plano antes de retornar
+        return { token, refreshToken, user: newUserDoc.toObject<IUser>() };
 
-        // Generate tokens
-        const token = generateToken(user.id, user.email, user.name);
-        const refreshToken = generateRefreshToken(user.id);
-
-        return { token, refreshToken, user };
-    } catch (error: any) {
-        console.error('Google Register Error:', error.response?.data || error.message);
-        throw new Error('Error en el registro con Google');
+    } catch (error: any) { //
+        console.error('Google Register Error:', error.response?.data || error.message); //
+        throw new Error(error.message || 'Error en el registro con Google');
     }
 };

@@ -128,6 +128,9 @@ export const loginUser = async (email: string, password: string) => {
     throw new Error('Este usuario está oculto y no puede iniciar sesión');
   }
 
+  if (!user.password || typeof user.password !== 'string') {
+    throw new Error('El usuario no tiene una contraseña válida');
+  }
   const isPasswordValid = await bcrypt.compare(password, user.password);
   if (!isPasswordValid) {
     throw new Error('Contraseña incorrecta');
