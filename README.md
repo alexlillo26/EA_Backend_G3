@@ -1,3 +1,5 @@
+Lo que falta del ejercicio es lo que hemos comentado del google cloud console, pero lo demás parece estar bien.
+
 # Prova API
 
 ## Descripció
