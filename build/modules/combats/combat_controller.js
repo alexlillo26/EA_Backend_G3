@@ -7,8 +7,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-// src/controllers/_controller.ts
-import { saveMethod, createCombat, getAllCombats, updateCombat, deleteCombat, hideCombat, getCombatsByGymId, getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation } from '../combats/combat_service.js';
+// src/controllers/combat_controller.ts
+import { saveMethod, createCombat, getAllCombats, updateCombat, deleteCombat, hideCombat, getCombatsByGymId, getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation, // retorno: Combat document (o { deleted: boolean })
+ } from '../combats/combat_service.js';
+import Follower from "../followers/follower_model.js";
+import webpush from "web-push";
 import Combat from './combat_models.js';
 import mongoose from 'mongoose';
 // --- Socket.IO instance holder ---
@@ -25,23 +28,45 @@ export const saveMethodHandler = (req, res) => __awaiter(void 0, void 0, void 0,
         res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
     }
 });
-// POST /api/combat - Crear combate y notificar por socket.io
+// POST /api/combat - Crear combate y notificar por socket.io y push
 export const createCombatHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
         const { creator, opponent, date, time, level, gym } = req.body;
-        // Log para debug
         console.log('Datos recibidos en POST /combat:', req.body);
-        // Validación mejorada de campos obligatorios y ObjectId válidos
+        // Validación de campos y ObjectId
         if (!creator || !mongoose.Types.ObjectId.isValid(creator) ||
             !opponent || !mongoose.Types.ObjectId.isValid(opponent) ||
             !date || !time || !level ||
             !gym || !mongoose.Types.ObjectId.isValid(gym)) {
             return res.status(400).json({ message: 'Faltan campos obligatorios o IDs inválidos' });
         }
+        // 1) Crear el combate
         const combat = yield createCombat({ creator, opponent, date, time, level, gym, status: 'pending' });
-        // Notificar al oponente por socket.io si está conectado
+        // 2) Notificar al oponente via Socket.IO
         if (io && opponent) {
             io.to(opponent.toString()).emit('new_invitation', combat);
+        }
+        // 3) Emitir a los seguidores del creator (Socket.IO + Push)
+        if (io && creator) {
+            const followers = yield Follower.find({ following: creator }).select("follower pushSubscription");
+            for (const f of followers) {
+                const followerId = f.follower.toString();
+                const socketId = (_a = global.userSocketMap) === null || _a === void 0 ? void 0 : _a.get(followerId);
+                if (socketId) {
+                    io.to(socketId).emit("new_combat_from_followed", { combat, createdBy: creator });
+                }
+                if (f.pushSubscription) {
+                    const payload = JSON.stringify({
+                        title: "¡Nuevo combate de usuario seguido!",
+                        body: `Tu usuario seguido ha creado un combate.`,
+                        data: { combatId: combat._id.toString() },
+                    });
+                    webpush.sendNotification(f.pushSubscription, payload).catch((err) => {
+                        console.error("Error al enviar push:", err);
+                    });
+                }
+            }
         }
         res.status(201).json(combat);
     }
@@ -112,7 +137,7 @@ export const hideCombatHandler = (req, res) => __awaiter(void 0, void 0, void 0,
         const { isHidden } = req.body;
         const combat = yield hideCombat(id, isHidden);
         if (!combat) {
-            res.status(404).json({ message: 'Combate no encontrado' });
+            return res.status(404).json({ message: 'Combate no encontrado' });
         }
         res.status(200).json({ message: `Combate ${isHidden ? 'oculto' : 'visible'}`, combat });
     }
@@ -127,14 +152,13 @@ export const getCombatsByBoxerIdHandler = (req, res) => __awaiter(void 0, void 0
         const { boxerId } = req.params;
         const page = parseInt(req.query.page) || 1;
         const pageSize = parseInt(req.query.pageSize) || 10;
-        const boxerObjectId = new mongoose.Types.ObjectId(boxerId);
         const totalCombats = yield Combat.countDocuments({ boxers: boxerId });
         const totalPages = Math.ceil(totalCombats / pageSize);
         const combats = yield Combat.find({ boxers: new mongoose.Types.ObjectId(boxerId) })
             .skip((page - 1) * pageSize)
             .limit(pageSize)
-            .populate('gym') // opcional, si gym es un ID
-            .populate('boxers'); // opcional, si boxers son IDs
+            .populate('gym')
+            .populate('boxers');
         if (!combats || combats.length === 0) {
             return res.status(404).json({ message: 'No se encontraron combates para este usuario' });
         }
@@ -159,9 +183,9 @@ export const getCombatsByGymIdHandler = (req, res) => __awaiter(void 0, void 0, 
 });
 // GET /api/combat/future - Combates aceptados del usuario autenticado
 export const getFutureCombatsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _b;
     try {
-        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b.id;
         const combats = yield getFutureCombats(userId);
         res.json(combats);
     }
@@ -171,9 +195,9 @@ export const getFutureCombatsHandler = (req, res) => __awaiter(void 0, void 0, v
 });
 // GET /api/combat/invitations/pending - Invitaciones pendientes recibidas
 export const getPendingInvitationsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b;
+    var _c;
     try {
-        const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b.id;
+        const userId = (_c = req.user) === null || _c === void 0 ? void 0 : _c.id;
         const invitations = yield getPendingInvitations(userId);
         res.json(invitations);
     }
@@ -183,9 +207,9 @@ export const getPendingInvitationsHandler = (req, res) => __awaiter(void 0, void
 });
 // GET /api/combat/sent-invitations - Invitaciones pendientes enviadas
 export const getSentInvitationsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _c;
+    var _d;
     try {
-        const userId = (_c = req.user) === null || _c === void 0 ? void 0 : _c.id;
+        const userId = (_d = req.user) === null || _d === void 0 ? void 0 : _d.id;
         const invitations = yield getSentInvitations(userId);
         res.json(invitations);
     }
@@ -195,27 +219,52 @@ export const getSentInvitationsHandler = (req, res) => __awaiter(void 0, void 0,
 });
 // PATCH /api/combat/:id/respond - Aceptar o rechazar invitación
 export const respondToInvitationHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _d;
+    var _e, _f;
     try {
-        const userId = (_d = req.user) === null || _d === void 0 ? void 0 : _d.id;
+        const userId = (_e = req.user) === null || _e === void 0 ? void 0 : _e.id;
         const { id } = req.params;
         const { status } = req.body;
         if (!['accepted', 'rejected'].includes(status)) {
             return res.status(400).json({ message: 'Estado inválido' });
         }
-        const result = yield respondToCombatInvitation(id, userId, status);
-        res.json(result);
+        // ATENCIÓN: respondToCombatInvitation devuelve directamente el documento Combat
+        const combatResult = yield respondToCombatInvitation(id, userId, status);
+        // Si se aceptó, notificar a followers del creator (socket y push)
+        if (status === "accepted" && io && combatResult && !combatResult.deleted) {
+            // combatResult es el documento de combate
+            const combatDoc = combatResult;
+            const creatorId = combatDoc.creator.toString();
+            const followers = yield Follower.find({ following: creatorId }).select("follower pushSubscription");
+            for (const f of followers) {
+                const followerId = f.follower.toString();
+                const socketId = (_f = global.userSocketMap) === null || _f === void 0 ? void 0 : _f.get(followerId);
+                if (socketId) {
+                    io.to(socketId).emit("new_combat_from_followed", { combat: combatDoc, createdBy: creatorId });
+                }
+                if (f.pushSubscription) {
+                    const payload = JSON.stringify({
+                        title: "¡Tu combate ha sido aceptado!",
+                        body: `El combate que seguiste ha sido aceptado.`,
+                        data: { combatId: combatDoc._id.toString() },
+                    });
+                    webpush.sendNotification(f.pushSubscription, payload).catch((err) => {
+                        console.error("Error enviando push accepted:", err);
+                    });
+                }
+            }
+        }
+        // Devolver el documento de combate
+        res.json(combatResult);
     }
     catch (error) {
         res.status(403).json({ message: error === null || error === void 0 ? void 0 : error.message });
     }
 });
-// GET /api/combat/invitations - Combates pendientes donde el usuario es opponent
+// GET /api/combat/invitations - Combates pendientes donde el usuario es oponente
 export const getInvitationsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _e;
+    var _g;
     try {
-        const userId = (_e = req.user) === null || _e === void 0 ? void 0 : _e.id;
-        // Busca combates donde el usuario es el oponente y el estado es 'pending'
+        const userId = (_g = req.user) === null || _g === void 0 ? void 0 : _g.id;
         const invitations = yield Combat.find({ opponent: userId, status: 'pending' })
             .populate('creator')
             .populate('opponent')
@@ -231,7 +280,6 @@ export const getFilteredCombatsHandler = (req, res) => __awaiter(void 0, void 0,
         const page = parseInt(req.query.page) || 1;
         const pageSize = parseInt(req.query.pageSize) || 10;
         const { status, creator, opponent, user } = req.query;
-        // Debug log
         console.log("[getFilteredCombatsHandler] Query params:", req.query);
         const filter = {};
         if (status)
@@ -264,7 +312,7 @@ export const getFilteredCombatsHandler = (req, res) => __awaiter(void 0, void 0,
             .populate('creator')
             .populate('opponent')
             .populate('gym');
-        res.status(200).json({ combats, totalPages: 1 }); // Simplificado
+        res.status(200).json({ combats, totalPages: 1 });
     }
     catch (error) {
         console.error("Error filtrando combates:", error);

@@ -12,6 +12,7 @@ import gymRoutes from './modules/gyms/gym_routes.js';
 import combatRoutes from './modules/combats/combat_routes.js';
 import authRoutes from './modules/auth/auth_routes.js';
 import ratingRoutes from './modules/ratings/rating_routes.js'; 
+import followerRoutes from './modules/followers/follower_routes.js';
 // import { corsHandler } from './middleware/corsHandler.js'; // Comentado para usar la librería cors estándar
 import { loggingHandler } from './middleware/loggingHandler.js';
 // import { routeNotFound } from './middleware/routeNotFound.js'; // Descomenta si lo usas
@@ -23,6 +24,7 @@ import Combat from './modules/combats/combat_models.js';
 import { setSocketIoInstance } from './modules/combats/combat_controller.js';
 import path from "path";
 import { fileURLToPath } from "url";
+import webpush from "web-push";
 
 // Definir __filename y __dirname para ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -115,10 +117,13 @@ app.use(loggingHandler);
 
 // --- Rutas de la API ---
 app.use('/api/auth', authRoutes);
-app.use('/api', userRoutes);    // Si en user_routes.js las rutas son ej. /users, la URL será /api/users
-app.use('/api', gymRoutes);     // Si en gym_routes.js las rutas son ej. /gym, la URL será /api/gym
-app.use('/api', combatRoutes);  // Si en combat_routes.js las rutas son ej. /combat, la URL será /api/combat
-app.use('/api', ratingRoutes);  // Si en rating_routes.js las rutas son ej. /ratings, la URL será /api/ratings
+app.use('/api', userRoutes);
+app.use('/api', gymRoutes);
+app.use('/api', combatRoutes);
+app.use('/api', ratingRoutes);
+app.use('/api/followers', followerRoutes); // <-- Esto asegura que las rutas sean /api/followers/...
+
+app.use('/api/followers', followerRoutes); // Asegúrate de que el router de followers esté montado en /api/followers
 
 // --- Ruta para Swagger UI ---
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
@@ -183,7 +188,7 @@ interface AuthenticatedSocket extends Socket { user?: AuthenticatedUser; }
 interface CombatChatMessage { combatId: string; senderId: string; senderUsername?: string; message: string; timestamp: string; }
 
 // --- Socket.IO user-socket mapping ---
-const userSocketMap = new Map<string, string>();
+(global as any).userSocketMap = new Map<string, string>();
 
 io.use(async (socket: any, next) => {
     const token = socket.handshake.auth.token as string | undefined;
@@ -199,7 +204,8 @@ io.use(async (socket: any, next) => {
             email: decodedPayload.email
         };
         if (socket.user?.userId) {
-            userSocketMap.set(socket.user.userId, socket.id);
+            (global as any).userSocketMap.set(socket.user.userId, socket.id);
+            socket.join(socket.user.userId);
         }
         next();
     } catch (err: any) {
@@ -218,7 +224,7 @@ io.on('connection', (socket: any) => {
 
     // Evento para enviar invitación de combate a un oponente específico
     socket.on('sendCombatInvitation', ({ opponentId, combat }: { opponentId: string, combat: any }) => {
-        const targetSocketId = userSocketMap.get(opponentId);
+        const targetSocketId = (global as any).userSocketMap.get(opponentId);
         if (targetSocketId) {
             console.log(`📨 Enviando invitación de combate a ${opponentId}`);
             io.to(targetSocketId).emit("new_invitation", combat);
@@ -278,7 +284,7 @@ io.on('connection', (socket: any) => {
 
     socket.on('disconnect', (reason: string) => {
         if (socket.user?.userId) {
-            userSocketMap.delete(socket.user.userId);
+            (global as any).userSocketMap.delete(socket.user.userId);
             console.log(`❌ Usuario desconectado: ${socket.user.userId}`);
         }
     });
@@ -289,6 +295,13 @@ io.on('connection', (socket: any) => {
     });
 });
 // --- Fin Lógica de Socket.IO ---
+
+// Configuración Web Push (VAPID)
+webpush.setVapidDetails(
+    "mailto:admin@ea3.upc.edu",
+    process.env.VAPID_PUBLIC_KEY || "YOUR_PUBLIC_KEY",
+    process.env.VAPID_PRIVATE_KEY || "YOUR_PRIVATE_KEY"
+);
 
 // Pasa la instancia de io al controlador de combates para emitir eventos desde handlers HTTP
 setSocketIoInstance(io);
