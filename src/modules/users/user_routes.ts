@@ -14,6 +14,8 @@ import {
 } from '../users/user_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
 import User from './user_models.js';
+import { followUserHandler, unfollowUserHandler } from '../users/user_controller.js';
+
 
 const router = express.Router();
 
@@ -331,6 +333,50 @@ router.put('/users/:id/oculto', checkJwt, hideUserHandler); // Ensure checkJwt i
  *         description: Usuario no encontrado o contraseña incorrecta
  */
 router.post('/users/login', loginUserHandler);
+
+/**
+ * @openapi
+ * /api/users/{id}/follow:
+ *   post:
+ *     summary: Seguir a un usuario
+ *     description: Permite al usuario autenticado seguir a otro usuario.
+ *     tags:
+ *       - Users
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Usuario seguido exitosamente
+ *       400:
+ *         description: Error en la solicitud
+ */
+router.post('/users/:id/follow', checkJwt, followUserHandler);
+
+/**
+ * @openapi
+ * /api/users/{id}/unfollow:
+ *   delete:
+ *     summary: Dejar de seguir a un usuario
+ *     description: Permite al usuario autenticado dejar de seguir a otro usuario.
+ *     tags:
+ *       - Users
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Usuario dejado de seguir exitosamente
+ *       400:
+ *         description: Error en la solicitud
+ */
+router.delete('/users/:id/unfollow', checkJwt, unfollowUserHandler);
 
 /**
  * @openapi

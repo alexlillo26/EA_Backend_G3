@@ -11,6 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import bcrypt from 'bcryptjs'; // ✅ Necesario para login seguro
 import User from '../users/user_models.js';
 import { generateToken, generateRefreshToken } from '../../utils/jwt.handle.js';
+import mongoose from 'mongoose';
 // Guardar método (test)
 export const saveMethod = () => {
     return 'Hola';
@@ -130,30 +131,73 @@ export const getUserCount = () => __awaiter(void 0, void 0, void 0, function* ()
     return yield User.countDocuments({ isHidden: false });
 });
 // usuario del motor de búsqueda
-export const searchUsers = (city, weight) => __awaiter(void 0, void 0, void 0, function* () {
+export const searchUsers = (city, weight, currentUserId) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         let query = {};
-        if (city) {
-            query.city = new RegExp(city, 'i'); // Búsqueda de ciudades sin distinción entre mayúsculas y minúsculas
+        // Filtro por ciudad (ignorar mayúsculas/minúsculas y espacios adicionales)
+        if (city && city.trim() !== '') {
+            query.city = { $regex: new RegExp(city.trim(), 'i') }; // Coincidencia flexible
         }
-        if (weight && ['Peso pluma', 'Peso medio', 'Peso pesado'].includes(weight)) {
-            query.weight = weight;
+        // Filtro por peso (asegúrate de que el valor sea válido)
+        if (weight && weight.trim() !== '') {
+            query.weight = weight.trim(); // Coincidencia exacta
         }
-        console.log('Search query:', query); // Debug log
-        // Si no se proporciona ciudad ni peso, devolver todos los usuarios
+        console.log('Search query:', query); // Log 1: Verifica cómo se construye el objeto de consulta
         const users = yield User.find(query)
-            .select('name city weight') // conserva _id
+            .select('name city weight followers') // Incluye `followers` para calcular `isFollowed`
             .sort({ name: 1 })
-            .lean()
-            .then(users => users.map(user => {
+            .lean();
+        console.log('Raw users from DB:', users); // Log 2: Verifica los datos devueltos directamente por la base de datos
+        const updatedUsers = users.map(user => {
             var _a;
-            return (Object.assign(Object.assign({}, user), { id: (_a = user._id) === null || _a === void 0 ? void 0 : _a.toString() }));
-        }));
-        return users;
+            const isFollowed = Array.isArray(user.followers) && user.followers.some((followerId) => followerId.toString() === currentUserId);
+            console.log(`User: ${user.name}, isFollowed: ${isFollowed}`); // Log 3: Verifica el estado de isFollowed para cada usuario
+            return Object.assign(Object.assign({}, user), { id: (_a = user._id) === null || _a === void 0 ? void 0 : _a.toString(), isFollowed });
+        });
+        console.log('Search results with isFollowed:', updatedUsers); // Log 4: Verifica los resultados finales después de la transformación
+        return updatedUsers;
     }
     catch (error) {
-        console.error('Error in searchUsers:', error);
-        // Devolver una matriz vacía en lugar de lanzar una excepción evita que los 500
+        console.error('Error in searchUsers:', error); // Log 5: Captura cualquier error en la función
         return [];
     }
+});
+export const followUser = (currentUserId, targetUserId) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!mongoose.Types.ObjectId.isValid(currentUserId) || !mongoose.Types.ObjectId.isValid(targetUserId)) {
+        throw new Error('IDs de usuario no válidos');
+    }
+    if (currentUserId === targetUserId) {
+        throw new Error('No puedes seguirte a ti mismo');
+    }
+    const currentUser = yield User.findById(currentUserId);
+    const targetUser = yield User.findById(targetUserId);
+    if (!currentUser || !targetUser) {
+        throw new Error('Usuario no encontrado');
+    }
+    if (currentUser.following.includes(new mongoose.Types.ObjectId(targetUserId))) {
+        throw new Error('Ya sigues a este usuario');
+    }
+    currentUser.following.push(new mongoose.Types.ObjectId(targetUserId));
+    targetUser.followers.push(new mongoose.Types.ObjectId(currentUserId));
+    yield currentUser.save();
+    yield targetUser.save();
+    return { message: 'Usuario seguido exitosamente' };
+});
+export const unfollowUser = (currentUserId, targetUserId) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!mongoose.Types.ObjectId.isValid(currentUserId) || !mongoose.Types.ObjectId.isValid(targetUserId)) {
+        throw new Error('IDs de usuario no válidos');
+    }
+    const currentUser = yield User.findById(currentUserId);
+    const targetUser = yield User.findById(targetUserId);
+    if (!currentUser || !targetUser) {
+        throw new Error('Usuario no encontrado');
+    }
+    if (!currentUser.following.includes(new mongoose.Types.ObjectId(targetUserId))) {
+        throw new Error('No sigues a este usuario');
+    }
+    currentUser.following = currentUser.following.filter(id => id.toString() !== targetUserId);
+    targetUser.followers = targetUser.followers.filter(id => id.toString() !== currentUserId);
+    yield currentUser.save();
+    yield targetUser.save();
+    return { message: 'Usuario dejado de seguir exitosamente' };
 });

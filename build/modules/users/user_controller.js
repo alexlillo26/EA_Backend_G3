@@ -11,6 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { saveMethod, createUser, getAllUsers, getUserById, deleteUser, hideUser, loginUser, searchUsers } from '../users/user_service.js';
 import { verifyRefreshToken, generateToken } from '../../utils/jwt.handle.js';
 import User from '../users/user_models.js'; // Ensure this import exists
+import { followUser, unfollowUser } from '../users/user_service.js';
 export const saveMethodHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const data = saveMethod();
@@ -163,15 +164,18 @@ export const refreshTokenHandler = (req, res) => __awaiter(void 0, void 0, void 
     }
 });
 export const searchUsersHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
         console.log('Search params:', req.query);
         const { city, weight } = req.query;
-        const users = yield searchUsers(city, weight);
+        const currentUserId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id; // Obtén el ID del usuario autenticado
+        const users = yield searchUsers(city, weight, currentUserId // Pasa el ID del usuario autenticado
+        );
         console.log('Search results:', users);
         res.status(200).json({
             success: true,
             count: users.length,
-            users
+            users,
         });
     }
     catch (error) {
@@ -179,7 +183,37 @@ export const searchUsersHandler = (req, res) => __awaiter(void 0, void 0, void 0
         res.status(500).json({
             success: false,
             message: 'Error al buscar usuarios',
-            error: error === null || error === void 0 ? void 0 : error.message
+            error: error === null || error === void 0 ? void 0 : error.message,
         });
+    }
+});
+export const followUserHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _b;
+    try {
+        const currentUserId = (_b = req.user) === null || _b === void 0 ? void 0 : _b.id; // ID del usuario autenticado
+        const { id: targetUserId } = req.params; // ID del usuario a seguir
+        if (!currentUserId) {
+            return res.status(401).json({ message: 'Usuario no autenticado' });
+        }
+        const result = yield followUser(currentUserId, targetUserId);
+        res.status(200).json(result);
+    }
+    catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+export const unfollowUserHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _c;
+    try {
+        const currentUserId = (_c = req.user) === null || _c === void 0 ? void 0 : _c.id; // ID del usuario autenticado
+        const { id: targetUserId } = req.params; // ID del usuario a dejar de seguir
+        if (!currentUserId) {
+            return res.status(401).json({ message: 'Usuario no autenticado' });
+        }
+        const result = yield unfollowUser(currentUserId, targetUserId);
+        res.status(200).json(result);
+    }
+    catch (error) {
+        res.status(400).json({ message: error.message });
     }
 });

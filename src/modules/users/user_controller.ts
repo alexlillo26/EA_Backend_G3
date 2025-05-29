@@ -2,6 +2,9 @@
 import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser, hideUser, loginUser, getUserCount, searchUsers } from '../users/user_service.js';
 import { verifyRefreshToken, generateToken } from '../../utils/jwt.handle.js';
 import User from '../users/user_models.js'; // Ensure this import exists
+import { followUser, unfollowUser } from '../users/user_service.js';
+import { RequestExt } from '../../middleware/session.js'; // Importa la interfaz extendida
+
 
 import express, { Request, Response } from 'express';
 
@@ -167,29 +170,64 @@ export const refreshTokenHandler = async (req: Request, res: Response) => {
     }
 };
 
-export const searchUsersHandler = async (req: Request, res: Response) => {
-    try {
-        console.log('Search params:', req.query); 
-        
-        const { city, weight } = req.query;
-        const users = await searchUsers(
-            city as string,
-            weight as string
-        );
+export const searchUsersHandler = async (req: RequestExt, res: Response) => {
+  try {
+    console.log('Search params:', req.query);
 
-        console.log('Search results:', users); 
+    const { city, weight } = req.query;
+    const currentUserId = req.user?.id; // Obtén el ID del usuario autenticado
 
-        res.status(200).json({
-            success: true,
-            count: users.length,
-            users
-        });
-    } catch (error: any) {
-        console.error('Search error:', error); 
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error al buscar usuarios',
-            error: error?.message 
-        });
+    const users = await searchUsers(
+      city as string,
+      weight as string,
+      currentUserId // Pasa el ID del usuario autenticado
+    );
+
+    console.log('Search results:', users);
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      users,
+    });
+  } catch (error: any) {
+    console.error('Search error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al buscar usuarios',
+      error: error?.message,
+    });
+  }
+};
+
+export const followUserHandler = async (req: RequestExt, res: Response) => {
+  try {
+    const currentUserId = req.user?.id; // ID del usuario autenticado
+    const { id: targetUserId } = req.params; // ID del usuario a seguir
+
+    if (!currentUserId) {
+      return res.status(401).json({ message: 'Usuario no autenticado' });
     }
+
+    const result = await followUser(currentUserId, targetUserId);
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const unfollowUserHandler = async (req: RequestExt, res: Response) => {
+  try {
+    const currentUserId = req.user?.id; // ID del usuario autenticado
+    const { id: targetUserId } = req.params; // ID del usuario a dejar de seguir
+
+    if (!currentUserId) {
+      return res.status(401).json({ message: 'Usuario no autenticado' });
+    }
+
+    const result = await unfollowUser(currentUserId, targetUserId);
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
 };

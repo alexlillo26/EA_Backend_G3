@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt.handle.js';
 import { JwtPayload } from 'jsonwebtoken';
 
-interface RequestExt extends Request {
+export interface RequestExt extends Request {
     user?: {
         id: string;
         email: string;
@@ -48,3 +48,4 @@ const checkJwt = (req: RequestExt, res: Response, next: NextFunction) => {
 };
 
 export { checkJwt };
+

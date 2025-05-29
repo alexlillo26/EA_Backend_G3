@@ -55,7 +55,9 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: ['Hombre', 'Mujer'],
         required: true
-    }
+    },
+    followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User', default: [] }],
+    following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User', default: [] }], // Usuarios que este usuario sigue
 });
 const User = mongoose.model('User', userSchema);
 export default User;
