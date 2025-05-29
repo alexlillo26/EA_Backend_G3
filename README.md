@@ -1,4 +1,20 @@
-# Prova API
+# MINIMO_2
+LINKS:
+Frontend (Flutter): https://github.com/alexlillo26/EA_Flutter_G3 rama: minimo2-reda
+Backend: https://github.com/alexlillo26/EA_Backend_G3 rama: minimo2-reda
+BACKEND:
+En el backend, se trabaja en local, hay que crear 2 veces un fichero .env para que funcione: uno dentro de la carpeta build, y otro debajo del dockerignore (no dentro), el contenido esta en el pdf que entregué ya que no me deja ponerlo en readme (informacion sensible).
+
+FRONTEND:
+En el frontend todo funciona bien.
+Como usuario test puedes usar: kim@gmail.com 123RedaMakroum?
+Para probarlo en la base de datos tengo usuarios en la ciudad “gava” y en la categoria
+“Peso pluma
+
+
+
+
+
 
 ## Descripció
 
