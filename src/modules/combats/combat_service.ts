@@ -1,5 +1,14 @@
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import Combat, { ICombat } from '../combats/combat_models.js';
+import CombatModel from '../combats/combat_models.js';
+
+interface CombatHistoryResult {
+    combats: ICombat[]; // Los combates ya populados
+    totalCombats: number;
+    totalPages: number;
+    currentPage: number;
+    pageSize: number;
+  }
 
 export const saveMethod = () => {
     return 'Hola';
@@ -95,7 +104,7 @@ export const getAllCombats = async (page: number, pageSize: number) => {
     }
 };
 
-export const getCombatById = async (id: string) => {
+export const getCombatById = async (id: string, page: number, pageSize: number) => {
     return await Combat.findById(id)
         .populate('creator')
         .populate('opponent')
@@ -126,28 +135,47 @@ export const hideCombat = async (id: string, isHidden: boolean) => {
     return await Combat.updateOne({ _id: id }, { $set: { isHidden } });
 };
 
-export const getCombatsByGymId = async (gymId: string, page: number, pageSize: number) => {
-    try {
-        const skip = (page - 1) * pageSize;
-        // gym字段是ObjectId类型，查询时需转换
-        const query = { gym: new mongoose.Types.ObjectId(gymId), isHidden: false };
-        const totalCombats = await Combat.countDocuments(query);
-        const totalPages = Math.ceil(totalCombats / pageSize);
-        const combats = await Combat.find(query)
-            .skip(skip)
-            .limit(pageSize)
-            .populate('gym')
-            .populate('creator')
-            .populate('opponent');
-        return {
-            combats,
-            totalCombats,
-            totalPages,
-            currentPage: page,
-            pageSize
-        };
-    } catch (error) {
-        console.error('Error in getCombatsByGymId:', error);
-        throw error;
-    }
-};
+export const getCompletedCombatHistoryForBoxer = async (
+    boxerId: string,
+    page: number = 1,
+    pageSize: number = 10
+  ): Promise<CombatHistoryResult> => {
+    const boxerObjectId = new mongoose.Types.ObjectId(boxerId);
+    const skip = (page - 1) * pageSize;
+  
+    const query = {
+      status: 'completed', // Solo combates completados
+      $or: [               // Donde el boxeador es creador o oponente
+        { creator: boxerObjectId },
+        { opponent: boxerObjectId },
+      ],
+    };
+  
+    const totalCombats = await CombatModel.countDocuments(query);
+    const totalPages = Math.ceil(totalCombats / pageSize);
+  
+    // Tipado para los campos populados
+    // Define estas interfaces si no las tienes ya, o ajústalas
+    interface PopulatedUserRef { _id: Types.ObjectId; username: string; profileImage?: string; }
+    interface PopulatedGymRef { _id: Types.ObjectId; name: string; location?: string; }
+  
+  
+    const combats = await CombatModel.find(query)
+      .populate<{ creator: PopulatedUserRef }>('creator', 'username profileImage')
+      .populate<{ opponent: PopulatedUserRef }>('opponent', 'username profileImage')
+      .populate<{ winner?: PopulatedUserRef | null }>('winner', 'username')
+      .populate<{ gym: PopulatedGymRef }>('gym', 'name location')
+      .sort({ date: -1, time: -1 }) // Los más recientes primero
+      .skip(skip)
+      .limit(pageSize)
+      .lean<ICombat[]>(); // .lean() para mejor rendimiento y POJOs
+  
+    return {
+      combats,
+      totalCombats,
+      totalPages,
+      currentPage: page,
+      pageSize,
+    };
+  };
+

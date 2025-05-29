@@ -16,7 +16,8 @@ import {
     getFutureCombatsHandler,
     getInvitationsHandler,
     getSentInvitationsHandler,
-    getFilteredCombatsHandler
+    getFilteredCombatsHandler,
+    getUserCombatHistoryHandler
 } from '../combats/combat_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
 
@@ -160,8 +161,6 @@ router.get('/combat/future', checkJwt, getFutureCombatsHandler);
  */
 router.get('/combat/boxer/:boxerId', getCombatsByBoxerIdHandler);
 
-
-
 /**
  * @openapi
  * /api/combat:
@@ -209,7 +208,7 @@ router.get('/combat/boxer/:boxerId', getCombatsByBoxerIdHandler);
  *                 description: ID del gimnasio
  *               status:
  *                 type: string
- *                 enum: [pending, accepted, rejected]
+ *                 enum: [pending, accepted, rejected, completed, active, cancelled]
  *                 description: Estado del combate
  *                 example: pending
  *     responses:
@@ -445,12 +444,6 @@ router.get('/combat/:id/boxers', getBoxersByCombatIdHandler);
  */
 router.put('/combat/:id/oculto', checkJwt, hideCombatHandler); // Require authentication
 
-
-
-
-
-
-
 /**
  * @openapi
  * /api/combat/{id}/respond:
@@ -484,6 +477,106 @@ router.put('/combat/:id/oculto', checkJwt, hideCombatHandler); // Require authen
  */
 router.patch('/combat/:id/respond', checkJwt, respondToInvitationHandler);
 
+/**
+ * @openapi
+ * /api/combat/history/user/{boxerId}:
+ *   get:
+ *     summary: Obtiene el historial de combates completados de un usuario (boxeador)
+ *     description: Retorna una lista paginada de los combates completados en los que un usuario específico ha participado.
+ *     tags:
+ *       - Combat
+ *     parameters:
+ *       - name: boxerId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario (boxeador).
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Número de página.
+ *       - name: pageSize
+ *         in: query
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Número de combates por página.
+ *     responses:
+ *       200:
+ *         description: Historial de combates obtenido exitosamente.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     combats:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                           date:
+ *                             type: string
+ *                             format: date-time
+ *                           time:
+ *                             type: string
+ *                           opponent:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: string
+ *                               username:
+ *                                 type: string
+ *                               profileImage:
+ *                                 type: string
+ *                                 nullable: true
+ *                             nullable: true
+ *                           result:
+ *                             type: string
+ *                             enum: ["Victoria", "Derrota", "Empate"]
+ *                           level:
+ *                             type: string
+ *                             nullable: true
+ *                           status:
+ *                             type: string
+ *                           gym:
+ *                             type: object
+ *                             properties:
+ *                               _id:
+ *                                 type: string
+ *                               name:
+ *                                 type: string
+ *                               location:
+ *                                 type: string
+ *                                 nullable: true
+ *                             nullable: true
+ *                     totalCombats:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     currentPage:
+ *                       type: integer
+ *                     pageSize:
+ *                       type: integer
+ *       400:
+ *         description: ID de boxeador inválido.
+ *       401:
+ *         description: No autenticado (si `checkJwt` está activo).
+ *       500:
+ *         description: Error interno del servidor.
+ *     security:
+ *       - bearerAuth: [] # Asumiendo que usas JWT
+ */
+router.get('/combat/history/user/:boxerId', /* checkJwt, */ getUserCombatHistoryHandler);
 
 
 
