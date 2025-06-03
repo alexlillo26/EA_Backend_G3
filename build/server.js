@@ -8,6 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 // Contenido para EA_Backend_G3/src/server.ts (Versión Corregida y Ordenada)
+import 'dotenv/config';
 import dotenv from 'dotenv';
 dotenv.config(); // Asegúrate que esto esté al principio
 import express from 'express';

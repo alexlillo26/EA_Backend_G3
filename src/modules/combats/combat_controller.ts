@@ -9,6 +9,7 @@ import Combat from './combat_models.js';
 import mongoose from 'mongoose';
 import { Server as SocketIOServer } from 'socket.io';
 import path from 'path';
+import cloudinary from '../config/cloudinary.js';
 
 // --- Socket.IO instance holder ---
 let io: SocketIOServer | undefined;
@@ -41,13 +42,30 @@ export const createCombatHandler = async (req: Request, res: Response) => {
         ) {
             return res.status(400).json({ message: 'Faltan campos obligatorios o IDs inválidos' });
         }
-        let imagePath: string | undefined = undefined;
-        console.log('Archivo recibido:', req.file);
+
+        let imageUrl: string | undefined = undefined;
         if (req.file) {
-            imagePath = path.join('uploads', req.file.filename).replace(/\\/g, '/');
-            console.log('Ruta de la imagen:', imagePath);
+            const file = req.file;
+            console.log('Archivo recibido:', file.originalname, file.mimetype, file.size);
+            // Sube la imagen a Cloudinary usando el buffer de multer
+            imageUrl = await new Promise<string>((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream(
+                    { folder: 'combats' },
+                    (error, result) => {
+                        if (error) {
+                            console.error('Error Cloudinary:', error);
+                            return reject(error);
+                        }
+                        resolve(result?.secure_url || '');
+                    }
+                );
+                stream.end(file.buffer);
+            });
+            console.log('URL de la imagen subida a Cloudinary:', imageUrl);
         }
-        const combat = await createCombat({ creator, opponent, date, time, level, gym, status: 'pending' }, imagePath);
+
+        const combat = await createCombat({ creator, opponent, date, time, level, gym, status: 'pending' }, imageUrl);
+
         // Notificar al oponente por socket.io si está conectado
         if (io && opponent) {
             io.to(opponent.toString()).emit('new_invitation', combat);
@@ -287,9 +305,20 @@ export const updateCombatImageHandler = async (req: Request, res: Response) => {
         if (!req.file) {
             return res.status(400).json({ message: 'No se ha enviado ninguna imagen.' });
         }
-        // Normaliza la ruta para la web
-        const imagePath = `uploads/${req.file.filename}`;
-        const updatedCombat = await updateCombatImage(id, imagePath);
+        const file = req.file;
+        // Sube la imagen a Cloudinary usando el buffer de multer
+        const imageUrl = await new Promise<string>((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+                { folder: 'combats' },
+                (error, result) => {
+                    if (error) return reject(error);
+                    resolve(result?.secure_url || '');
+                }
+            );
+            stream.end(file.buffer);
+        });
+
+        const updatedCombat = await updateCombatImage(id, imageUrl);
 
         if (!updatedCombat) {
             return res.status(404).json({ message: 'Combate no encontrado.' });
@@ -297,6 +326,7 @@ export const updateCombatImageHandler = async (req: Request, res: Response) => {
 
         res.status(200).json({ message: 'Imagen actualizada correctamente.', combat: updatedCombat });
     } catch (error: any) {
+        console.log("Error al actualizar la imagen del combate:", error);
         res.status(500).json({ message: error?.message });
     }
 };

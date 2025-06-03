@@ -1,4 +1,5 @@
 // Contenido para EA_Backend_G3/src/server.ts (Versión Corregida y Ordenada)
+import 'dotenv/config';
 import dotenv from 'dotenv';
 dotenv.config(); // Asegúrate que esto esté al principio
 
@@ -23,6 +24,7 @@ import Combat from './modules/combats/combat_models.js';
 import { setSocketIoInstance } from './modules/combats/combat_controller.js';
 import path from "path";
 import { fileURLToPath } from "url";
+
 
 // Definir __filename y __dirname para ES Modules
 const __filename = fileURLToPath(import.meta.url);
