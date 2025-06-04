@@ -8,9 +8,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 // src/controllers/user_controller.ts
-import { saveMethod, createUser, getAllUsers, getUserById, deleteUser, hideUser, loginUser, searchUsers } from '../users/user_service.js';
+import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser, hideUser, loginUser, searchUsers } from '../users/user_service.js';
 import { verifyRefreshToken, generateToken } from '../../utils/jwt.handle.js';
 import User from '../users/user_models.js'; // Ensure this import exists
+import cloudinary from '../config/cloudinary.js';
 export const saveMethodHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const data = saveMethod();
@@ -69,35 +70,26 @@ export const getUserByIdHandler = (req, res) => __awaiter(void 0, void 0, void 0
 });
 export const updateUserHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { id } = req.params;
-        if (!id) {
-            return res.status(400).json({ message: "El ID del usuario es requerido" });
-        }
-        const updatedData = Object.assign({}, req.body);
-        // Convertir birthDate a Date si está presente
-        if (updatedData.birthDate) {
-            updatedData.birthDate = new Date(updatedData.birthDate);
-        }
-        // Si el password viene vacío, eliminarlo para no sobrescribir
-        if (updatedData.password === undefined || updatedData.password === '') {
-            delete updatedData.password;
-        }
-        // Si se subió una imagen, agrega la ruta al campo profilePicture
+        let profilePictureUrl = undefined;
         if (req.file) {
-            updatedData.profilePicture = `/uploads/${req.file.filename}`;
+            const file = req.file;
+            profilePictureUrl = yield new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream({ folder: 'users' }, (error, result) => {
+                    if (error)
+                        return reject(error);
+                    resolve((result === null || result === void 0 ? void 0 : result.secure_url) || '');
+                });
+                stream.end(file.buffer);
+            });
         }
-        const updatedUser = yield User.findByIdAndUpdate(id, updatedData, {
-            new: true,
-            runValidators: true, // Ejecuta las validaciones del esquema
-        });
-        if (!updatedUser) {
-            return res.status(404).json({ message: "Usuario no encontrado" });
-        }
+        const updateData = Object.assign({}, req.body);
+        if (profilePictureUrl)
+            updateData.profilePicture = profilePictureUrl;
+        const updatedUser = yield updateUser(req.params.id, updateData);
         res.status(200).json(updatedUser);
     }
     catch (error) {
-        console.error("Error al actualizar el usuario:", error);
-        res.status(500).json({ message: "Error interno del servidor", error: error === null || error === void 0 ? void 0 : error.message });
+        res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
     }
 });
 export const deleteUserHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {

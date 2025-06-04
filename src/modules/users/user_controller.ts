@@ -2,6 +2,7 @@
 import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser, hideUser, loginUser, getUserCount, searchUsers } from '../users/user_service.js';
 import { verifyRefreshToken, generateToken } from '../../utils/jwt.handle.js';
 import User from '../users/user_models.js'; // Ensure this import exists
+import cloudinary from '../config/cloudinary.js';
 
 import express, { Request, Response } from 'express';
 
@@ -61,42 +62,28 @@ export const getUserByIdHandler = async (req: Request, res: Response) => {
 };
 export const updateUserHandler = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
-
-        if (!id) {
-            return res.status(400).json({ message: "El ID del usuario es requerido" });
-        }
-
-        const updatedData = { ...req.body };
-
-        // Convertir birthDate a Date si está presente
-        if (updatedData.birthDate) {
-            updatedData.birthDate = new Date(updatedData.birthDate);
-        }
-
-        // Si el password viene vacío, eliminarlo para no sobrescribir
-        if (updatedData.password === undefined || updatedData.password === '') {
-            delete updatedData.password;
-        }
-
-        // Si se subió una imagen, agrega la ruta al campo profilePicture
+        let profilePictureUrl: string | undefined = undefined;
         if (req.file) {
-            updatedData.profilePicture = `/uploads/${req.file.filename}`;
+            const file = req.file;
+            profilePictureUrl = await new Promise<string>((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream(
+                    { folder: 'users' },
+                    (error, result) => {
+                        if (error) return reject(error);
+                        resolve(result?.secure_url || '');
+                    }
+                );
+                stream.end(file.buffer);
+            });
         }
 
-        const updatedUser = await User.findByIdAndUpdate(id, updatedData, {
-            new: true, // Devuelve el usuario actualizado
-            runValidators: true, // Ejecuta las validaciones del esquema
-        });
+        const updateData = { ...req.body };
+        if (profilePictureUrl) updateData.profilePicture = profilePictureUrl;
 
-        if (!updatedUser) {
-            return res.status(404).json({ message: "Usuario no encontrado" });
-        }
-
+        const updatedUser = await updateUser(req.params.id, updateData);
         res.status(200).json(updatedUser);
     } catch (error: any) {
-        console.error("Error al actualizar el usuario:", error);
-        res.status(500).json({ message: "Error interno del servidor", error: error?.message });
+        res.status(500).json({ message: error?.message });
     }
 };
 export const deleteUserHandler = async (req: Request, res: Response) => {
