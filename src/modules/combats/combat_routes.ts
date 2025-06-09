@@ -16,11 +16,152 @@ import {
     getFutureCombatsHandler,
     getInvitationsHandler,
     getSentInvitationsHandler,
-    getFilteredCombatsHandler
+    getFilteredCombatsHandler,
+    getUserCombatHistoryHandler,
+    
+
 } from '../combats/combat_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
 
 const router = express.Router();
+
+/**
+ * @openapi
+ * /api/combat/invitations:
+ *   get:
+ *     summary: Obtiene las invitaciones recibidas (pendientes)
+ *     tags:
+ *       - Combat
+ *     responses:
+ *       200:
+ *         description: Invitaciones recibidas
+ */
+router.get('/combat/invitations', checkJwt, getInvitationsHandler);
+
+/**
+ * @openapi
+ * /api/combat/invitations/pending:
+ *   get:
+ *     summary: Obtiene las invitaciones pendientes
+ *     description: Retorna una lista de las invitaciones pendientes para un usuario.
+ *     tags:
+ *       - Combat
+ *     responses:
+ *       200:
+ *         description: Lista de invitaciones obtenida exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                     description: ID de la invitación
+ *                   combatId:
+ *                     type: string
+ *                     description: ID del combate
+ *                   from:
+ *                     type: string
+ *                     description: ID del usuario que envió la invitación
+ *                   status:
+ *                     type: string
+ *                     enum: [pending, accepted, rejected]
+ *       404:
+ *         description: Usuario no encontrado o sin invitaciones pendientes
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/combat/invitations/pending', checkJwt, getPendingInvitationsHandler);
+
+/**
+ * @openapi
+ * /api/combat/sent-invitations:
+ *   get:
+ *     summary: Obtiene las invitaciones enviadas (pendientes)
+ *     tags:
+ *       - Combat
+ *     responses:
+ *       200:
+ *         description: Invitaciones enviadas
+ */
+router.get('/combat/sent-invitations', checkJwt, getSentInvitationsHandler);
+
+/**
+ * @openapi
+ * /api/combat/future:
+ *   get:
+ *     summary: Obtiene los combates futuros
+ *     description: Retorna una lista de los combates programados para el futuro.
+ *     tags:
+ *       - Combat
+ *     responses:
+ *       200:
+ *         description: Lista de combates futuros obtenida exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   date:
+ *                     type: string
+ *                     format: date-time
+ *                   gym:
+ *                     type: string
+ *                   boxers:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *       404:
+ *         description: No se encontraron combates futuros
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/combat/future', checkJwt, getFutureCombatsHandler);
+
+/**
+ * @openapi
+ * /api/combat/boxer/{boxerId}:
+ *   get:
+ *     summary: Obtiene los combates en los que ha participado un usuario
+ *     description: Retorna una lista de combates en los que un usuario específico ha participado.
+ *     tags:
+ *       - Combat
+ *     parameters:
+ *       - name: boxerId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario (boxer)
+ *     responses:
+ *       200:
+ *         description: Lista de combates obtenida exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   date:
+ *                     type: string
+ *                     format: date-time
+ *                   gym:
+ *                     type: string
+ *                   boxers:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *       404:
+ *         description: Usuario no encontrado o sin combates
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/combat/boxer/:boxerId', getCombatsByBoxerIdHandler);
 
 /**
  * @openapi
@@ -69,7 +210,7 @@ const router = express.Router();
  *                 description: ID del gimnasio
  *               status:
  *                 type: string
- *                 enum: [pending, accepted, rejected]
+ *                 enum: [pending, accepted, rejected, completed, active, cancelled]
  *                 description: Estado del combate
  *                 example: pending
  *     responses:
@@ -307,118 +448,6 @@ router.put('/combat/:id/oculto', checkJwt, hideCombatHandler); // Require authen
 
 /**
  * @openapi
- * /api/combat/boxer/{boxerId}:
- *   get:
- *     summary: Obtiene los combates en los que ha participado un usuario
- *     description: Retorna una lista de combates en los que un usuario específico ha participado.
- *     tags:
- *       - Combat
- *     parameters:
- *       - name: boxerId
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del usuario (boxer)
- *     responses:
- *       200:
- *         description: Lista de combates obtenida exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   date:
- *                     type: string
- *                     format: date-time
- *                   gym:
- *                     type: string
- *                   boxers:
- *                     type: array
- *                     items:
- *                       type: string
- *       404:
- *         description: Usuario no encontrado o sin combates
- *       500:
- *         description: Error interno del servidor
- */
-router.get('/combat/boxer/:boxerId', getCombatsByBoxerIdHandler);
-
-/**
- * @openapi
- * /api/combat/invitations/pending:
- *   get:
- *     summary: Obtiene las invitaciones pendientes
- *     description: Retorna una lista de las invitaciones pendientes para un usuario.
- *     tags:
- *       - Combat
- *     responses:
- *       200:
- *         description: Lista de invitaciones obtenida exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   _id:
- *                     type: string
- *                     description: ID de la invitación
- *                   combatId:
- *                     type: string
- *                     description: ID del combate
- *                   from:
- *                     type: string
- *                     description: ID del usuario que envió la invitación
- *                   status:
- *                     type: string
- *                     enum: [pending, accepted, rejected]
- *       404:
- *         description: Usuario no encontrado o sin invitaciones pendientes
- *       500:
- *         description: Error interno del servidor
- */
-router.get('/combat/invitations/pending', checkJwt, getPendingInvitationsHandler);
-
-/**
- * @openapi
- * /api/combat/future:
- *   get:
- *     summary: Obtiene los combates futuros
- *     description: Retorna una lista de los combates programados para el futuro.
- *     tags:
- *       - Combat
- *     responses:
- *       200:
- *         description: Lista de combates futuros obtenida exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   date:
- *                     type: string
- *                     format: date-time
- *                   gym:
- *                     type: string
- *                   boxers:
- *                     type: array
- *                     items:
- *                       type: string
- *       404:
- *         description: No se encontraron combates futuros
- *       500:
- *         description: Error interno del servidor
- */
-router.get('/combat/future', checkJwt, getFutureCombatsHandler);
-
-/**
- * @openapi
  * /api/combat/{id}/respond:
  *   post:
  *     summary: Responde a una invitación
@@ -452,28 +481,106 @@ router.patch('/combat/:id/respond', checkJwt, respondToInvitationHandler);
 
 /**
  * @openapi
- * /api/combat/invitations:
+ * /api/combat/history/user/{boxerId}:
  *   get:
- *     summary: Obtiene las invitaciones recibidas (pendientes)
+ *     summary: Obtiene el historial de combates completados de un usuario (boxeador)
+ *     description: Retorna una lista paginada de los combates completados en los que un usuario específico ha participado.
  *     tags:
  *       - Combat
+ *     parameters:
+ *       - name: boxerId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario (boxeador).
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Número de página.
+ *       - name: pageSize
+ *         in: query
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Número de combates por página.
  *     responses:
  *       200:
- *         description: Invitaciones recibidas
+ *         description: Historial de combates obtenido exitosamente.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     combats:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                           date:
+ *                             type: string
+ *                             format: date-time
+ *                           time:
+ *                             type: string
+ *                           opponent:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: string
+ *                               username:
+ *                                 type: string
+ *                               profileImage:
+ *                                 type: string
+ *                                 nullable: true
+ *                             nullable: true
+ *                           result:
+ *                             type: string
+ *                             enum: ["Victoria", "Derrota", "Empate"]
+ *                           level:
+ *                             type: string
+ *                             nullable: true
+ *                           status:
+ *                             type: string
+ *                           gym:
+ *                             type: object
+ *                             properties:
+ *                               _id:
+ *                                 type: string
+ *                               name:
+ *                                 type: string
+ *                               location:
+ *                                 type: string
+ *                                 nullable: true
+ *                             nullable: true
+ *                     totalCombats:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     currentPage:
+ *                       type: integer
+ *                     pageSize:
+ *                       type: integer
+ *       400:
+ *         description: ID de boxeador inválido.
+ *       401:
+ *         description: No autenticado (si `checkJwt` está activo).
+ *       500:
+ *         description: Error interno del servidor.
+ *     security:
+ *       - bearerAuth: [] # Asumiendo que usas JWT
  */
-router.get('/combat/invitations', checkJwt, getInvitationsHandler);
+router.get('/combat/history/user/:boxerId', /* checkJwt, */ getUserCombatHistoryHandler);
 
-/**
- * @openapi
- * /api/combat/sent-invitations:
- *   get:
- *     summary: Obtiene las invitaciones enviadas (pendientes)
- *     tags:
- *       - Combat
- *     responses:
- *       200:
- *         description: Invitaciones enviadas
- */
-router.get('/combat/sent-invitations', checkJwt, getSentInvitationsHandler);
+
+
 
 export default router;

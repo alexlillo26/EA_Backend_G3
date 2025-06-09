@@ -9,11 +9,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import mongoose from 'mongoose';
 import Combat from '../combats/combat_models.js';
+import CombatModel from '../combats/combat_models.js';
 export const saveMethod = () => {
     return 'Hola';
 };
 export const createCombat = (combatData) => __awaiter(void 0, void 0, void 0, function* () {
-    // Validar y convertir IDs a ObjectId si son string
     if (combatData.creator && typeof combatData.creator === 'string') {
         combatData.creator = new mongoose.Types.ObjectId(combatData.creator);
     }
@@ -26,7 +26,6 @@ export const createCombat = (combatData) => __awaiter(void 0, void 0, void 0, fu
     const combat = new Combat(combatData);
     return yield combat.save();
 });
-// Devuelve todos los combates aceptados donde el usuario es creator u opponent
 export const getFutureCombats = (userId) => __awaiter(void 0, void 0, void 0, function* () {
     return Combat.find({
         status: 'accepted',
@@ -36,21 +35,18 @@ export const getFutureCombats = (userId) => __awaiter(void 0, void 0, void 0, fu
         .populate('opponent')
         .populate('gym');
 });
-// Devuelve todas las invitaciones pendientes donde el usuario es opponent
 export const getPendingInvitations = (userId) => __awaiter(void 0, void 0, void 0, function* () {
     return Combat.find({ opponent: userId, status: 'pending' })
         .populate('creator')
         .populate('opponent')
         .populate('gym');
 });
-// Devuelve todas las invitaciones pendientes enviadas por el usuario (creator)
 export const getSentInvitations = (userId) => __awaiter(void 0, void 0, void 0, function* () {
     return Combat.find({ creator: userId, status: 'pending' })
         .populate('creator')
         .populate('opponent')
         .populate('gym');
 });
-// Permite que solo el opponent acepte o rechace la invitación
 export const respondToCombatInvitation = (combatId, userId, status) => __awaiter(void 0, void 0, void 0, function* () {
     const combat = yield Combat.findById(combatId);
     if (!combat)
@@ -72,15 +68,10 @@ export const respondToCombatInvitation = (combatId, userId, status) => __awaiter
 });
 export const getAllCombats = (page, pageSize) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        // Contar el número de registros omitidos
         const skip = (page - 1) * pageSize;
-        // Consulta de registros totales
         const totalCombats = yield Combat.countDocuments();
-        // cCalcular el número total de páginas
         const totalPages = Math.ceil(totalCombats / pageSize);
-        // cObtener la página actual de registros
         const combats = yield Combat.find().skip(skip).limit(pageSize);
-        // Devolución de información y registros de paginación
         return {
             combats,
             totalCombats,
@@ -94,7 +85,7 @@ export const getAllCombats = (page, pageSize) => __awaiter(void 0, void 0, void 
         throw error;
     }
 });
-export const getCombatById = (id) => __awaiter(void 0, void 0, void 0, function* () {
+export const getCombatById = (id, page, pageSize) => __awaiter(void 0, void 0, void 0, function* () {
     return yield Combat.findById(id)
         .populate('creator')
         .populate('opponent')
@@ -112,7 +103,6 @@ export const getBoxersByCombatId = (id) => __awaiter(void 0, void 0, void 0, fun
         .populate('opponent');
     if (!combat)
         return [];
-    // Devuelve creator y opponent como "boxers"
     return [
         combat.creator,
         combat.opponent
@@ -121,29 +111,50 @@ export const getBoxersByCombatId = (id) => __awaiter(void 0, void 0, void 0, fun
 export const hideCombat = (id, isHidden) => __awaiter(void 0, void 0, void 0, function* () {
     return yield Combat.updateOne({ _id: id }, { $set: { isHidden } });
 });
-export const getCombatsByGymId = (gymId, page, pageSize) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const skip = (page - 1) * pageSize;
-        // gym字段是ObjectId类型，查询时需转换
-        const query = { gym: new mongoose.Types.ObjectId(gymId), isHidden: false };
-        const totalCombats = yield Combat.countDocuments(query);
-        const totalPages = Math.ceil(totalCombats / pageSize);
-        const combats = yield Combat.find(query)
-            .skip(skip)
-            .limit(pageSize)
-            .populate('gym')
-            .populate('creator')
-            .populate('opponent');
-        return {
-            combats,
-            totalCombats,
-            totalPages,
-            currentPage: page,
-            pageSize
-        };
+export const getCompletedCombatHistoryForBoxer = (boxerId, page = 1, pageSize = 10) => __awaiter(void 0, void 0, void 0, function* () {
+    const boxerObjectId = new mongoose.Types.ObjectId(boxerId);
+    const skip = (page - 1) * pageSize;
+    const query = {
+        status: 'completed',
+        $or: [
+            { creator: boxerObjectId },
+            { opponent: boxerObjectId },
+        ],
+    };
+    const totalCombats = yield CombatModel.countDocuments(query);
+    const totalPages = Math.ceil(totalCombats / pageSize);
+    const combats = yield CombatModel.find(query)
+        // === CAMBIO CLAVE Y DEFINITIVO AQUÍ ===
+        .populate('creator', 'name profileImage') // <-- Pedimos 'name'
+        .populate('opponent', 'name profileImage') // <-- Pedimos 'name'
+        .populate('winner', 'name') // <-- Pedimos 'name' también para el ganador
+        .populate('gym', 'name location')
+        .sort({ date: -1, time: -1 })
+        .skip(skip)
+        .limit(pageSize)
+        .lean();
+    return {
+        combats,
+        totalCombats,
+        totalPages,
+        currentPage: page,
+        pageSize,
+    };
+});
+export const setCombatResult = (combatId, winnerId) => __awaiter(void 0, void 0, void 0, function* () {
+    const combat = yield Combat.findById(combatId);
+    if (!combat) {
+        throw new Error('Combate no encontrado');
     }
-    catch (error) {
-        console.error('Error in getCombatsByGymId:', error);
-        throw error;
+    if (combat.winner) {
+        throw new Error('Este combate ya tiene un resultado asignado.');
     }
+    const isWinnerParticipant = [combat.creator.toString(), combat.opponent.toString()].includes(winnerId);
+    if (!isWinnerParticipant) {
+        throw new Error('El ganador debe ser uno de los participantes del combate.');
+    }
+    combat.status = 'completed';
+    combat.winner = new mongoose.Types.ObjectId(winnerId);
+    yield combat.save();
+    return combat.populate(['creator', 'opponent', 'gym', 'winner']);
 });

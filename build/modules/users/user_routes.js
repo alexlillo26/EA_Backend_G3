@@ -1,7 +1,17 @@
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 import express from 'express';
 import upload from '../../middleware/uploads.js';
 import { saveMethodHandler, createUserHandler, getAllUsersHandler, getUserByIdHandler, updateUserHandler, deleteUserHandler, hideUserHandler, loginUserHandler, refreshTokenHandler, searchUsersHandler } from '../users/user_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
+import User from './user_models.js';
 const router = express.Router();
 /**
  * @openapi
@@ -229,7 +239,7 @@ router.get('/users/:id', checkJwt, getUserByIdHandler); // Add checkJwt here
  *       404:
  *         description: Usuario no encontrado
  */
-router.put('/users/:id', checkJwt, updateUserHandler, upload.single("profilePicture")); // Require authentication
+router.put('/users/:id', checkJwt, upload.single("profilePicture"), updateUserHandler); // Corrige el orden
 /**
  * @openapi
  * /api/users/{id}:
@@ -357,4 +367,20 @@ router.post('/users/refresh', refreshTokenHandler);
  *         description: Refresh token inválido
  */
 router.post('/users/refresh-token', refreshTokenHandler);
+// Ruta protegida para obtener el perfil del usuario autenticado
+router.get('/users/me', checkJwt, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const user = yield User.findById((_a = req.user) === null || _a === void 0 ? void 0 : _a.id).select('-password');
+        if (!user) {
+            res.status(404).json({ message: 'Usuario no encontrado' });
+            return;
+        }
+        res.json(user);
+    }
+    catch (err) {
+        console.error('Error al obtener usuario:', err);
+        res.status(500).json({ message: 'Error interno del servidor' });
+    }
+}));
 export default router;
