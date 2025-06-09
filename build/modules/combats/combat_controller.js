@@ -8,14 +8,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 // src/controllers/_controller.ts
-import { saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, deleteCombat, hideCombat, getCompletedCombatHistoryForBoxer, getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation, setCombatResult } from '../combats/combat_service.js';
+import { saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, deleteCombat, hideCombat, getCompletedCombatHistoryForBoxer, getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation
+// Se elimina la importación de 'setCombatResult'
+ } from '../combats/combat_service.js';
 import Combat from './combat_models.js';
 import mongoose from 'mongoose';
 let io;
 export function setSocketIoInstance(ioInstance) {
     io = ioInstance;
 }
-// ... (El resto de handlers se quedan igual) ...
+// ... (Todos los handlers hasta getUserCombatHistoryHandler se quedan igual)
 export const saveMethodHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const combat = saveMethod();
@@ -34,6 +36,7 @@ export const createCombatHandler = (req, res) => __awaiter(void 0, void 0, void 
             !gym || !mongoose.Types.ObjectId.isValid(gym)) {
             return res.status(400).json({ message: 'Faltan campos obligatorios o IDs inválidos' });
         }
+        // Nota: El status 'completed' se mantiene, ya que indica que el sparring se realizó.
         const combat = yield createCombat({ creator, opponent, date, time, level, gym, status: 'completed' });
         if (io && opponent) {
             io.to(opponent.toString()).emit('new_invitation', combat);
@@ -278,31 +281,19 @@ export const getUserCombatHistoryHandler = (req, res) => __awaiter(void 0, void 
                 opponentInfo = creator;
             }
             const actualOpponentDetails = opponentInfo
-                ? {
-                    id: opponentInfo._id.toString(),
-                    // Usamos .name porque ahora sabemos que es el campo correcto
-                    username: opponentInfo.name,
-                    profileImage: opponentInfo.profileImage || undefined
-                }
-                : {
-                    id: 'N/A',
-                    username: 'Oponente no identificado'
-                };
-            const winner = combat.winner;
-            let resultForUser = 'Empate';
-            if (winner === null || winner === void 0 ? void 0 : winner._id) {
-                resultForUser = winner._id.toString() === boxerIdStr ? 'Victoria' : 'Derrota';
-            }
+                ? { id: opponentInfo._id.toString(), username: opponentInfo.name, profileImage: opponentInfo.profileImage || undefined }
+                : { id: 'N/A', username: 'Oponente no identificado' };
             const gym = combat.gym;
+            // Se elimina la lógica de 'winner' y 'resultForUser'
             return {
                 _id: combat._id.toString(),
                 date: combat.date,
                 time: combat.time,
                 gym: gym ? { _id: gym._id.toString(), name: gym.name, location: gym.location } : null,
                 opponent: actualOpponentDetails,
-                result: resultForUser,
                 level: combat.level,
                 status: combat.status,
+                // El campo 'result' ya no se envía
             };
         });
         res.status(200).json({
@@ -321,24 +312,4 @@ export const getUserCombatHistoryHandler = (req, res) => __awaiter(void 0, void 
         res.status(500).json({ message: 'Error interno del servidor al obtener el historial.', details: error.message });
     }
 });
-export const setCombatResultHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const { id } = req.params;
-        const { winnerId } = req.body;
-        if (!winnerId || !mongoose.Types.ObjectId.isValid(winnerId)) {
-            return res.status(400).json({ message: 'Se requiere un ID de ganador válido.' });
-        }
-        const updatedCombat = yield setCombatResult(id, winnerId);
-        res.status(200).json({ message: 'Resultado del combate actualizado con éxito', combat: updatedCombat });
-    }
-    catch (error) {
-        if (error.message === 'Combate no encontrado') {
-            return res.status(404).json({ message: error.message });
-        }
-        if (error.message.includes('debe ser uno de los participantes') || error.message.includes('ya tiene un resultado')) {
-            return res.status(409).json({ message: error.message });
-        }
-        console.error(`Error en setCombatResultHandler: ${error.message}`);
-        res.status(500).json({ message: 'Error interno del servidor.', details: error.message });
-    }
-});
+// Se elimina el handler setCombatResultHandler

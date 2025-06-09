@@ -114,12 +114,22 @@ export const hideCombat = (id, isHidden) => __awaiter(void 0, void 0, void 0, fu
 export const getCompletedCombatHistoryForBoxer = (boxerId, page = 1, pageSize = 10) => __awaiter(void 0, void 0, void 0, function* () {
     const boxerObjectId = new mongoose.Types.ObjectId(boxerId);
     const skip = (page - 1) * pageSize;
+    const now = new Date();
     const query = {
-        status: 'completed',
-        $or: [
-            { creator: boxerObjectId },
-            { opponent: boxerObjectId },
-        ],
+        $and: [
+            {
+                $or: [
+                    { creator: boxerObjectId },
+                    { opponent: boxerObjectId },
+                ]
+            },
+            {
+                $or: [
+                    { status: 'completed' },
+                    { status: 'accepted', date: { $lte: now } }
+                ]
+            }
+        ]
     };
     const totalCombats = yield CombatModel.countDocuments(query);
     const totalPages = Math.ceil(totalCombats / pageSize);

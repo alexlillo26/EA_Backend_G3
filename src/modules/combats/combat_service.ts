@@ -128,12 +128,22 @@ export const getCompletedCombatHistoryForBoxer = async (
     const boxerObjectId = new mongoose.Types.ObjectId(boxerId);
     const skip = (page - 1) * pageSize;
   
+    const now = new Date();
     const query = {
-      status: 'completed',
-      $or: [
-        { creator: boxerObjectId },
-        { opponent: boxerObjectId },
-      ],
+        $and: [
+            {
+                $or: [
+                    { creator: boxerObjectId },
+                    { opponent: boxerObjectId },
+                ]
+            },
+            {
+                $or: [
+                    { status: 'completed' },
+                    { status: 'accepted', date: { $lte: now } }
+                ]
+            }
+        ]
     };
   
     const totalCombats = await CombatModel.countDocuments(query);

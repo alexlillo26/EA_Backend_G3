@@ -1,6 +1,6 @@
 // src/routes/user_routes.ts
 import express from 'express';
-import { createCombatHandler, getCombatByIdHandler, updateCombatHandler, deleteCombatHandler, getBoxersByCombatIdHandler, getCombatsByBoxerIdHandler, hideCombatHandler, getPendingInvitationsHandler, respondToInvitationHandler, getFutureCombatsHandler, getInvitationsHandler, getSentInvitationsHandler, getFilteredCombatsHandler, getUserCombatHistoryHandler, setCombatResultHandler } from '../combats/combat_controller.js';
+import { createCombatHandler, getCombatByIdHandler, updateCombatHandler, deleteCombatHandler, getBoxersByCombatIdHandler, getCombatsByBoxerIdHandler, hideCombatHandler, getPendingInvitationsHandler, respondToInvitationHandler, getFutureCombatsHandler, getInvitationsHandler, getSentInvitationsHandler, getFilteredCombatsHandler, getUserCombatHistoryHandler, } from '../combats/combat_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
 const router = express.Router();
 /**
@@ -539,44 +539,4 @@ router.patch('/combat/:id/respond', checkJwt, respondToInvitationHandler);
  *       - bearerAuth: [] # Asumiendo que usas JWT
  */
 router.get('/combat/history/user/:boxerId', /* checkJwt, */ getUserCombatHistoryHandler);
-/**
- * @openapi
- * /api/combat/{id}/result:
- *   post:
- *     summary: Establece el resultado de un combate
- *     description: Asigna un ganador a un combate y lo marca como completado. Requiere autenticación.
- *     tags:
- *       - Combat
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del combate a actualizar
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - winnerId
- *             properties:
- *               winnerId:
- *                 type: string
- *                 description: ID del boxeador que ha ganado el combate
- *     responses:
- *       200:
- *         description: Resultado del combate actualizado exitosamente
- *       400:
- *         description: ID de ganador inválido
- *       404:
- *         description: Combate no encontrado
- *       409:
- *         description: El combate ya tiene un resultado o el ganador no es un participante
- *     security:
- *       - bearerAuth: []
- */
-router.post('/combat/:id/result', checkJwt, setCombatResultHandler);
 export default router;
