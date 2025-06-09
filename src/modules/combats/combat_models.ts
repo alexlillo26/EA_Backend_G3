@@ -1,13 +1,19 @@
-import mongoose, { Types, model, Schema } from "mongoose";
+// src/modules/combats/combat_models.ts
+import mongoose, { Types, model, Schema, Document } from "mongoose";
 
-export interface ICombat {
+// Tu interfaz ICombat existente
+export interface ICombat extends Document {
+    _id: Types.ObjectId;
     creator: Types.ObjectId;
     opponent: Types.ObjectId;
     date: Date;
     time: string;
     level: string;
     gym: Types.ObjectId;
-    status: 'pending' | 'accepted' | 'rejected';
+    // --- MODIFICACIÓN AQUÍ ---
+    status: 'pending' | 'accepted' | 'rejected' | 'completed' | 'active' | 'cancelled'; // Añadidos 'completed', 'active', 'cancelled'
+    winner?: Types.ObjectId | null; // --- NUEVO CAMPO AQUÍ --- (ID del User ganador, null para empate o no definido)
+    // --- FIN MODIFICACIÓN ---
     createdAt?: Date;
     updatedAt?: Date;
 }
@@ -40,12 +46,24 @@ const combatSchema = new Schema<ICombat>({
         ref: "Gym",
         required: true
     },
+    // --- MODIFICACIÓN AQUÍ ---
     status: {
         type: String,
-        enum: ['pending', 'accepted', 'rejected'],
-        default: 'pending'
+        enum: ['pending', 'accepted', 'rejected', 'completed', 'active', 'cancelled'], // Estados actualizados
+        default: 'pending',
+        required: true
+    },
+    winner: { // --- NUEVO CAMPO AQUÍ ---
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        default: null
     }
+    // --- FIN MODIFICACIÓN ---
 }, { timestamps: true });
 
-const Combat = model('Combat', combatSchema);
-export default Combat;
+// Índices (opcional, pero recomendado para el nuevo query)
+combatSchema.index({ creator: 1, status: 1, date: -1 });
+combatSchema.index({ opponent: 1, status: 1, date: -1 });
+
+const CombatModel = model<ICombat>('Combat', combatSchema); // Usando CombatModel como en mi sugerencia anterior
+export default CombatModel; // o export default model<ICombat>('Combat', combatSchema); si prefieres Combat directamente

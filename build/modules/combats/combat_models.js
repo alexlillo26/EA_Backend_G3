@@ -1,3 +1,4 @@
+// src/modules/combats/combat_models.ts
 import { model, Schema } from "mongoose";
 const combatSchema = new Schema({
     creator: {
@@ -27,11 +28,22 @@ const combatSchema = new Schema({
         ref: "Gym",
         required: true
     },
+    // --- MODIFICACIÓN AQUÍ ---
     status: {
         type: String,
-        enum: ['pending', 'accepted', 'rejected'],
-        default: 'pending'
+        enum: ['pending', 'accepted', 'rejected', 'completed', 'active', 'cancelled'],
+        default: 'pending',
+        required: true
+    },
+    winner: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        default: null
     }
+    // --- FIN MODIFICACIÓN ---
 }, { timestamps: true });
-const Combat = model('Combat', combatSchema);
-export default Combat;
+// Índices (opcional, pero recomendado para el nuevo query)
+combatSchema.index({ creator: 1, status: 1, date: -1 });
+combatSchema.index({ opponent: 1, status: 1, date: -1 });
+const CombatModel = model('Combat', combatSchema); // Usando CombatModel como en mi sugerencia anterior
+export default CombatModel; // o export default model<ICombat>('Combat', combatSchema); si prefieres Combat directamente

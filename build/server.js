@@ -111,6 +111,7 @@ app.use(cors({
 }));
 app.use(loggingHandler);
 // --- Rutas de la API ---
+//Mínimo de rutas para Swagger
 app.use('/api/auth', authRoutes);
 app.use('/api', userRoutes); // Si en user_routes.js las rutas son ej. /users, la URL será /api/users
 app.use('/api', gymRoutes); // Si en gym_routes.js las rutas son ej. /gym, la URL será /api/gym
