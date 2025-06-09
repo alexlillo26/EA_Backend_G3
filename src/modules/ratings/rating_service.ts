@@ -112,13 +112,25 @@ export const getRatingsForUser = async (userId: string, page: number = 1, pageSi
   const skip = (page - 1) * pageSize;
 
   // Buscar ratings donde el usuario sea el destinatario (campo `to`)
-  const ratings = await Rating.find({ to: new Types.ObjectId(userId) })
-    .sort({ createdAt: -1 }) // Ordenar por fecha de creación (más recientes primero)
+  //const ratings = await Rating.find({ to: new Types.ObjectId(userId) })
+    //.sort({ createdAt: -1 }) // Ordenar por fecha de creación (más recientes primero)
+    //.skip(skip)
+    //.limit(pageSize)
+    //.populate('from combat') // Popular los campos `from` y `combat` para más detalles
+    //.lean();
+   const ratings = await Rating.find({ to: new Types.ObjectId(userId) })
+    .sort({ createdAt: -1 })
     .skip(skip)
     .limit(pageSize)
-    .populate('from combat') // Popular los campos `from` y `combat` para más detalles
+    .populate('from')
+    .populate({
+      path: 'combat',
+      populate: [
+        { path: 'creator', select: '_id name email profileImage' },
+        { path: 'opponent', select: '_id name email profileImage' }
+      ]
+    })
     .lean();
-
   // Contar el total de ratings para el usuario
   const totalRatings = await Rating.countDocuments({ to: new Types.ObjectId(userId) });
   const totalPages = Math.ceil(totalRatings / pageSize);

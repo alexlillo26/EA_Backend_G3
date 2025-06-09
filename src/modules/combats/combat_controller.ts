@@ -295,13 +295,16 @@ export const getUserCombatHistoryHandler = async (req: Request, res: Response): 
                 : { id: 'N/A', username: 'Oponente no identificado' };
 
             const gym = combat.gym as unknown as PopulatedGym;
-
+            const creatorDetails = creator
+            ? { id: creator._id.toString(), username: creator.name, profileImage: creator.profileImage || undefined }
+            : { id: 'N/A', username: 'Creador no identificado' };
             // Se elimina la lógica de 'winner' y 'resultForUser'
             return {
                 _id: combat._id.toString(),
                 date: combat.date,
                 time: combat.time,
                 gym: gym ? { _id: gym._id.toString(), name: gym.name, location: gym.location } : null,
+                creator: creatorDetails, // <--- INCLUYE EL CREATOR AQUÍ
                 opponent: actualOpponentDetails,
                 level: combat.level,
                 status: combat.status,

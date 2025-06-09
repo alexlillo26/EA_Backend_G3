@@ -284,12 +284,16 @@ export const getUserCombatHistoryHandler = (req, res) => __awaiter(void 0, void 
                 ? { id: opponentInfo._id.toString(), username: opponentInfo.name, profileImage: opponentInfo.profileImage || undefined }
                 : { id: 'N/A', username: 'Oponente no identificado' };
             const gym = combat.gym;
+            const creatorDetails = creator
+                ? { id: creator._id.toString(), username: creator.name, profileImage: creator.profileImage || undefined }
+                : { id: 'N/A', username: 'Creador no identificado' };
             // Se elimina la lógica de 'winner' y 'resultForUser'
             return {
                 _id: combat._id.toString(),
                 date: combat.date,
                 time: combat.time,
                 gym: gym ? { _id: gym._id.toString(), name: gym.name, location: gym.location } : null,
+                creator: creatorDetails,
                 opponent: actualOpponentDetails,
                 level: combat.level,
                 status: combat.status,
