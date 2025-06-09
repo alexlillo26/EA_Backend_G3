@@ -78,19 +78,10 @@ export const respondToCombatInvitation = async (
 
 export const getAllCombats = async (page: number, pageSize: number) => {
     try {
-        // Contar el número de registros omitidos
         const skip = (page - 1) * pageSize;
-        
-        // Consulta de registros totales
         const totalCombats = await Combat.countDocuments();
-        
-        // cCalcular el número total de páginas
         const totalPages = Math.ceil(totalCombats / pageSize);
-        
-        // cObtener la página actual de registros
         const combats = await Combat.find().skip(skip).limit(pageSize);
-        
-        // Devolución de información y registros de paginación
         return {
             combats,
             totalCombats,
@@ -124,7 +115,6 @@ export const getBoxersByCombatId = async (id: string) => {
         .populate('creator')
         .populate('opponent');
     if (!combat) return [];
-    // Devuelve creator y opponent como "boxers"
     return [
         combat.creator,
         combat.opponent
@@ -144,8 +134,8 @@ export const getCompletedCombatHistoryForBoxer = async (
     const skip = (page - 1) * pageSize;
   
     const query = {
-      status: 'completed', // Solo combates completados
-      $or: [               // Donde el boxeador es creador o oponente
+      status: 'completed',
+      $or: [
         { creator: boxerObjectId },
         { opponent: boxerObjectId },
       ],
@@ -154,21 +144,18 @@ export const getCompletedCombatHistoryForBoxer = async (
     const totalCombats = await CombatModel.countDocuments(query);
     const totalPages = Math.ceil(totalCombats / pageSize);
   
-    // Tipado para los campos populados
-    // Define estas interfaces si no las tienes ya, o ajústalas
     interface PopulatedUserRef { _id: Types.ObjectId; username: string; profileImage?: string; }
     interface PopulatedGymRef { _id: Types.ObjectId; name: string; location?: string; }
-  
   
     const combats = await CombatModel.find(query)
       .populate<{ creator: PopulatedUserRef }>('creator', 'username profileImage')
       .populate<{ opponent: PopulatedUserRef }>('opponent', 'username profileImage')
       .populate<{ winner?: PopulatedUserRef | null }>('winner', 'username')
       .populate<{ gym: PopulatedGymRef }>('gym', 'name location')
-      .sort({ date: -1, time: -1 }) // Los más recientes primero
+      .sort({ date: -1, time: -1 })
       .skip(skip)
       .limit(pageSize)
-      .lean<ICombat[]>(); // .lean() para mejor rendimiento y POJOs
+      .lean<ICombat[]>();
   
     return {
       combats,
@@ -179,3 +166,33 @@ export const getCompletedCombatHistoryForBoxer = async (
     };
   };
 
+// --- CAMBIO: NUEVA FUNCIÓN AÑADIDA ---
+/**
+ * Establece el resultado de un combate.
+ * @param {string} combatId - El ID del combate a actualizar.
+ * @param {string} winnerId - El ID del boxeador que ha ganado.
+ * @returns El combate actualizado.
+ */
+export const setCombatResult = async (combatId: string, winnerId: string) => {
+    const combat = await Combat.findById(combatId);
+  
+    if (!combat) {
+      throw new Error('Combate no encontrado');
+    }
+  
+    if (combat.winner) {
+      throw new Error('Este combate ya tiene un resultado asignado.');
+    }
+    
+    // Comprueba que el ganador es uno de los dos participantes
+    const isWinnerParticipant = [combat.creator.toString(), combat.opponent.toString()].includes(winnerId);
+    if (!isWinnerParticipant) {
+      throw new Error('El ganador debe ser uno de los participantes del combate.');
+    }
+  
+    combat.status = 'completed';
+    combat.winner = new mongoose.Types.ObjectId(winnerId);
+  
+    await combat.save();
+    return combat.populate(['creator', 'opponent', 'gym', 'winner']);
+  };
