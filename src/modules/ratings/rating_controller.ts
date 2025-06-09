@@ -4,7 +4,8 @@ import {
   getRatingById,
   updateRating,
   deleteRating,
-  hideRating
+  hideRating,
+  getRatingsForUser
 } from './rating_service.js';
 import express, { Request, Response } from 'express';
 
@@ -82,6 +83,24 @@ export const hideRatingHandler = async (req: Request, res: Response) => {
       message: `Rating ${isHidden ? 'ocultado' : 'visible'} correctamente`,
       rating
     });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error interno en el servidor', error: error?.message });
+  }
+};
+
+export const getRatingsForUserHandler = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.userId; // ID del usuario
+    const page = parseInt(req.query.page as string) || 1;
+    const pageSize = parseInt(req.query.pageSize as string) || 10;
+
+    const result = await getRatingsForUser(userId, page, pageSize);
+
+    if (!result.ratings.length) {
+      return res.status(404).json({ message: 'No se encontraron ratings para este usuario' });
+    }
+
+    res.status(200).json(result);
   } catch (error: any) {
     res.status(500).json({ message: 'Error interno en el servidor', error: error?.message });
   }

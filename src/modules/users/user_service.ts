@@ -168,7 +168,7 @@ export const searchUsers = async (city?: string, weight?: string) => {
     console.log('Search query:', query); // Debug log
     // Si no se proporciona ciudad ni peso, devolver todos los usuarios
     const users = await User.find(query)
-      .select('name city weight') // conserva _id
+      .select('name email city weight') // conserva _id
       .sort({ name: 1 })
       .lean()
       .then(users => users.map(user => ({
