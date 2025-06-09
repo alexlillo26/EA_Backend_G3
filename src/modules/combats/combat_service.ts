@@ -3,7 +3,7 @@ import Combat, { ICombat } from '../combats/combat_models.js';
 import CombatModel from '../combats/combat_models.js';
 
 interface CombatHistoryResult {
-    combats: ICombat[]; // Los combates ya populados
+    combats: ICombat[];
     totalCombats: number;
     totalPages: number;
     currentPage: number;
@@ -14,7 +14,6 @@ export const saveMethod = () => {
     return 'Hola';
 };
 export const createCombat = async (combatData: Partial<ICombat>) => {
-    // Validar y convertir IDs a ObjectId si son string
     if (combatData.creator && typeof combatData.creator === 'string') {
         combatData.creator = new mongoose.Types.ObjectId(combatData.creator);
     }
@@ -28,7 +27,6 @@ export const createCombat = async (combatData: Partial<ICombat>) => {
     return await combat.save();
 };
 
-// Devuelve todos los combates aceptados donde el usuario es creator u opponent
 export const getFutureCombats = async (userId: string) => {
     return Combat.find({
         status: 'accepted',
@@ -39,7 +37,6 @@ export const getFutureCombats = async (userId: string) => {
     .populate('gym');
 };
 
-// Devuelve todas las invitaciones pendientes donde el usuario es opponent
 export const getPendingInvitations = async (userId: string) => {
     return Combat.find({ opponent: userId, status: 'pending' })
         .populate('creator')
@@ -47,7 +44,6 @@ export const getPendingInvitations = async (userId: string) => {
         .populate('gym');
 };
 
-// Devuelve todas las invitaciones pendientes enviadas por el usuario (creator)
 export const getSentInvitations = async (userId: string) => {
     return Combat.find({ creator: userId, status: 'pending' })
         .populate('creator')
@@ -55,7 +51,6 @@ export const getSentInvitations = async (userId: string) => {
         .populate('gym');
 };
 
-// Permite que solo el opponent acepte o rechace la invitación
 export const respondToCombatInvitation = async (
     combatId: string,
     userId: string,
@@ -144,13 +139,14 @@ export const getCompletedCombatHistoryForBoxer = async (
     const totalCombats = await CombatModel.countDocuments(query);
     const totalPages = Math.ceil(totalCombats / pageSize);
   
-    interface PopulatedUserRef { _id: Types.ObjectId; username: string; profileImage?: string; }
+    interface PopulatedUserRef { _id: Types.ObjectId; name: string; profileImage?: string; }
     interface PopulatedGymRef { _id: Types.ObjectId; name: string; location?: string; }
   
     const combats = await CombatModel.find(query)
-      .populate<{ creator: PopulatedUserRef }>('creator', 'username profileImage')
-      .populate<{ opponent: PopulatedUserRef }>('opponent', 'username profileImage')
-      .populate<{ winner?: PopulatedUserRef | null }>('winner', 'username')
+      // === CAMBIO CLAVE Y DEFINITIVO AQUÍ ===
+      .populate<{ creator: PopulatedUserRef }>('creator', 'name profileImage')   // <-- Pedimos 'name'
+      .populate<{ opponent: PopulatedUserRef }>('opponent', 'name profileImage') // <-- Pedimos 'name'
+      .populate<{ winner?: PopulatedUserRef | null }>('winner', 'name')           // <-- Pedimos 'name' también para el ganador
       .populate<{ gym: PopulatedGymRef }>('gym', 'name location')
       .sort({ date: -1, time: -1 })
       .skip(skip)
@@ -166,13 +162,6 @@ export const getCompletedCombatHistoryForBoxer = async (
     };
   };
 
-// --- CAMBIO: NUEVA FUNCIÓN AÑADIDA ---
-/**
- * Establece el resultado de un combate.
- * @param {string} combatId - El ID del combate a actualizar.
- * @param {string} winnerId - El ID del boxeador que ha ganado.
- * @returns El combate actualizado.
- */
 export const setCombatResult = async (combatId: string, winnerId: string) => {
     const combat = await Combat.findById(combatId);
   
@@ -184,7 +173,6 @@ export const setCombatResult = async (combatId: string, winnerId: string) => {
       throw new Error('Este combate ya tiene un resultado asignado.');
     }
     
-    // Comprueba que el ganador es uno de los dos participantes
     const isWinnerParticipant = [combat.creator.toString(), combat.opponent.toString()].includes(winnerId);
     if (!isWinnerParticipant) {
       throw new Error('El ganador debe ser uno de los participantes del combate.');

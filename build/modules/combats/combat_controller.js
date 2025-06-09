@@ -8,16 +8,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 // src/controllers/_controller.ts
-import { saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, deleteCombat, hideCombat, getCompletedCombatHistoryForBoxer, getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation, setCombatResult // <-- CAMBIO: Importa la nueva función del servicio
- } from '../combats/combat_service.js';
+import { saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, deleteCombat, hideCombat, getCompletedCombatHistoryForBoxer, getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation, setCombatResult } from '../combats/combat_service.js';
 import Combat from './combat_models.js';
 import mongoose from 'mongoose';
-// --- Socket.IO instance holder ---
 let io;
 export function setSocketIoInstance(ioInstance) {
     io = ioInstance;
 }
-// === TUS HANDLERS EXISTENTES (SIN CAMBIOS) ===
+// ... (El resto de handlers se quedan igual) ...
 export const saveMethodHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const combat = saveMethod();
@@ -268,37 +266,34 @@ export const getUserCombatHistoryHandler = (req, res) => __awaiter(void 0, void 
         }
         const historyResult = yield getCompletedCombatHistoryForBoxer(boxerId, page, pageSize);
         const transformedCombats = historyResult.combats.map((combat) => {
-            const creator = (combat.creator && typeof combat.creator === 'object' && 'username' in combat.creator)
-                ? combat.creator
-                : null;
-            const opponentUser = (combat.opponent && typeof combat.opponent === 'object' && 'username' in combat.opponent)
-                ? combat.opponent
-                : null;
-            const winner = combat.winner;
-            const gym = (combat.gym && typeof combat.gym === 'object' && 'name' in combat.gym)
-                ? combat.gym
-                : null;
-            let actualOpponentDetails = null;
-            let resultForUser = 'Empate';
+            var _a, _b;
             const boxerIdStr = boxerId.toString();
-            if (creator && creator._id.toString() === boxerIdStr) {
-                if (opponentUser) {
-                    actualOpponentDetails = { id: opponentUser._id.toString(), username: opponentUser.username, profileImage: opponentUser.profileImage };
-                }
+            const creator = combat.creator;
+            const opponentUser = combat.opponent;
+            let opponentInfo = null;
+            if (((_a = creator === null || creator === void 0 ? void 0 : creator._id) === null || _a === void 0 ? void 0 : _a.toString()) === boxerIdStr) {
+                opponentInfo = opponentUser;
             }
-            else if (opponentUser && opponentUser._id.toString() === boxerIdStr) {
-                if (creator) {
-                    actualOpponentDetails = { id: creator._id.toString(), username: creator.username, profileImage: creator.profileImage };
-                }
+            else if (((_b = opponentUser === null || opponentUser === void 0 ? void 0 : opponentUser._id) === null || _b === void 0 ? void 0 : _b.toString()) === boxerIdStr) {
+                opponentInfo = creator;
             }
-            if (combat.status === 'completed') {
-                if (winner && winner._id) {
-                    resultForUser = winner._id.toString() === boxerIdStr ? 'Victoria' : 'Derrota';
+            const actualOpponentDetails = opponentInfo
+                ? {
+                    id: opponentInfo._id.toString(),
+                    // Usamos .name porque ahora sabemos que es el campo correcto
+                    username: opponentInfo.name,
+                    profileImage: opponentInfo.profileImage || undefined
                 }
-                else {
-                    resultForUser = 'Empate';
-                }
+                : {
+                    id: 'N/A',
+                    username: 'Oponente no identificado'
+                };
+            const winner = combat.winner;
+            let resultForUser = 'Empate';
+            if (winner === null || winner === void 0 ? void 0 : winner._id) {
+                resultForUser = winner._id.toString() === boxerIdStr ? 'Victoria' : 'Derrota';
             }
+            const gym = combat.gym;
             return {
                 _id: combat._id.toString(),
                 date: combat.date,
@@ -328,8 +323,8 @@ export const getUserCombatHistoryHandler = (req, res) => __awaiter(void 0, void 
 });
 export const setCombatResultHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { id } = req.params; // ID del combate
-        const { winnerId } = req.body; // ID del ganador que viene en el cuerpo de la petición
+        const { id } = req.params;
+        const { winnerId } = req.body;
         if (!winnerId || !mongoose.Types.ObjectId.isValid(winnerId)) {
             return res.status(400).json({ message: 'Se requiere un ID de ganador válido.' });
         }
