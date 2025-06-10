@@ -47,4 +47,4 @@ const checkJwt = (req: RequestExt, res: Response, next: NextFunction) => {
     }
 };
 
-export { checkJwt };
+export { checkJwt, RequestExt };
