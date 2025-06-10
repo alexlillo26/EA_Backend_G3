@@ -11,6 +11,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { saveMethod, createUser, getAllUsers, getUserById, deleteUser, hideUser, loginUser, searchUsers } from '../users/user_service.js';
 import { verifyRefreshToken, generateToken } from '../../utils/jwt.handle.js';
 import User from '../users/user_models.js'; // Ensure this import exists
+import mongoose from 'mongoose';
+import { generateUserStatistics } from '../combats/combat_service.js';
 export const saveMethodHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const data = saveMethod();
@@ -181,5 +183,19 @@ export const searchUsersHandler = (req, res) => __awaiter(void 0, void 0, void 0
             message: 'Error al buscar usuarios',
             error: error === null || error === void 0 ? void 0 : error.message
         });
+    }
+});
+export const getUserStatisticsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { boxerId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(boxerId)) {
+            return res.status(400).json({ message: 'ID de boxeador inválido.' });
+        }
+        const statistics = yield generateUserStatistics(boxerId);
+        res.status(200).json(statistics);
+    }
+    catch (error) {
+        console.error(`Error en getUserStatisticsHandler: ${error.message}`);
+        res.status(500).json({ message: 'Error interno del servidor al generar estadísticas.' });
     }
 });

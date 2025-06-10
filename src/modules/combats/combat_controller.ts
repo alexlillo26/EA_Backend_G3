@@ -1,9 +1,10 @@
-// src/controllers/_controller.ts
+// src/modules/combats/combat_controller.ts
+
 import {
     saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, deleteCombat, getBoxersByCombatId, hideCombat, getCompletedCombatHistoryForBoxer ,
-    getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation
-    // Se elimina la importación de 'setCombatResult'
-} from '../combats/combat_service.js';
+    getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation,
+    setCombatResult
+} from './combat_service.js';
 
 import express, { Request, Response } from 'express';
 import Combat from './combat_models.js';
@@ -26,7 +27,7 @@ export function setSocketIoInstance(ioInstance: SocketIOServer) {
     io = ioInstance;
 }
 
-// ... (Todos los handlers hasta getUserCombatHistoryHandler se quedan igual)
+// --- El resto de tus handlers ---
 export const saveMethodHandler = async (req: Request, res: Response) => {
     try {
         const combat = saveMethod();
@@ -47,7 +48,6 @@ export const createCombatHandler = async (req: Request, res: Response) => {
         ) {
             return res.status(400).json({ message: 'Faltan campos obligatorios o IDs inválidos' });
         }
-        // Nota: El status 'completed' se mantiene, ya que indica que el sparring se realizó.
         const combat = await createCombat({ creator, opponent, date, time, level, gym, status: 'completed' });
         if (io && opponent) {
             io.to(opponent.toString()).emit('new_invitation', combat);
@@ -133,9 +133,6 @@ export const getCombatsByBoxerIdHandler = async (req: Request, res: Response) =>
         const { boxerId } = req.params;
         const page = parseInt(req.query.page as string) || 1;
         const pageSize = parseInt(req.query.pageSize as string) || 10;
-        const boxerObjectId = new mongoose.Types.ObjectId(boxerId);
-        const totalCombats = await Combat.countDocuments({ boxers: boxerId });
-        const totalPages = Math.ceil(totalCombats / pageSize);
         const combats = await Combat.find({ boxers: new mongoose.Types.ObjectId(boxerId) })
             .skip((page - 1) * pageSize)
             .limit(pageSize)
@@ -144,6 +141,8 @@ export const getCombatsByBoxerIdHandler = async (req: Request, res: Response) =>
         if (!combats || combats.length === 0) {
             return res.status(404).json({ message: 'No se encontraron combates para este usuario' });
         }
+        const totalCombats = await Combat.countDocuments({ boxers: boxerId });
+        const totalPages = Math.ceil(totalCombats / pageSize);
         res.status(200).json({ combats, totalPages });
     } catch (error: any) {
         console.error('Error al obtener combates:', error);
@@ -262,7 +261,7 @@ export const getFilteredCombatsHandler = async (req: Request, res: Response) => 
     }
 };
 
-
+// --- Código corregido y final ---
 export const getUserCombatHistoryHandler = async (req: Request, res: Response): Promise<void> => {
     try {
         const { boxerId } = req.params;
@@ -291,24 +290,33 @@ export const getUserCombatHistoryHandler = async (req: Request, res: Response): 
             }
             
             const actualOpponentDetails = opponentInfo
-                ? { id: opponentInfo._id.toString(), username: opponentInfo.name, profileImage: opponentInfo.profileImage || undefined }
-                : { id: 'N/A', username: 'Oponente no identificado' };
+                ? {
+                    id: opponentInfo._id.toString(),
+                    username: opponentInfo.name, // Usamos 'name'
+                    profileImage: opponentInfo.profileImage || undefined
+                  }
+                : {
+                    id: 'N/A',
+                    username: 'Oponente no identificado'
+                  };
+
+            const winner = combat.winner as unknown as PopulatedUser;
+            let resultForUser: 'Victoria' | 'Derrota' | 'Empate' = 'Empate';
+            if (winner?._id) {
+                resultForUser = winner._id.toString() === boxerIdStr ? 'Victoria' : 'Derrota';
+            }
 
             const gym = combat.gym as unknown as PopulatedGym;
-            const creatorDetails = creator
-            ? { id: creator._id.toString(), username: creator.name, profileImage: creator.profileImage || undefined }
-            : { id: 'N/A', username: 'Creador no identificado' };
-            // Se elimina la lógica de 'winner' y 'resultForUser'
+
             return {
                 _id: combat._id.toString(),
                 date: combat.date,
                 time: combat.time,
                 gym: gym ? { _id: gym._id.toString(), name: gym.name, location: gym.location } : null,
-                creator: creatorDetails, // <--- INCLUYE EL CREATOR AQUÍ
                 opponent: actualOpponentDetails,
+                result: resultForUser,
                 level: combat.level,
                 status: combat.status,
-                // El campo 'result' ya no se envía
             };
         });
     
@@ -329,4 +337,23 @@ export const getUserCombatHistoryHandler = async (req: Request, res: Response): 
     }
 };
 
-// Se elimina el handler setCombatResultHandler
+export const setCombatResultHandler = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { winnerId } = req.body;
+        if (!winnerId || !mongoose.Types.ObjectId.isValid(winnerId)) {
+            return res.status(400).json({ message: 'Se requiere un ID de ganador válido.' });
+        }
+        const updatedCombat = await setCombatResult(id, winnerId);
+        res.status(200).json({ message: 'Resultado del combate actualizado con éxito', combat: updatedCombat });
+    } catch (error: any) {
+        if (error.message === 'Combate no encontrado') {
+            return res.status(404).json({ message: error.message });
+        }
+        if (error.message.includes('debe ser uno de los participantes') || error.message.includes('ya tiene un resultado')) {
+            return res.status(409).json({ message: error.message });
+        }
+        console.error(`Error en setCombatResultHandler: ${error.message}`);
+        res.status(500).json({ message: 'Error interno del servidor.', details: error.message });
+    }
+};

@@ -4,6 +4,8 @@ import { verifyRefreshToken, generateToken } from '../../utils/jwt.handle.js';
 import User from '../users/user_models.js'; // Ensure this import exists
 
 import express, { Request, Response } from 'express';
+import mongoose from 'mongoose';
+import { generateUserStatistics } from '../combats/combat_service.js';
 
 export const saveMethodHandler = async (req: Request, res: Response) => {
     try {
@@ -191,5 +193,18 @@ export const searchUsersHandler = async (req: Request, res: Response) => {
             message: 'Error al buscar usuarios',
             error: error?.message 
         });
+    }
+};
+export const getUserStatisticsHandler = async (req: Request, res: Response) => {
+    try {
+        const { boxerId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(boxerId)) {
+            return res.status(400).json({ message: 'ID de boxeador inválido.' });
+        }
+        const statistics = await generateUserStatistics(boxerId);
+        res.status(200).json(statistics);
+    } catch (error: any) {
+        console.error(`Error en getUserStatisticsHandler: ${error.message}`);
+        res.status(500).json({ message: 'Error interno del servidor al generar estadísticas.' });
     }
 };
