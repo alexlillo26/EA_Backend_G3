@@ -23,14 +23,30 @@ export const createCombat = async (combatData: Partial<ICombat>, imagePath?: str
 };
 
 // Devuelve todos los combates aceptados donde el usuario es creator u opponent
-export const getFutureCombats = async (userId: string) => {
-    return Combat.find({
+export const getFutureCombats = async (userId: string, page: number = 1, pageSize: number = 10) => {
+    const skip = (page - 1) * pageSize;
+    const filter = {
         status: 'accepted',
         $or: [{ creator: userId }, { opponent: userId }]
-    })
-    .populate('creator')
-    .populate('opponent')
-    .populate('gym');
+    };
+
+    const totalCombats = await Combat.countDocuments(filter);
+    const totalPages = Math.ceil(totalCombats / pageSize);
+
+    const combats = await Combat.find(filter)
+        .skip(skip)
+        .limit(pageSize)
+        .populate('creator')
+        .populate('opponent')
+        .populate('gym');
+
+    return {
+        combats,
+        totalCombats,
+        totalPages,
+        currentPage: page,
+        pageSize
+    };
 };
 
 // Devuelve todas las invitaciones pendientes donde el usuario es opponent

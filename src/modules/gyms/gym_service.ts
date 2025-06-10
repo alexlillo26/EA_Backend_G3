@@ -53,7 +53,7 @@ export const getGymById = async (id: string) => {
 };
 
 export const updateGym = async (id: string, updateData: Partial<IGym>) => {
-    return await Gym.updateOne({ _id: id }, { $set: updateData });
+    return await Gym.findByIdAndUpdate(id, updateData, { new: true });
 };
 
 export const deleteGym = async (id: string) => {
@@ -121,4 +121,18 @@ export const getCurrentGym = async (userId: string) => {
         place: gym.place,
         price: gym.price
     };
+};
+
+export const updateGymPhotos = async (
+    id: string,
+    photos: string[],
+    mainPhotoUrl?: string
+) => {
+    const updateData: Partial<IGym & { photos: string[], mainPhoto: string }> = {
+        photos,
+    };
+    if (mainPhotoUrl) {
+        updateData.mainPhoto = mainPhotoUrl;
+    }
+    return await Gym.findByIdAndUpdate(id, updateData, { new: true });
 };

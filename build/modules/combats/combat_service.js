@@ -30,14 +30,27 @@ export const createCombat = (combatData, imagePath) => __awaiter(void 0, void 0,
     return yield combat.save();
 });
 // Devuelve todos los combates aceptados donde el usuario es creator u opponent
-export const getFutureCombats = (userId) => __awaiter(void 0, void 0, void 0, function* () {
-    return Combat.find({
+export const getFutureCombats = (userId, page = 1, pageSize = 10) => __awaiter(void 0, void 0, void 0, function* () {
+    const skip = (page - 1) * pageSize;
+    const filter = {
         status: 'accepted',
         $or: [{ creator: userId }, { opponent: userId }]
-    })
+    };
+    const totalCombats = yield Combat.countDocuments(filter);
+    const totalPages = Math.ceil(totalCombats / pageSize);
+    const combats = yield Combat.find(filter)
+        .skip(skip)
+        .limit(pageSize)
         .populate('creator')
         .populate('opponent')
         .populate('gym');
+    return {
+        combats,
+        totalCombats,
+        totalPages,
+        currentPage: page,
+        pageSize
+    };
 });
 // Devuelve todas las invitaciones pendientes donde el usuario es opponent
 export const getPendingInvitations = (userId) => __awaiter(void 0, void 0, void 0, function* () {

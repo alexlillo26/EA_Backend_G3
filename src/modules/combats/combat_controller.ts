@@ -189,7 +189,10 @@ export const getCombatsByGymIdHandler = async (req: Request, res: Response) => {
 export const getFutureCombatsHandler = async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user?.id;
-        const combats = await getFutureCombats(userId);
+        const page = parseInt(req.query.page as string) || 1;
+        const pageSize = parseInt(req.query.pageSize as string) || 10;
+
+        const combats = await getFutureCombats(userId, page, pageSize);
         res.json(combats);
     } catch (error: any) {
         res.status(500).json({ message: error?.message });

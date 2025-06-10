@@ -180,7 +180,9 @@ export const getFutureCombatsHandler = (req, res) => __awaiter(void 0, void 0, v
     var _a;
     try {
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-        const combats = yield getFutureCombats(userId);
+        const page = parseInt(req.query.page) || 1;
+        const pageSize = parseInt(req.query.pageSize) || 10;
+        const combats = yield getFutureCombats(userId, page, pageSize);
         res.json(combats);
     }
     catch (error) {

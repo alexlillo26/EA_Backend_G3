@@ -11,6 +11,8 @@ export interface IGym {
     password: string;
     isHidden?: boolean;
     googleId?: string;
+    photos?: string[];
+    mainPhoto?: string;
 }
 
 const gymSchema = new mongoose.Schema({
@@ -50,6 +52,13 @@ const gymSchema = new mongoose.Schema({
         type: String,
         unique: true,
         sparse: true, // Permite valores nulos
+    },
+    photos: {
+        type: [String],
+        default: []
+    },
+    mainPhoto: {
+        type: String,
     }
 });
 

@@ -52,7 +52,7 @@ export const getGymById = (id) => __awaiter(void 0, void 0, void 0, function* ()
     return yield Gym.findById(id);
 });
 export const updateGym = (id, updateData) => __awaiter(void 0, void 0, void 0, function* () {
-    return yield Gym.updateOne({ _id: id }, { $set: updateData });
+    return yield Gym.findByIdAndUpdate(id, updateData, { new: true });
 });
 export const deleteGym = (id) => __awaiter(void 0, void 0, void 0, function* () {
     return yield Gym.deleteOne({ _id: id });
@@ -108,4 +108,13 @@ export const getCurrentGym = (userId) => __awaiter(void 0, void 0, void 0, funct
         place: gym.place,
         price: gym.price
     };
+});
+export const updateGymPhotos = (id, photos, mainPhotoUrl) => __awaiter(void 0, void 0, void 0, function* () {
+    const updateData = {
+        photos,
+    };
+    if (mainPhotoUrl) {
+        updateData.mainPhoto = mainPhotoUrl;
+    }
+    return yield Gym.findByIdAndUpdate(id, updateData, { new: true });
 });
