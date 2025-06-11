@@ -1,5 +1,6 @@
 import express from 'express';
 import upload from '../../middleware/uploads.js';
+import uploadVideo from '../../middleware/uploadVideo.js';
 import {
     saveMethodHandler,
     createUserHandler,
@@ -10,7 +11,8 @@ import {
     hideUserHandler,
     loginUserHandler,
     refreshTokenHandler,
-    searchUsersHandler
+    searchUsersHandler,
+    updateUserBoxingVideoHandler
 } from '../users/user_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
 import User from './user_models.js';
@@ -396,5 +398,7 @@ router.get('/users/me', checkJwt, async (req: any, res: express.Response) => {
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
+
+router.put('/users/:id/boxing-video', checkJwt, uploadVideo.single('video'), updateUserBoxingVideoHandler);
 
 export default router;

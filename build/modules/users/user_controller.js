@@ -8,7 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 // src/controllers/user_controller.ts
-import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser, hideUser, loginUser, searchUsers } from '../users/user_service.js';
+import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser, hideUser, loginUser, searchUsers, updateUserBoxingVideo } from '../users/user_service.js';
 import { verifyRefreshToken, generateToken } from '../../utils/jwt.handle.js';
 import User from '../users/user_models.js'; // Ensure this import exists
 import cloudinary from '../config/cloudinary.js';
@@ -173,5 +173,27 @@ export const searchUsersHandler = (req, res) => __awaiter(void 0, void 0, void 0
             message: 'Error al buscar usuarios',
             error: error === null || error === void 0 ? void 0 : error.message
         });
+    }
+});
+export const updateUserBoxingVideoHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No se ha enviado ningún video.' });
+        }
+        const file = req.file;
+        // Sube el video a Cloudinary
+        const videoUrl = yield new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream({ folder: 'users/videos', resource_type: 'video' }, (error, result) => {
+                if (error)
+                    return reject(error);
+                resolve((result === null || result === void 0 ? void 0 : result.secure_url) || '');
+            });
+            stream.end(file.buffer);
+        });
+        const updatedUser = yield updateUserBoxingVideo(req.params.id, videoUrl);
+        res.status(200).json(updatedUser);
+    }
+    catch (error) {
+        res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
     }
 });

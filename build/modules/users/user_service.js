@@ -130,7 +130,7 @@ export const getUserCount = () => __awaiter(void 0, void 0, void 0, function* ()
     return yield User.countDocuments({ isHidden: false });
 });
 // usuario del motor de búsqueda
-export const searchUsers = (city, weight) => __awaiter(void 0, void 0, void 0, function* () {
+export const searchUsers = (city, weight, boxingVideo) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         let query = {};
         if (city) {
@@ -139,10 +139,13 @@ export const searchUsers = (city, weight) => __awaiter(void 0, void 0, void 0, f
         if (weight && ['Peso pluma', 'Peso medio', 'Peso pesado'].includes(weight)) {
             query.weight = weight;
         }
+        if (boxingVideo) {
+            query.boxingVideo = { $exists: true, $ne: null }; // Buscar usuarios con video de boxeo
+        }
         console.log('Search query:', query); // Debug log
         // Si no se proporciona ciudad ni peso, devolver todos los usuarios
         const users = yield User.find(query)
-            .select('name city weight') // conserva _id
+            .select('name city weight boxingVideo') // conserva _id
             .sort({ name: 1 })
             .lean()
             .then(users => users.map(user => {
@@ -156,4 +159,7 @@ export const searchUsers = (city, weight) => __awaiter(void 0, void 0, void 0, f
         // Devolver una matriz vacía en lugar de lanzar una excepción evita que los 500
         return [];
     }
+});
+export const updateUserBoxingVideo = (id, videoUrl) => __awaiter(void 0, void 0, void 0, function* () {
+    return yield User.findByIdAndUpdate(id, { boxingVideo: videoUrl }, { new: true });
 });

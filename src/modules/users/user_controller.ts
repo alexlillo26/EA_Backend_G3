@@ -1,5 +1,5 @@
 // src/controllers/user_controller.ts
-import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser, hideUser, loginUser, getUserCount, searchUsers } from '../users/user_service.js';
+import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser, hideUser, loginUser, getUserCount, searchUsers, updateUserBoxingVideo } from '../users/user_service.js';
 import { verifyRefreshToken, generateToken } from '../../utils/jwt.handle.js';
 import User from '../users/user_models.js'; // Ensure this import exists
 import cloudinary from '../config/cloudinary.js';
@@ -179,4 +179,29 @@ export const searchUsersHandler = async (req: Request, res: Response) => {
             error: error?.message 
         });
     }
+};
+
+export const updateUserBoxingVideoHandler = async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No se ha enviado ningún video.' });
+    }
+    const file = req.file;
+    // Sube el video a Cloudinary
+    const videoUrl = await new Promise<string>((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: 'users/videos', resource_type: 'video' },
+        (error, result) => {
+          if (error) return reject(error);
+          resolve(result?.secure_url || '');
+        }
+      );
+      stream.end(file.buffer);
+    });
+
+    const updatedUser = await updateUserBoxingVideo(req.params.id, videoUrl);
+    res.status(200).json(updatedUser);
+  } catch (error: any) {
+    res.status(500).json({ message: error?.message });
+  }
 };

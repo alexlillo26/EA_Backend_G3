@@ -9,7 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import express from 'express';
 import upload from '../../middleware/uploads.js';
-import { saveMethodHandler, createUserHandler, getAllUsersHandler, getUserByIdHandler, updateUserHandler, deleteUserHandler, hideUserHandler, loginUserHandler, refreshTokenHandler, searchUsersHandler } from '../users/user_controller.js';
+import uploadVideo from '../../middleware/uploadVideo.js';
+import { saveMethodHandler, createUserHandler, getAllUsersHandler, getUserByIdHandler, updateUserHandler, deleteUserHandler, hideUserHandler, loginUserHandler, refreshTokenHandler, searchUsersHandler, updateUserBoxingVideoHandler } from '../users/user_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
 import User from './user_models.js';
 const router = express.Router();
@@ -383,4 +384,5 @@ router.get('/users/me', checkJwt, (req, res) => __awaiter(void 0, void 0, void 0
         res.status(500).json({ message: 'Error interno del servidor' });
     }
 }));
+router.put('/users/:id/boxing-video', checkJwt, uploadVideo.single('video'), updateUserBoxingVideoHandler);
 export default router;
