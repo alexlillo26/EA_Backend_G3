@@ -221,6 +221,7 @@ router.get('/combat/boxer/:boxerId', getCombatsByBoxerIdHandler);
  */
 
 router.post('/combat', checkJwt, createCombatHandler);
+router.post('/combat', checkJwt, createCombatHandler);
 
 /**
  * @openapi
@@ -351,6 +352,7 @@ router.get('/combat/:id', getCombatByIdHandler);
  */
 
 router.put('/combat/:id', checkJwt, updateCombatHandler);
+router.put('/combat/:id', checkJwt, updateCombatHandler);
 
 /**
  * @openapi
@@ -373,6 +375,7 @@ router.put('/combat/:id', checkJwt, updateCombatHandler);
  *         description: Combate no encontrado
  */
 
+router.delete('/combat/:id', checkJwt, deleteCombatHandler);
 router.delete('/combat/:id', checkJwt, deleteCombatHandler);
 
 /**
@@ -412,6 +415,7 @@ router.delete('/combat/:id', checkJwt, deleteCombatHandler);
  *         description: Combate no encontrado
  */
 
+router.get('/combat/:id/boxers', getBoxersByCombatIdHandler);
 router.get('/combat/:id/boxers', getBoxersByCombatIdHandler);
 
 /**

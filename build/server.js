@@ -50,6 +50,12 @@ const io = new SocketIOServer(httpServer, {
             "http://localhost:54385",
             `http://localhost:${LOCAL_PORT}`,
             "http://10.0.2.2",
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "http://localhost",
+            "http://localhost:54385",
+            `http://localhost:${LOCAL_PORT}`,
+            "http://10.0.2.2",
             process.env.FLUTTER_APP_ORIGIN || "*" // Para Flutter (ser específico en producción)
         ],
         methods: ["GET", "POST"],
@@ -101,10 +107,12 @@ app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 app.use(cors({
     origin: [
         "http://localhost:3000",
+        "http://localhost:3000",
         "https://ea3.upc.edu",
         "https://ea3-back.upc.edu",
         "https://localhost:3000",
         "https://localhost:3001",
+        "http://localhost:54385", // Origen de Flutter web debug
         "http://localhost:54385", // Origen de Flutter web debug
         // Añade otros orígenes de desarrollo si los necesitas
     ],
