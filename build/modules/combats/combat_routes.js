@@ -1,6 +1,6 @@
 // src/routes/user_routes.ts
 import express from 'express';
-import { createCombatHandler, getCombatByIdHandler, updateCombatHandler, deleteCombatHandler, getBoxersByCombatIdHandler, getCombatsByBoxerIdHandler, hideCombatHandler, getPendingInvitationsHandler, respondToInvitationHandler, getFutureCombatsHandler, getInvitationsHandler, getSentInvitationsHandler, getFilteredCombatsHandler, updateCombatImageHandler, getUserCombatHistoryHandler, } from '../combats/combat_controller.js';
+import { createCombatHandler, getCombatByIdHandler, updateCombatHandler, deleteCombatHandler, getBoxersByCombatIdHandler, getCombatsByBoxerIdHandler, hideCombatHandler, getPendingInvitationsHandler, respondToInvitationHandler, getFutureCombatsHandler, getInvitationsHandler, getSentInvitationsHandler, getFilteredCombatsHandler, updateCombatImageHandler, getUserCombatHistoryHandler, cancelCombatHandler } from '../combats/combat_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
 import upload from '../../middleware/uploads.js';
 const router = express.Router();
@@ -544,4 +544,5 @@ router.patch('/combat/:id/respond', checkJwt, respondToInvitationHandler);
  */
 router.get('/combat/history/user/:boxerId', /* checkJwt, */ getUserCombatHistoryHandler);
 router.put('/combat/:id/image', checkJwt, upload.single('image'), updateCombatImageHandler);
+router.post('/combat/:id/cancel', checkJwt, cancelCombatHandler);
 export default router;

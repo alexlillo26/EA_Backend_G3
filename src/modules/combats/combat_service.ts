@@ -1,6 +1,7 @@
 import mongoose, { Types } from 'mongoose';
 import Combat, { ICombat } from '../combats/combat_models.js';
 import CombatModel from '../combats/combat_models.js';
+import nodemailer from 'nodemailer';
 
 interface CombatHistoryResult {
     combats: ICombat[];
@@ -268,3 +269,36 @@ export const generateUserStatistics = async (boxerId: string): Promise<object> =
       combatsPerMonth
     };
   };
+
+  export const sendCancellationEmail = async (to: string, reason: string, combat: any) => {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  // Formatea la fecha del combate (puedes ajustar el formato si lo deseas)
+  const combatDate = combat.date
+    ? new Date(combat.date).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
+    : 'Fecha no disponible';
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to,
+    subject: 'Notificación de cancelación de combate',
+    text: `
+    Hola,
+
+    Te informamos que tu combate programado para el día ${combatDate} ha sido cancelado por el siguiente motivo: "${reason}"
+
+    Si tienes dudas, contacta con el organizador.
+
+    Saludos,
+    El equipo de la plataforma
+        `.trim(),
+    };
+
+  await transporter.sendMail(mailOptions);
+};

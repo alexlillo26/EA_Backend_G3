@@ -145,7 +145,7 @@ export const searchUsers = (city, weight, boxingVideo) => __awaiter(void 0, void
         console.log('Search query:', query); // Debug log
         // Si no se proporciona ciudad ni peso, devolver todos los usuarios
         const users = yield User.find(query)
-            .select('name city weight boxingVideo') // conserva _id
+            .select('name city weight boxingVideo profilePicture') // conserva _id
             .sort({ name: 1 })
             .lean()
             .then(users => users.map(user => {

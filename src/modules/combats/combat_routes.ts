@@ -19,6 +19,7 @@ import {
     getFilteredCombatsHandler,
     updateCombatImageHandler,
     getUserCombatHistoryHandler,
+    cancelCombatHandler
 
 } from '../combats/combat_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
@@ -586,6 +587,8 @@ router.patch('/combat/:id/respond', checkJwt, respondToInvitationHandler);
 router.get('/combat/history/user/:boxerId', /* checkJwt, */ getUserCombatHistoryHandler);
 
 router.put('/combat/:id/image', checkJwt, upload.single('image'), updateCombatImageHandler);
+
+router.post('/combat/:id/cancel', checkJwt, cancelCombatHandler);
 
 
 export default router;

@@ -1,11 +1,6 @@
 // src/modules/combats/combat_controller.ts
 
-import {
-
-    saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, deleteCombat, getBoxersByCombatId, hideCombat,
-    getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation, updateCombatImage, getCompletedCombatHistoryForBoxer, setCombatResult
-} from '../combats/combat_service.js';
-
+import { saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, deleteCombat, getBoxersByCombatId, hideCombat, getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation, updateCombatImage, getCompletedCombatHistoryForBoxer, setCombatResult, sendCancellationEmail} from '../combats/combat_service.js';
 import express, { Request, Response } from 'express';
 import Combat from './combat_models.js';
 import mongoose, { Types } from 'mongoose';
@@ -417,4 +412,49 @@ export const setCombatResultHandler = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Error interno del servidor.', details: error.message });
 
     }
+};
+
+export const cancelCombatHandler = async (req: Request, res: Response) => {
+  try {
+    console.log('Cancel combat request:', req.params, req.body, (req as any).user);
+    const combatId = req.params.id;
+    const { reason } = req.body; // Motivo seleccionado en el modal
+
+    const combat = await Combat.findById(combatId).populate('creator opponent');
+    console.log('Combat encontrado:', combat);
+    if (!combat) return res.status(404).json({ message: 'Combate no encontrado' });
+
+    combat.status = 'cancelled';
+    await combat.save();
+    console.log('Combate actualizado a cancelled');
+
+    const userId = (req as any).user?._id?.toString() || (req as any).user?.id; // Soporta ambos casos
+    const creatorId = combat.creator._id?.toString?.() || combat.creator.id?.toString?.();
+    const opponentId = combat.opponent._id?.toString?.() || combat.opponent.id?.toString?.();
+
+    let otherUser: any = null;
+    if (userId === creatorId) {
+      otherUser = combat.opponent;
+    } else if (userId === opponentId) {
+      otherUser = combat.creator;
+    } else {
+      console.log('No tienes permiso para cancelar este combate');
+      return res.status(403).json({ message: 'No tienes permiso para cancelar este combate.' });
+    }
+
+    console.log('Usuario a notificar:', otherUser);
+
+    if (!otherUser || !otherUser.email) {
+        console.log('No se pudo obtener el email del otro usuario');
+      return res.status(400).json({ message: 'No se pudo obtener el email del otro usuario.' });
+    }
+
+    await sendCancellationEmail(otherUser.email, reason, combat);
+    console.log('Email enviado a:', otherUser.email);
+
+    res.json({ message: 'Combate cancelado y notificado correctamente.' });
+  } catch (error) {
+    console.error('Error en cancelCombatHandler:', error);
+    res.status(500).json({ message: 'Error al cancelar el combate', error });
+  }
 };
