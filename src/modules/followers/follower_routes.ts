@@ -12,8 +12,6 @@ router.get("/:userId", checkJwt, getFollowers);
 
 // POST /api/followers/push-subscription
 router.post("/push-subscription", checkJwt, savePushSubscription);
-
-// DELETE /api/followers/push-subscription
 router.delete("/push-subscription", checkJwt, removePushSubscription);
 
 export default router;

@@ -20,12 +20,19 @@ import express, { Request, Response } from 'express';
 import Combat from './combat_models.js';
 import mongoose from 'mongoose';
 import { Server as SocketIOServer } from 'socket.io';
+import User from "../users/user_models.js";
 
 // --- Socket.IO instance holder ---
 let io: SocketIOServer | undefined;
 export function setSocketIoInstance(ioInstance: SocketIOServer) {
   io = ioInstance;
 }
+
+// Función auxiliar local para obtener los IDs de los seguidores de un usuario
+const getFollowersOfUser = async (userId: string): Promise<string[]> => {
+  const followers = await Follower.find({ following: userId }).select("follower");
+  return followers.map(f => f.follower.toString());
+};
 
 export const saveMethodHandler = async (req: Request, res: Response) => {
   try {
@@ -59,15 +66,16 @@ export const createCombatHandler = async (req: Request, res: Response) => {
     if (io && opponent) {
       io.to(opponent.toString()).emit('new_invitation', combat);
     }
-
     // 3) Emitir a los seguidores del creator (Socket.IO + Push)
     if (io && creator) {
       const followers = await Follower.find({ following: creator }).select("follower pushSubscription");
+      const actorUser = await User.findById(creator).select("name");
+      const actor = { id: creator, name: actorUser?.name || "Usuario" };
       for (const f of followers) {
         const followerId = f.follower.toString();
         const socketId = (global as any).userSocketMap?.get(followerId);
-        if (socketId) {
-          io.to(socketId).emit("new_combat_from_followed", { combat, createdBy: creator });
+        if (socketId && io) {
+          io.to(socketId).emit("new_combat_from_followed", { combat, actor });
         }
         if (f.pushSubscription) {
           const payload = JSON.stringify({
@@ -238,44 +246,39 @@ export const getSentInvitationsHandler = async (req: Request, res: Response) => 
 // PATCH /api/combat/:id/respond - Aceptar o rechazar invitación
 export const respondToInvitationHandler = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
-    const { id } = req.params;
+    const userId = (req as any).user?.id;        // quien está respondiendo
+    const { id: combatId } = req.params;
     const { status } = req.body;
     if (!['accepted', 'rejected'].includes(status)) {
       return res.status(400).json({ message: 'Estado inválido' });
     }
 
-    // ATENCIÓN: respondToCombatInvitation devuelve directamente el documento Combat
-    const combatResult = await respondToCombatInvitation(id, userId, status);
+    const result = await respondToCombatInvitation(combatId, userId, status);
 
-    // Si se aceptó, notificar a followers del creator (socket y push)
-    if (status === "accepted" && io && combatResult && !(combatResult as any).deleted) {
-      // combatResult es el documento de combate
-      const combatDoc = combatResult as (mongoose.Document & { creator: any; _id: any });
-      const creatorId = combatDoc.creator.toString();
-      const followers = await Follower.find({ following: creatorId }).select("follower pushSubscription");
+    if (status === 'accepted') {
+      if (!io) throw new Error("Socket.IO instance not set");
+      // --- A) Notificar a seguidores de quien acepta (actor) ---
+      const actorUser = await User.findById(userId).select("name");
+      const actor = { id: userId, name: actorUser?.name || "Usuario" };
+      const followersOfActor = await getFollowersOfUser(userId);
+      followersOfActor.forEach(fId => {
+        io!.to(fId).emit("new_combat_from_followed", { combat: result, actor });
+      });
 
-      for (const f of followers) {
-        const followerId = f.follower.toString();
-        const socketId = (global as any).userSocketMap?.get(followerId);
-        if (socketId) {
-          io.to(socketId).emit("new_combat_from_followed", { combat: combatDoc, createdBy: creatorId });
-        }
-        if (f.pushSubscription) {
-          const payload = JSON.stringify({
-            title: "¡Tu combate ha sido aceptado!",
-            body: `El combate que seguiste ha sido aceptado.`,
-            data: { combatId: combatDoc._id.toString() },
-          });
-          webpush.sendNotification(f.pushSubscription, payload).catch((err) => {
-            console.error("Error enviando push accepted:", err);
-          });
-        }
+      // --- B) Notificar a seguidores del creador original ---
+      const originalCombat = await Combat.findById(combatId).select("creator");
+      if (originalCombat?.creator) {
+        const creatorId = originalCombat.creator.toString();
+        const creatorUser = await User.findById(creatorId).select("name");
+        const creatorActor = { id: creatorId, name: creatorUser?.name || "Usuario" };
+        const followersOfCreator = await getFollowersOfUser(creatorId);
+        followersOfCreator.forEach(fId => {
+          io!.to(fId).emit("new_combat_from_followed", { combat: result, actor: creatorActor });
+        });
       }
     }
 
-    // Devolver el documento de combate
-    res.json(combatResult);
+    res.json(result);
   } catch (error: any) {
     res.status(403).json({ message: error?.message });
   }
