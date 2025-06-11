@@ -358,25 +358,6 @@ router.post('/users/refresh', refreshTokenHandler);
  *         description: Refresh token inválido
  */
 router.post('/users/refresh-token', refreshTokenHandler);
-
-// Ruta protegida para obtener el perfil del usuario autenticado
-router.get('/users/me', checkJwt, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    try {
-        const user = yield User.findById((_a = req.user) === null || _a === void 0 ? void 0 : _a.id).select('-password');
-        if (!user) {
-            res.status(404).json({ message: 'Usuario no encontrado' });
-            return;
-        }
-        res.json(user);
-    }
-    catch (err) {
-        console.error('Error al obtener usuario:', err);
-        res.status(500).json({ message: 'Error interno del servidor' });
-    }
-}));
-router.put('/users/:id/boxing-video', checkJwt, uploadVideo.single('video'), updateUserBoxingVideoHandler);
-
 /**
  * @openapi
  * /api/combat/statistics/user/{boxerId}:
@@ -402,5 +383,5 @@ router.put('/users/:id/boxing-video', checkJwt, uploadVideo.single('video'), upd
  *       - bearerAuth: []
  */
 router.get('/combat/statistics/user/:boxerId', checkJwt, getUserStatisticsHandler);
-
+router.put('/users/:id/boxing-video', checkJwt, uploadVideo.single('video'), updateUserBoxingVideoHandler);
 export default router;

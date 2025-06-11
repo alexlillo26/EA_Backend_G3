@@ -56,7 +56,7 @@ const combatSchema = new Schema<ICombat>({
     },
     image: {
         type: String
-    }
+    },
     winner: { // --- NUEVO CAMPO AQUÍ ---
         type: Schema.Types.ObjectId,
         ref: "User",

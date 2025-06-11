@@ -207,6 +207,7 @@ export const updateUserBoxingVideoHandler = async (req: Request, res: Response) 
   } catch (error: any) {
     res.status(500).json({ message: error?.message });
   }
+};
 
 export const getUserStatisticsHandler = async (req: Request, res: Response) => {
     try {
@@ -220,5 +221,4 @@ export const getUserStatisticsHandler = async (req: Request, res: Response) => {
         console.error(`Error en getUserStatisticsHandler: ${error.message}`);
         res.status(500).json({ message: 'Error interno del servidor al generar estadísticas.' });
     }
-
 };

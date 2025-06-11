@@ -12,7 +12,7 @@ import {
     loginUserHandler,
     refreshTokenHandler,
     searchUsersHandler,
-    updateUserBoxingVideoHandler
+    updateUserBoxingVideoHandler,
     getUserStatisticsHandler
 } from '../users/user_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path

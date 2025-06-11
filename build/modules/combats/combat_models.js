@@ -37,7 +37,7 @@ const combatSchema = new Schema({
     },
     image: {
         type: String
-    }
+    },
     winner: {
         type: Schema.Types.ObjectId,
         ref: "User",

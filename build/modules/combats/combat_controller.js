@@ -8,14 +8,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-
-// src/controllers/_controller.ts
-import { saveMethod, createCombat, getAllCombats, updateCombat, deleteCombat, hideCombat, getCombatsByGymId, getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation, updateCombatImage, getCompletedCombatHistoryForBoxer, setCombatResult } from '../combats/combat_service.js';
+import { saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, deleteCombat, hideCombat, getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation, updateCombatImage, getCompletedCombatHistoryForBoxer, setCombatResult } from '../combats/combat_service.js';
 import Combat from './combat_models.js';
 import mongoose from 'mongoose';
 import cloudinary from '../config/cloudinary.js';
-// --- Socket.IO instance holder ---
-
 let io;
 export function setSocketIoInstance(ioInstance) {
     io = ioInstance;
@@ -39,7 +35,6 @@ export const createCombatHandler = (req, res) => __awaiter(void 0, void 0, void 
             !gym || !mongoose.Types.ObjectId.isValid(gym)) {
             return res.status(400).json({ message: 'Faltan campos obligatorios o IDs inválidos' });
         }
-
         let imageUrl = undefined;
         if (req.file) {
             const file = req.file;
@@ -280,7 +275,6 @@ export const getFilteredCombatsHandler = (req, res) => __awaiter(void 0, void 0,
         res.status(500).json({ message: (error === null || error === void 0 ? void 0 : error.message) || String(error) });
     }
 });
-
 export const updateCombatImageHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
@@ -307,7 +301,7 @@ export const updateCombatImageHandler = (req, res) => __awaiter(void 0, void 0, 
         console.log("Error al actualizar la imagen del combate:", error);
         res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
     }
-};
+});
 // --- Código corregido y final ---
 export const getUserCombatHistoryHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {

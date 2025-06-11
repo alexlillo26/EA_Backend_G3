@@ -17,7 +17,7 @@ import {
     getInvitationsHandler,
     getSentInvitationsHandler,
     getFilteredCombatsHandler,
-    updateCombatImageHandler
+    updateCombatImageHandler,
     getUserCombatHistoryHandler,
 
 } from '../combats/combat_controller.js';

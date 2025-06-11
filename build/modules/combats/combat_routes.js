@@ -1,6 +1,6 @@
 // src/routes/user_routes.ts
 import express from 'express';
-import { createCombatHandler, getCombatByIdHandler, updateCombatHandler, deleteCombatHandler, getBoxersByCombatIdHandler, getCombatsByBoxerIdHandler, hideCombatHandler, getPendingInvitationsHandler, respondToInvitationHandler, getFutureCombatsHandler, getInvitationsHandler, getSentInvitationsHandler, getFilteredCombatsHandler, updateCombatImageHandler, getUserCombatHistoryHandler } from '../combats/combat_controller.js';
+import { createCombatHandler, getCombatByIdHandler, updateCombatHandler, deleteCombatHandler, getBoxersByCombatIdHandler, getCombatsByBoxerIdHandler, hideCombatHandler, getPendingInvitationsHandler, respondToInvitationHandler, getFutureCombatsHandler, getInvitationsHandler, getSentInvitationsHandler, getFilteredCombatsHandler, updateCombatImageHandler, getUserCombatHistoryHandler, } from '../combats/combat_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
 import upload from '../../middleware/uploads.js';
 const router = express.Router();
@@ -319,6 +319,7 @@ router.get('/combat/:id', getCombatByIdHandler);
  *         description: Combate no encontrado
  */
 router.put('/combat/:id', checkJwt, updateCombatHandler);
+router.put('/combat/:id', checkJwt, updateCombatHandler);
 /**
  * @openapi
  * /api/combat/{id}:
@@ -339,6 +340,7 @@ router.put('/combat/:id', checkJwt, updateCombatHandler);
  *       404:
  *         description: Combate no encontrado
  */
+router.delete('/combat/:id', checkJwt, deleteCombatHandler);
 router.delete('/combat/:id', checkJwt, deleteCombatHandler);
 /**
  * @openapi
@@ -376,6 +378,7 @@ router.delete('/combat/:id', checkJwt, deleteCombatHandler);
  *       404:
  *         description: Combate no encontrado
  */
+router.get('/combat/:id/boxers', getBoxersByCombatIdHandler);
 router.get('/combat/:id/boxers', getBoxersByCombatIdHandler);
 /**
  * @openapi
@@ -440,9 +443,6 @@ router.put('/combat/:id/oculto', checkJwt, hideCombatHandler); // Require authen
  *         description: Invitación no encontrada
  */
 router.patch('/combat/:id/respond', checkJwt, respondToInvitationHandler);
-
-router.put('/combat/:id/image', checkJwt, upload.single('image'), updateCombatImageHandler);
-
 /**
  * @openapi
  * /api/combat/history/user/{boxerId}:
@@ -543,5 +543,5 @@ router.put('/combat/:id/image', checkJwt, upload.single('image'), updateCombatIm
  *       - bearerAuth: [] # Asumiendo que usas JWT
  */
 router.get('/combat/history/user/:boxerId', /* checkJwt, */ getUserCombatHistoryHandler);
-
+router.put('/combat/:id/image', checkJwt, upload.single('image'), updateCombatImageHandler);
 export default router;

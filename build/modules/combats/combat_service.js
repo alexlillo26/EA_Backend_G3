@@ -13,10 +13,8 @@ import CombatModel from '../combats/combat_models.js';
 export const saveMethod = () => {
     return 'Hola';
 };
-
 export const createCombat = (combatData, imagePath) => __awaiter(void 0, void 0, void 0, function* () {
     // Validar y convertir IDs a ObjectId si son string
-
     if (combatData.creator && typeof combatData.creator === 'string') {
         combatData.creator = new mongoose.Types.ObjectId(combatData.creator);
     }
@@ -32,7 +30,6 @@ export const createCombat = (combatData, imagePath) => __awaiter(void 0, void 0,
     const combat = new Combat(combatData);
     return yield combat.save();
 });
-
 // Devuelve todos los combates aceptados donde el usuario es creator u opponent
 export const getFutureCombats = (userId, page = 1, pageSize = 10) => __awaiter(void 0, void 0, void 0, function* () {
     const skip = (page - 1) * pageSize;
@@ -189,12 +186,11 @@ export const setCombatResult = (combatId, winnerId) => __awaiter(void 0, void 0,
     yield combat.save();
     return combat.populate(['creator', 'opponent', 'gym', 'winner']);
 });
-// Añadir al final de src/combats/combat_service.js
-/**
- * Genera estadísticas de combate para un boxeador específico.
- * @param {string} boxerId - El ID del boxeador.
- * @returns {Promise<object>} Un objeto con las estadísticas calculadas.
- */
+export const updateCombatImage = (combatId, imagePath) => __awaiter(void 0, void 0, void 0, function* () {
+    // Asegura que la ruta se guarde con barras normales para la web
+    const normalizedPath = imagePath.replace(/\\/g, '/');
+    return yield Combat.findByIdAndUpdate(combatId, { $set: { image: normalizedPath } }, { new: true });
+});
 export const generateUserStatistics = (boxerId) => __awaiter(void 0, void 0, void 0, function* () {
     const boxerObjectId = new mongoose.Types.ObjectId(boxerId);
     // 1. Oponente más frecuente
@@ -230,9 +226,4 @@ export const generateUserStatistics = (boxerId) => __awaiter(void 0, void 0, voi
         frequentGyms,
         combatsPerMonth
     };
-});
-export const updateCombatImage = (combatId, imagePath) => __awaiter(void 0, void 0, void 0, function* () {
-    // Asegura que la ruta se guarde con barras normales para la web
-    const normalizedPath = imagePath.replace(/\\/g, '/');
-    return yield Combat.findByIdAndUpdate(combatId, { $set: { image: normalizedPath } }, { new: true });
 });

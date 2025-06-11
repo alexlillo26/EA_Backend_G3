@@ -14,7 +14,6 @@ import User from '../users/user_models.js'; // Ensure this import exists
 import cloudinary from '../config/cloudinary.js';
 import mongoose from 'mongoose';
 import { generateUserStatistics } from '../combats/combat_service.js';
-
 export const saveMethodHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const data = saveMethod();
@@ -178,7 +177,6 @@ export const searchUsersHandler = (req, res) => __awaiter(void 0, void 0, void 0
         });
     }
 });
-
 export const updateUserBoxingVideoHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (!req.file) {
@@ -199,8 +197,8 @@ export const updateUserBoxingVideoHandler = (req, res) => __awaiter(void 0, void
     }
     catch (error) {
         res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
-};
-  
+    }
+});
 export const getUserStatisticsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { boxerId } = req.params;
@@ -213,6 +211,5 @@ export const getUserStatisticsHandler = (req, res) => __awaiter(void 0, void 0, 
     catch (error) {
         console.error(`Error en getUserStatisticsHandler: ${error.message}`);
         res.status(500).json({ message: 'Error interno del servidor al generar estadísticas.' });
-
     }
 });

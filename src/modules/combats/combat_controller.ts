@@ -2,8 +2,8 @@
 
 import {
 
-    saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, deleteCombat, getBoxersByCombatId, hideCombat, getCombatsByGymId,
-    getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation, updateCombatImage, getCompletedCombatHistoryForBoxer
+    saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, deleteCombat, getBoxersByCombatId, hideCombat,
+    getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation, updateCombatImage, getCompletedCombatHistoryForBoxer, setCombatResult
 } from '../combats/combat_service.js';
 
 import express, { Request, Response } from 'express';
@@ -318,6 +318,7 @@ export const updateCombatImageHandler = async (req: Request, res: Response) => {
     } catch (error: any) {
         console.log("Error al actualizar la imagen del combate:", error);
         res.status(500).json({ message: error?.message });
+}
 };
 
 // --- Código corregido y final ---
