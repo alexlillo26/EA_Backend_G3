@@ -6,23 +6,31 @@ export const createRating = async (ratingData: {
   combat: string;
   from: string;
   to: string;
-  score: number;
+  punctuality: number;
+  attitude: number;
+  technique: number;
+  intensity: number;
+  sportmanship: number;
   comment?: string;
 }) => {
-  const { combat, from, to, score, comment } = ratingData;
+  const { combat, from, to, punctuality, attitude, technique, intensity, sportmanship, comment } = ratingData;
 
-  if (!combat || !from || !to || !score) {
+  if (!combat || !from || !to || !punctuality || !attitude || !technique || !intensity || !sportmanship) {
     throw new Error('Todos los campos obligatorios: combat, from, to, score');
   }
-  if (score < 1 || score > 5) {
-    throw new Error('La puntuación debe estar entre 1 y 5');
+  if ([punctuality, attitude, technique, intensity, sportmanship].some(value => value < 1 || value > 5)) {
+  throw new Error('Cada puntuación debe estar entre 1 y 5');
   }
 
   const newRating = new Rating({
     combat: new Types.ObjectId(combat),
     from: new Types.ObjectId(from),
     to: new Types.ObjectId(to),
-    score,
+    punctuality,
+    attitude,
+    technique,
+    intensity,
+    sportmanship,
     comment,
     isHidden: false,
   });
@@ -57,11 +65,36 @@ export const getRatingById = async (id: string) => {
 };
 
 // Editar un rating
-export const updateRating = async (id: string, updateData: Partial<{ score: number; comment: string }>) => {
-  if (updateData.score && (updateData.score < 1 || updateData.score > 5)) {
-    throw new Error('La puntuación debe estar entre 1 y 5');
-  }
-  return await Rating.findByIdAndUpdate(id, updateData, { new: true });
+export const updateRating = async (
+  id: string,
+  updateData: Partial<{
+    punctuality: number;
+    attitude: number;
+    technique: number;
+    intensity: number;
+    sportmanship: number;
+    comment: string;
+  }>
+) => {
+  // Lista de campos a validar
+  type RatingNumericFields = 'punctuality' | 'attitude' | 'technique' | 'intensity' | 'sportmanship';
+
+  const ratingFields: RatingNumericFields[] = [
+    'punctuality',
+    'attitude',
+    'technique',
+    'intensity',
+    'sportmanship'
+  ];
+
+  ratingFields.forEach(field => {
+    const value = updateData[field];
+    if (value !== undefined && (value < 1 || value > 5)) {
+      throw new Error(`La puntuación para ${field} debe estar entre 1 y 5`);
+    }
+  });
+
+   return await Rating.findByIdAndUpdate(id, updateData, { new: true });
 };
 
 // Eliminar un rating
@@ -72,4 +105,40 @@ export const deleteRating = async (id: string) => {
 // Ocultar o mostrar un rating
 export const hideRating = async (id: string, isHidden: boolean) => {
   return await Rating.findByIdAndUpdate(id, { isHidden }, { new: true });
+};
+
+// Obtener todos los ratings de un usuario específico
+export const getRatingsForUser = async (userId: string, page: number = 1, pageSize: number = 10) => {
+  const skip = (page - 1) * pageSize;
+
+  // Buscar ratings donde el usuario sea el destinatario (campo `to`)
+  //const ratings = await Rating.find({ to: new Types.ObjectId(userId) })
+    //.sort({ createdAt: -1 }) // Ordenar por fecha de creación (más recientes primero)
+    //.skip(skip)
+    //.limit(pageSize)
+    //.populate('from combat') // Popular los campos `from` y `combat` para más detalles
+    //.lean();
+   const ratings = await Rating.find({ to: new Types.ObjectId(userId) })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(pageSize)
+    .populate('from')
+    .populate({
+      path: 'combat',
+      populate: [
+        { path: 'creator', select: '_id name email profileImage' },
+        { path: 'opponent', select: '_id name email profileImage' }
+      ]
+    })
+    .lean();
+  // Contar el total de ratings para el usuario
+  const totalRatings = await Rating.countDocuments({ to: new Types.ObjectId(userId) });
+  const totalPages = Math.ceil(totalRatings / pageSize);
+
+  return {
+    ratings,
+    totalRatings,
+    totalPages,
+    currentPage: page,
+  };
 };

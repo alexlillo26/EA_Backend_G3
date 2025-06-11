@@ -76,7 +76,11 @@ export const googleAuth = async (code: string): Promise<{ token: string; refresh
     }
 };
 
-export const googleRegister = async (code: string, password: string): Promise<{ token: string; refreshToken: string; user: any }> => {
+export const googleRegister = async (
+    code: string,
+    password: string,
+    isGym: boolean = false
+): Promise<{ token: string; refreshToken: string; user?: any; gym?: any }> => {
     try {
         // Request access token from Google
         const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
@@ -96,39 +100,40 @@ export const googleRegister = async (code: string, password: string): Promise<{ 
         });
 
         const profile = profileResponse.data;
-
         // Asignar fecha de nacimiento predeterminada
         const birthDate = new Date("2017-01-01T00:00:00.000Z");
 
-        // Check if the user already exists
-        let user = await User.findOne({ email: profile.email });
-        if (user) {
-            throw new Error('El usuario ya está registrado');
+        if (isGym) {
+            let gym = await Gym.findOne({ email: profile.email });
+            if (gym) throw new Error('El gimnasio ya está registrado');
+            const passHash = await encrypt(password);
+            gym = await Gym.create({
+                name: profile.name,
+                email: profile.email,
+                password: passHash,
+                place: "Sin definir",
+                price: 0,
+                phone: "000000000",
+                googleId: profile.id,
+            });
+            const token = generateToken(gym.id, gym.email, gym.name);
+            const refreshToken = generateRefreshToken(gym.id);
+            return { token, refreshToken, gym };
+        } else {
+            let user = await User.findOne({ email: profile.email });
+            if (user) throw new Error('El usuario ya está registrado');
+            const passHash = await encrypt(password);
+            user = await User.create({
+                name: profile.name,
+                email: profile.email,
+                birthDate,
+                password: passHash,
+                googleId: profile.id,
+            });
+            const token = generateToken(user.id, user.email, user.name);
+            const refreshToken = generateRefreshToken(user.id);
+            return { token, refreshToken, user };
         }
-
-        // Encrypt the provided password
-        const passHash = await encrypt(password);
-
-        console.log("Datos del usuario antes de la creación:", {
-            name: profile.name,
-            email: profile.email,
-            birthDate: birthDate,
-            password: passHash,
-        });
-
-        // Create a new user
-        user = await User.create({
-            name: profile.name,
-            email: profile.email,
-            birthDate: new Date("2017-01-01T00:00:00.000Z"), // Asegúrate de incluir este campo
-            password: passHash,
-        });
-
-        // Generate tokens
-        const token = generateToken(user.id, user.email, user.name);
-        const refreshToken = generateRefreshToken(user.id);
-
-        return { token, refreshToken, user };
     } catch (error: any) {
         console.error('Google Register Error:', error.response?.data || error.message);
         throw new Error('Error en el registro con Google');

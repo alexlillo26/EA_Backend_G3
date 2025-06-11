@@ -1,3 +1,4 @@
+// src/modules/combats/combat_controller.ts
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -7,16 +8,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+
 // src/controllers/_controller.ts
-import { saveMethod, createCombat, getAllCombats, updateCombat, deleteCombat, hideCombat, getCombatsByGymId, getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation, updateCombatImage } from '../combats/combat_service.js';
+import { saveMethod, createCombat, getAllCombats, updateCombat, deleteCombat, hideCombat, getCombatsByGymId, getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation, updateCombatImage, getCompletedCombatHistoryForBoxer, setCombatResult } from '../combats/combat_service.js';
 import Combat from './combat_models.js';
 import mongoose from 'mongoose';
 import cloudinary from '../config/cloudinary.js';
 // --- Socket.IO instance holder ---
+
 let io;
 export function setSocketIoInstance(ioInstance) {
     io = ioInstance;
 }
+// --- El resto de tus handlers ---
 export const saveMethodHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const combat = saveMethod();
@@ -26,19 +30,16 @@ export const saveMethodHandler = (req, res) => __awaiter(void 0, void 0, void 0,
         res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
     }
 });
-// POST /api/combat - Crear combate y notificar por socket.io
 export const createCombatHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { creator, opponent, date, time, level, gym } = req.body;
-        // Log para debug
-        console.log('Datos recibidos en POST /combat:', req.body);
-        // Validación mejorada de campos obligatorios y ObjectId válidos
         if (!creator || !mongoose.Types.ObjectId.isValid(creator) ||
             !opponent || !mongoose.Types.ObjectId.isValid(opponent) ||
             !date || !time || !level ||
             !gym || !mongoose.Types.ObjectId.isValid(gym)) {
             return res.status(400).json({ message: 'Faltan campos obligatorios o IDs inválidos' });
         }
+
         let imageUrl = undefined;
         if (req.file) {
             const file = req.file;
@@ -139,23 +140,20 @@ export const hideCombatHandler = (req, res) => __awaiter(void 0, void 0, void 0,
     }
 });
 export const getCombatsByBoxerIdHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log(`Solicitud recibida para el boxeador: ${req.params.boxerId}`);
-    console.log(`Query Params - Página: ${req.query.page}, Tamaño: ${req.query.pageSize}`);
     try {
         const { boxerId } = req.params;
         const page = parseInt(req.query.page) || 1;
         const pageSize = parseInt(req.query.pageSize) || 10;
-        const boxerObjectId = new mongoose.Types.ObjectId(boxerId);
-        const totalCombats = yield Combat.countDocuments({ boxers: boxerId });
-        const totalPages = Math.ceil(totalCombats / pageSize);
         const combats = yield Combat.find({ boxers: new mongoose.Types.ObjectId(boxerId) })
             .skip((page - 1) * pageSize)
             .limit(pageSize)
-            .populate('gym') // opcional, si gym es un ID
-            .populate('boxers'); // opcional, si boxers son IDs
+            .populate('gym')
+            .populate('boxers');
         if (!combats || combats.length === 0) {
             return res.status(404).json({ message: 'No se encontraron combates para este usuario' });
         }
+        const totalCombats = yield Combat.countDocuments({ boxers: boxerId });
+        const totalPages = Math.ceil(totalCombats / pageSize);
         res.status(200).json({ combats, totalPages });
     }
     catch (error) {
@@ -168,14 +166,13 @@ export const getCombatsByGymIdHandler = (req, res) => __awaiter(void 0, void 0, 
         const { gymId } = req.params;
         const page = parseInt(req.query.page) || 1;
         const pageSize = parseInt(req.query.pageSize) || 10;
-        const result = yield getCombatsByGymId(gymId, page, pageSize);
+        const result = yield getCombatById(gymId, page, pageSize);
         res.status(200).json(result);
     }
     catch (error) {
         res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
     }
 });
-// GET /api/combat/future - Combates aceptados del usuario autenticado
 export const getFutureCombatsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
@@ -189,7 +186,6 @@ export const getFutureCombatsHandler = (req, res) => __awaiter(void 0, void 0, v
         res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
     }
 });
-// GET /api/combat/invitations/pending - Invitaciones pendientes recibidas
 export const getPendingInvitationsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _b;
     try {
@@ -201,7 +197,6 @@ export const getPendingInvitationsHandler = (req, res) => __awaiter(void 0, void
         res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
     }
 });
-// GET /api/combat/sent-invitations - Invitaciones pendientes enviadas
 export const getSentInvitationsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _c;
     try {
@@ -213,7 +208,6 @@ export const getSentInvitationsHandler = (req, res) => __awaiter(void 0, void 0,
         res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
     }
 });
-// PATCH /api/combat/:id/respond - Aceptar o rechazar invitación
 export const respondToInvitationHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _d;
     try {
@@ -230,12 +224,10 @@ export const respondToInvitationHandler = (req, res) => __awaiter(void 0, void 0
         res.status(403).json({ message: error === null || error === void 0 ? void 0 : error.message });
     }
 });
-// GET /api/combat/invitations - Combates pendientes donde el usuario es opponent
 export const getInvitationsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _e;
     try {
         const userId = (_e = req.user) === null || _e === void 0 ? void 0 : _e.id;
-        // Busca combates donde el usuario es el oponente y el estado es 'pending'
         const invitations = yield Combat.find({ opponent: userId, status: 'pending' })
             .populate('creator')
             .populate('opponent')
@@ -251,8 +243,6 @@ export const getFilteredCombatsHandler = (req, res) => __awaiter(void 0, void 0,
         const page = parseInt(req.query.page) || 1;
         const pageSize = parseInt(req.query.pageSize) || 10;
         const { status, creator, opponent, user } = req.query;
-        // Debug log
-        console.log("[getFilteredCombatsHandler] Query params:", req.query);
         const filter = {};
         if (status)
             filter.status = status;
@@ -277,20 +267,20 @@ export const getFilteredCombatsHandler = (req, res) => __awaiter(void 0, void 0,
                 { opponent: new mongoose.Types.ObjectId(user) }
             ];
         }
-        console.log("[getFilteredCombatsHandler] Mongo filter:", filter);
         const combats = yield Combat.find(filter)
             .skip((page - 1) * pageSize)
             .limit(pageSize)
             .populate('creator')
             .populate('opponent')
             .populate('gym');
-        res.status(200).json({ combats, totalPages: 1 }); // Simplificado
+        res.status(200).json({ combats, totalPages: 1 });
     }
     catch (error) {
         console.error("Error filtrando combates:", error);
         res.status(500).json({ message: (error === null || error === void 0 ? void 0 : error.message) || String(error) });
     }
 });
+
 export const updateCombatImageHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
@@ -316,5 +306,92 @@ export const updateCombatImageHandler = (req, res) => __awaiter(void 0, void 0, 
     catch (error) {
         console.log("Error al actualizar la imagen del combate:", error);
         res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
+    }
+};
+// --- Código corregido y final ---
+export const getUserCombatHistoryHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { boxerId } = req.params;
+        const page = parseInt(req.query.page, 10) || 1;
+        const pageSize = parseInt(req.query.pageSize, 10) || 10;
+        if (!mongoose.Types.ObjectId.isValid(boxerId)) {
+            res.status(400).json({ message: 'ID de boxeador inválido.' });
+            return;
+        }
+        const historyResult = yield getCompletedCombatHistoryForBoxer(boxerId, page, pageSize);
+        const transformedCombats = historyResult.combats.map((combat) => {
+            var _a, _b;
+            const boxerIdStr = boxerId.toString();
+            const creator = combat.creator;
+            const opponentUser = combat.opponent;
+            let opponentInfo = null;
+            if (((_a = creator === null || creator === void 0 ? void 0 : creator._id) === null || _a === void 0 ? void 0 : _a.toString()) === boxerIdStr) {
+                opponentInfo = opponentUser;
+            }
+            else if (((_b = opponentUser === null || opponentUser === void 0 ? void 0 : opponentUser._id) === null || _b === void 0 ? void 0 : _b.toString()) === boxerIdStr) {
+                opponentInfo = creator;
+            }
+            const actualOpponentDetails = opponentInfo
+                ? {
+                    id: opponentInfo._id.toString(),
+                    username: opponentInfo.name,
+                    profileImage: opponentInfo.profileImage || undefined
+                }
+                : {
+                    id: 'N/A',
+                    username: 'Oponente no identificado'
+                };
+            const winner = combat.winner;
+            let resultForUser = 'Empate';
+            if (winner === null || winner === void 0 ? void 0 : winner._id) {
+                resultForUser = winner._id.toString() === boxerIdStr ? 'Victoria' : 'Derrota';
+            }
+            const gym = combat.gym;
+            return {
+                _id: combat._id.toString(),
+                date: combat.date,
+                time: combat.time,
+                gym: gym ? { _id: gym._id.toString(), name: gym.name, location: gym.location } : null,
+                opponent: actualOpponentDetails,
+                result: resultForUser,
+                level: combat.level,
+                status: combat.status,
+            };
+        });
+        res.status(200).json({
+            message: "Historial de combates obtenido exitosamente.",
+            data: {
+                combats: transformedCombats,
+                totalCombats: historyResult.totalCombats,
+                totalPages: historyResult.totalPages,
+                currentPage: historyResult.currentPage,
+                pageSize: historyResult.pageSize,
+            }
+        });
+    }
+    catch (error) {
+        console.error(`Error en getUserCombatHistoryHandler: ${error.message}`, error.stack);
+        res.status(500).json({ message: 'Error interno del servidor al obtener el historial.', details: error.message });
+    }
+});
+export const setCombatResultHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const { winnerId } = req.body;
+        if (!winnerId || !mongoose.Types.ObjectId.isValid(winnerId)) {
+            return res.status(400).json({ message: 'Se requiere un ID de ganador válido.' });
+        }
+        const updatedCombat = yield setCombatResult(id, winnerId);
+        res.status(200).json({ message: 'Resultado del combate actualizado con éxito', combat: updatedCombat });
+    }
+    catch (error) {
+        if (error.message === 'Combate no encontrado') {
+            return res.status(404).json({ message: error.message });
+        }
+        if (error.message.includes('debe ser uno de los participantes') || error.message.includes('ya tiene un resultado')) {
+            return res.status(409).json({ message: error.message });
+        }
+        console.error(`Error en setCombatResultHandler: ${error.message}`);
+        res.status(500).json({ message: 'Error interno del servidor.', details: error.message });
     }
 });

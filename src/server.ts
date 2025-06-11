@@ -13,6 +13,8 @@ import gymRoutes from './modules/gyms/gym_routes.js';
 import combatRoutes from './modules/combats/combat_routes.js';
 import authRoutes from './modules/auth/auth_routes.js';
 import ratingRoutes from './modules/ratings/rating_routes.js'; 
+import chatRoutes from './modules/chat/chat_routes.js'; // Asegúrate que esta importación esté
+import * as chatService from './modules/chat/chat_service.js'; 
 // import { corsHandler } from './middleware/corsHandler.js'; // Comentado para usar la librería cors estándar
 import { loggingHandler } from './middleware/loggingHandler.js';
 // import { routeNotFound } from './middleware/routeNotFound.js'; // Descomenta si lo usas
@@ -29,6 +31,7 @@ import { fileURLToPath } from "url";
 // Definir __filename y __dirname para ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+import { Types } from 'mongoose';
 
 const app = express();
 const LOCAL_PORT = parseInt(process.env.SERVER_PORT || '9000', 10); // Parseado a entero
@@ -66,6 +69,7 @@ const swaggerOptions = {
             { name: 'Auth', description: 'Autenticación de Usuarios y Gimnasios' },
             { name: 'Users', description: 'Gestión de Usuarios' },
             { name: 'Gym', description: 'Gestión de Gimnasios' },
+            { name: 'Chat', description: 'Gestión de Conversaciones y Mensajes' },
             { name: 'Combat', description: 'Gestión de Combates' },
             { name: 'Ratings', description: 'Valoraciones de Combates' },
             { name: 'Main', description: 'Rutas Principales y de Prueba' }
@@ -116,11 +120,13 @@ app.use(cors({
 app.use(loggingHandler);
 
 // --- Rutas de la API ---
+//Mínimo de rutas para Swagger
 app.use('/api/auth', authRoutes);
 app.use('/api', userRoutes);    // Si en user_routes.js las rutas son ej. /users, la URL será /api/users
 app.use('/api', gymRoutes);     // Si en gym_routes.js las rutas son ej. /gym, la URL será /api/gym
 app.use('/api', combatRoutes);  // Si en combat_routes.js las rutas son ej. /combat, la URL será /api/combat
 app.use('/api', ratingRoutes);  // Si en rating_routes.js las rutas son ej. /ratings, la URL será /api/ratings
+app.use('/api/chat', chatRoutes); // Si en chat_routes.js las rutas son ej. /conversations, la URL será /api/chat/conversations
 
 // --- Ruta para Swagger UI ---
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
@@ -179,115 +185,176 @@ mongoose.connect(mongoUriToConnect || 'mongodb://mongo:27017/proyecto_fallback_d
     });
 
 // --- Lógica de Socket.IO ---
-interface DecodedJWTPayload { id: string; email: string; username: string; iat?: number; exp?: number; }
-interface AuthenticatedUser { userId: string; username: string; email?: string; }
-interface AuthenticatedSocket extends Socket { user?: AuthenticatedUser; }
-interface CombatChatMessage { combatId: string; senderId: string; senderUsername?: string; message: string; timestamp: string; }
+interface UserPayloadFromToken {
+    id: string;
+    email: string;
+    username?: string;
+    name?: string;
+}
 
-// --- Socket.IO user-socket mapping ---
+interface AuthenticatedSocketUser {
+    userId: string;
+    email: string;
+    nameToDisplay: string;
+}
+
+interface CustomSocket extends Socket {
+    user?: AuthenticatedSocketUser;
+}
+
+interface DirectChatMessageData {
+    conversationId: string;
+    senderId: string;
+    senderUsername: string;
+    message: string;
+    timestamp: string; // ISO string
+}
+
 const userSocketMap = new Map<string, string>();
 
-io.use(async (socket: any, next) => {
+io.use(async (socket: CustomSocket, next) => {
     const token = socket.handshake.auth.token as string | undefined;
     if (!token) {
-        console.log(`Socket ${socket.id}: Conexión rechazada - Sin token.`);
         return next(new Error('Authentication error: No token provided'));
     }
     try {
-        const decodedPayload = await verifyToken(token);
+        const decodedPayload = await verifyToken(token) as UserPayloadFromToken;
         socket.user = {
             userId: decodedPayload.id,
-            username: decodedPayload.username,
-            email: decodedPayload.email
+            email: decodedPayload.email,
+            nameToDisplay: decodedPayload.username || decodedPayload.name || "Usuario Desconocido"
         };
         if (socket.user?.userId) {
             userSocketMap.set(socket.user.userId, socket.id);
         }
         next();
     } catch (err: any) {
-        console.log(`Socket ${socket.id}: Conexión rechazada - Token inválido o expirado. Error: ${err.message}`);
-        return next(new Error(`Authentication error: ${err.message} (Invalid or expired token)`));
+        console.error(`Socket Auth Error for socket ${socket.id}: ${err.message}`);
+        return next(new Error(`Authentication error: ${err.message}`));
     }
 });
 
-io.on('connection', (socket: any) => {
-    console.log(`Usuario conectado al chat: ${socket.id}, UserId: ${socket.user?.userId}, Username: ${socket.user?.username}`);
+io.on('connection', (socket: CustomSocket) => {
+    console.log(`Usuario conectado a Socket.IO: ${socket.id}, UserId: ${socket.user?.userId}, Name: ${socket.user?.nameToDisplay}`);
 
-    // Unir a la sala personal del usuario
     if (socket.user?.userId) {
         socket.join(socket.user.userId);
     }
 
-    // Evento para enviar invitación de combate a un oponente específico
-    socket.on('sendCombatInvitation', ({ opponentId, combat }: { opponentId: string, combat: any }) => {
-        const targetSocketId = userSocketMap.get(opponentId);
-        if (targetSocketId) {
-            console.log(`📨 Enviando invitación de combate a ${opponentId}`);
-            io.to(targetSocketId).emit("new_invitation", combat);
-        } else {
-            console.log(`⚠️ Usuario ${opponentId} no está conectado`);
+    // --- EVENTOS PARA CHAT 1 A 1 (CONVERSACIONES DIRECTAS) ---
+    socket.on('join_chat_room', (data: { conversationId: string }) => {
+        if (!socket.user?.userId) {
+            return socket.emit('chat_error', { message: 'Usuario no autenticado para unirse al chat.' });
+        }
+        if (!data?.conversationId) {
+            return socket.emit('chat_error', { message: 'conversationId es requerido para unirse al chat.' });
+        }
+        const conversationRoom = `conversation_${data.conversationId}`;
+        socket.join(conversationRoom);
+        console.log(`Usuario ${socket.user.nameToDisplay} (ID: ${socket.user.userId}) se unió a la sala: ${conversationRoom}`);
+        socket.emit('chat_notification', {
+            type: 'success',
+            message: `Te has unido al chat (ID Conversación: ${data.conversationId}).`,
+            conversationId: data.conversationId
+        });
+    });
+
+    socket.on('send_message', async (data: { conversationId: string; message: string }) => {
+        if (!socket.user?.userId || !socket.user.nameToDisplay) { // Verificamos nameToDisplay también
+            return socket.emit('chat_error', { message: 'Usuario no autenticado completamente para enviar mensaje.' });
+        }
+        const messageText = data?.message?.trim();
+        if (!data?.conversationId || !messageText) {
+            return socket.emit('chat_error', { message: 'conversationId y un mensaje no vacío son requeridos.' });
+        }
+
+        const conversationRoom = `conversation_${data.conversationId}`;
+        
+        try {
+            // --- GUARDAR MENSAJE EN LA BASE DE DATOS ---
+            // Esta es la línea crucial que activa la persistencia:
+            const savedMessage = await chatService.addMessageToConversation(
+              data.conversationId,
+              socket.user.userId,
+              socket.user.nameToDisplay, // Nombre del remitente
+              messageText
+            );
+            // --------------------------------------------
+
+            // Construir el objeto a emitir usando los datos del mensaje guardado (incluye _id y createdAt de la BD)
+            const finalMessageDataToEmit: DirectChatMessageData = {
+                conversationId: (savedMessage.conversationId as Types.ObjectId | string).toString(),
+                senderId: (savedMessage.senderId as Types.ObjectId | string).toString(),
+                senderUsername: savedMessage.senderUsername,
+                message: savedMessage.message,
+                timestamp: savedMessage.createdAt.toISOString(), // Usar el timestamp de la BD
+                // Podrías añadir el _id del mensaje si el cliente lo necesita:
+                //messageId: (savedMessage._id as Types.ObjectId | string).toString(),
+            };
+
+            io.to(conversationRoom).emit('new_message', finalMessageDataToEmit);
+            console.log(`Mensaje ("${messageText}") guardado (ID: ${(savedMessage._id as Types.ObjectId | string).toString()}) y enviado en ${conversationRoom} por ${socket.user.nameToDisplay} (ID: ${socket.user.userId})`);
+
+        } catch (dbError: any) {
+            console.error(`Error al intentar guardar/procesar mensaje para conv ${data.conversationId}:`, dbError.message);
+            socket.emit('chat_error', { message: `Error del servidor al procesar el mensaje: ${dbError.message}` });
         }
     });
 
-    // Responder a invitación (broadcast a todos menos al emisor)
-    socket.on('respond_combat', ({ combatId, status }: { combatId: string, status: string }) => {
-        console.log(`🔄 Respuesta a combate ${combatId}: ${status}`);
-        socket.broadcast.emit("combat_response", { combatId, status });
+    socket.on('typing_started', (data: { conversationId: string }) => {
+        if (!socket.user?.userId || !data?.conversationId) return;
+        const conversationRoom = `conversation_${data.conversationId}`;
+        socket.to(conversationRoom).emit('opponent_typing', {
+            conversationId: data.conversationId,
+            userId: socket.user.userId,
+            username: socket.user.nameToDisplay,
+            isTyping: true
+        });
     });
 
-    socket.on('join_combat_chat', (data: { combatId: string }) => {
-        if (!socket.user || !socket.user.userId) {
-            socket.emit('combat_chat_error', { message: 'Usuario no autenticado para unirse al chat.' });
-            return;
-        }
-        if (!data || !data.combatId) {
-            socket.emit('combat_chat_error', { message: 'combatId es requerido para unirse al chat.' });
-            return;
-        }
-        const combatRoom = `combat_${data.combatId}`;
-        socket.join(combatRoom);
-        console.log(`Usuario ${socket.user.username} (ID: ${socket.user.userId}, Socket: ${socket.id}) se unió a la sala: ${combatRoom}`);
-        socket.to(combatRoom).emit('combat_chat_notification', { type: 'info', message: `${socket.user.username || 'Un oponente'} se ha unido.`});
-        socket.emit('combat_chat_notification', { type: 'success', message: `Te has unido al chat del combate ${data.combatId}.`});
+    socket.on('typing_stopped', (data: { conversationId: string }) => {
+        if (!socket.user?.userId || !data?.conversationId) return;
+        const conversationRoom = `conversation_${data.conversationId}`;
+        socket.to(conversationRoom).emit('opponent_typing', {
+            conversationId: data.conversationId,
+            userId: socket.user.userId,
+            username: socket.user.nameToDisplay,
+            isTyping: false
+        });
     });
+    // --- FIN DE EVENTOS PARA CHAT 1 A 1 ---
 
-    socket.on('send_combat_message', (data: { combatId: string; message: string }) => {
-        if (!socket.user || !socket.user.userId) {
-            socket.emit('combat_chat_error', { message: 'Usuario no autenticado para enviar mensaje.' });
-            return;
-        }
-        if (!data || !data.combatId || !data.message) {
-            socket.emit('combat_chat_error', { message: 'combatId y message son requeridos.' });
-            return;
-        }
-        const combatRoom = `combat_${data.combatId}`;
-        const messageData: CombatChatMessage = {
-            combatId: data.combatId,
-            senderId: socket.user.userId,
-            senderUsername: socket.user.username,
-            message: data.message,
-            timestamp: new Date().toISOString()
-        };
-        io.to(combatRoom).emit('receive_combat_message', messageData);
-        console.log(`Mensaje ("${data.message}") enviado en ${combatRoom} por ${socket.user.username} (ID: ${socket.user.userId})`);
-    });
+    // --- EVENTOS RELACIONADOS CON COMBATES (NO CHAT DIRECTO) ---
+     socket.on('sendCombatInvitation', ({ opponentId, combat }: { opponentId: string, combat: any }) => {
+         const targetSocketId = userSocketMap.get(opponentId);
+         if (targetSocketId) {
+             console.log(`📨 Enviando invitación de combate a ${opponentId} (socket: ${targetSocketId}) para combate: ${combat?._id || 'ID no disponible'}`);
+             io.to(targetSocketId).emit("new_invitation", combat);
+         } else {
+             console.log(`⚠️ Usuario ${opponentId} no está conectado para recibir invitación de combate`);
+         }
+     });
 
-    socket.on('typing_in_combat', (data: { combatId: string; isTyping: boolean }) => {
-        if (!socket.user || !socket.user.userId || !data || !data.combatId) return;
-        const combatRoom = `combat_${data.combatId}`;
-        socket.to(combatRoom).emit('opponent_typing', { userId: socket.user.userId, username: socket.user.username, isTyping: data.isTyping });
-    });
+     socket.on('respond_combat', ({ combatId, status }: { combatId: string, status: string }) => {
+         console.log(`🔄 Respuesta a combate ${combatId}: ${status}`);
+         socket.broadcast.emit("combat_response", { combatId, status });
+     });
+    // --- FIN DE EVENTOS DE COMBATE ---
 
     socket.on('disconnect', (reason: string) => {
         if (socket.user?.userId) {
-            userSocketMap.delete(socket.user.userId);
-            console.log(`❌ Usuario desconectado: ${socket.user.userId}`);
+            const prevSocketId = userSocketMap.get(socket.user.userId);
+            if (prevSocketId === socket.id) {
+                userSocketMap.delete(socket.user.userId);
+            }
+            console.log(`❌ Usuario desconectado: ${socket.user.userId}. Socket: ${socket.id}. Razón: ${reason}`);
+        } else {
+            console.log(`Socket ${socket.id} desconectado sin usuario autenticado. Razón: ${reason}`);
         }
     });
 
     socket.on('error', (err: Error) => {
-        console.error(`Error en socket ${socket.id} (Usuario ${socket.user?.userId}, Username: ${socket.user?.username}): ${err.message}`);
-        socket.emit('combat_chat_error', { message: `Error interno del socket: ${err.message}` });
+        console.error(`Error de bajo nivel en socket ${socket.id} (Usuario ${socket.user?.userId}): ${err.message}`);
     });
 });
 // --- Fin Lógica de Socket.IO ---
