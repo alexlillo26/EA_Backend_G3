@@ -7,8 +7,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { addGym, deleteGym, getAllGyms, getGymById, updateGym, hideGym, loginGym, refreshGymToken } from './gym_service.js';
+import { addGym, deleteGym, getAllGyms, getGymById, updateGym, hideGym, loginGym, refreshGymToken, updateGymPhotos } from './gym_service.js';
 import Gym from './gym_models.js'; // Added missing import
+import cloudinary from '../config/cloudinary.js';
 export const addGymHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("ADD GYM!!!!");
     try {
@@ -54,11 +55,12 @@ export const getGymByIdHandler = (req, res) => __awaiter(void 0, void 0, void 0,
 });
 export const updateGymHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const gym = yield updateGym(req.params.id, req.body);
-        res.json(gym);
+        const updateData = Object.assign({}, req.body);
+        const updatedGym = yield updateGym(req.params.id, updateData);
+        res.status(200).json(updatedGym);
     }
     catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
     }
 });
 export const deleteGymHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -139,5 +141,38 @@ export const getCurrentGymHandler = (req, res) => __awaiter(void 0, void 0, void
         res.status(500).json({
             error: 'Error al obtener información del gimnasio'
         });
+    }
+});
+export const updateGymPhotosHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const mainPhotoUrl = req.body.mainPhoto; // Puede ser una URL ya existente o una de las nuevas
+        // Subir todas las fotos nuevas a Cloudinary
+        let photoUrls = [];
+        if (req.files && Array.isArray(req.files)) {
+            photoUrls = yield Promise.all(req.files.map((file) => __awaiter(void 0, void 0, void 0, function* () {
+                return yield new Promise((resolve, reject) => {
+                    const stream = cloudinary.uploader.upload_stream({ folder: 'gyms' }, (error, result) => {
+                        if (error)
+                            return reject(error);
+                        resolve((result === null || result === void 0 ? void 0 : result.secure_url) || '');
+                    });
+                    stream.end(file.buffer);
+                });
+            })));
+        }
+        // Si el frontend envía URLs antiguas, añádelas también
+        if (req.body.oldPhotos) {
+            const oldPhotos = Array.isArray(req.body.oldPhotos)
+                ? req.body.oldPhotos
+                : [req.body.oldPhotos];
+            photoUrls = [...oldPhotos, ...photoUrls];
+        }
+        // Actualiza las fotos y la principal
+        const updatedGym = yield updateGymPhotos(id, photoUrls, mainPhotoUrl);
+        res.status(200).json(updatedGym);
+    }
+    catch (error) {
+        res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
     }
 });

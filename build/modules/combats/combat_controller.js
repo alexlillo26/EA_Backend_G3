@@ -8,9 +8,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, deleteCombat, hideCombat, getCompletedCombatHistoryForBoxer, getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation, setCombatResult } from './combat_service.js';
+
+// src/controllers/_controller.ts
+import { saveMethod, createCombat, getAllCombats, updateCombat, deleteCombat, hideCombat, getCombatsByGymId, getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation, updateCombatImage, getCompletedCombatHistoryForBoxer, setCombatResult } from '../combats/combat_service.js';
 import Combat from './combat_models.js';
 import mongoose from 'mongoose';
+import cloudinary from '../config/cloudinary.js';
+// --- Socket.IO instance holder ---
+
 let io;
 export function setSocketIoInstance(ioInstance) {
     io = ioInstance;
@@ -34,7 +39,26 @@ export const createCombatHandler = (req, res) => __awaiter(void 0, void 0, void 
             !gym || !mongoose.Types.ObjectId.isValid(gym)) {
             return res.status(400).json({ message: 'Faltan campos obligatorios o IDs inválidos' });
         }
-        const combat = yield createCombat({ creator, opponent, date, time, level, gym, status: 'completed' });
+
+        let imageUrl = undefined;
+        if (req.file) {
+            const file = req.file;
+            console.log('Archivo recibido:', file.originalname, file.mimetype, file.size);
+            // Sube la imagen a Cloudinary usando el buffer de multer
+            imageUrl = yield new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream({ folder: 'combats' }, (error, result) => {
+                    if (error) {
+                        console.error('Error Cloudinary:', error);
+                        return reject(error);
+                    }
+                    resolve((result === null || result === void 0 ? void 0 : result.secure_url) || '');
+                });
+                stream.end(file.buffer);
+            });
+            console.log('URL de la imagen subida a Cloudinary:', imageUrl);
+        }
+        const combat = yield createCombat({ creator, opponent, date, time, level, gym, status: 'pending' }, imageUrl);
+        // Notificar al oponente por socket.io si está conectado
         if (io && opponent) {
             io.to(opponent.toString()).emit('new_invitation', combat);
         }
@@ -153,7 +177,9 @@ export const getFutureCombatsHandler = (req, res) => __awaiter(void 0, void 0, v
     var _a;
     try {
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-        const combats = yield getFutureCombats(userId);
+        const page = parseInt(req.query.page) || 1;
+        const pageSize = parseInt(req.query.pageSize) || 10;
+        const combats = yield getFutureCombats(userId, page, pageSize);
         res.json(combats);
     }
     catch (error) {
@@ -254,6 +280,34 @@ export const getFilteredCombatsHandler = (req, res) => __awaiter(void 0, void 0,
         res.status(500).json({ message: (error === null || error === void 0 ? void 0 : error.message) || String(error) });
     }
 });
+
+export const updateCombatImageHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        if (!req.file) {
+            return res.status(400).json({ message: 'No se ha enviado ninguna imagen.' });
+        }
+        const file = req.file;
+        // Sube la imagen a Cloudinary usando el buffer de multer
+        const imageUrl = yield new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream({ folder: 'combats' }, (error, result) => {
+                if (error)
+                    return reject(error);
+                resolve((result === null || result === void 0 ? void 0 : result.secure_url) || '');
+            });
+            stream.end(file.buffer);
+        });
+        const updatedCombat = yield updateCombatImage(id, imageUrl);
+        if (!updatedCombat) {
+            return res.status(404).json({ message: 'Combate no encontrado.' });
+        }
+        res.status(200).json({ message: 'Imagen actualizada correctamente.', combat: updatedCombat });
+    }
+    catch (error) {
+        console.log("Error al actualizar la imagen del combate:", error);
+        res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
+    }
+};
 // --- Código corregido y final ---
 export const getUserCombatHistoryHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {

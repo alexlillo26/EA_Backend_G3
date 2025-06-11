@@ -16,6 +16,7 @@ export interface ICombat extends Document {
     // --- FIN MODIFICACIÓN ---
     createdAt?: Date;
     updatedAt?: Date;
+    image?: string;
 }
 
 const combatSchema = new Schema<ICombat>({
@@ -53,6 +54,9 @@ const combatSchema = new Schema<ICombat>({
         default: 'pending',
         required: true
     },
+    image: {
+        type: String
+    }
     winner: { // --- NUEVO CAMPO AQUÍ ---
         type: Schema.Types.ObjectId,
         ref: "User",

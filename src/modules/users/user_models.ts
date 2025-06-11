@@ -11,7 +11,8 @@ export interface IUser {
   city: string;  
   phone: string; 
   gender: string;
-  profilePicture?: string; // URL de la imagen de perfil
+  profilePicture?: string; 
+  boxingVideo?: string;
 }
 
 const userSchema = new mongoose.Schema({
@@ -70,6 +71,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['Hombre', 'Mujer'],
     required: true
+  },
+  boxingVideo: { 
+    type: String,
+    default: null
   }
 });
 

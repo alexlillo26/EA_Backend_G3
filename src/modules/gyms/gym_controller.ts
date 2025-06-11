@@ -1,7 +1,8 @@
-import { addGym, deleteGym, getAllGyms, getGymById, updateGym, hideGym, loginGym, refreshGymToken } from './gym_service.js';
+import { addGym, deleteGym, getAllGyms, getGymById, updateGym, hideGym, loginGym, refreshGymToken, updateGymPhotos } from './gym_service.js';
 import express, { Request, Response } from 'express';
 import { verifyToken, verifyRefreshToken, generateToken } from '../../utils/jwt.handle.js'; // Added missing imports
 import Gym from './gym_models.js'; // Added missing import
+import cloudinary from '../config/cloudinary.js';
 
 export const addGymHandler = async (req: Request, res: Response) => {
     console.log("ADD GYM!!!!");
@@ -45,10 +46,11 @@ export const getGymByIdHandler = async (req: Request, res: Response) => {
 };
 export const updateGymHandler = async (req: Request, res: Response) => {
     try {
-        const gym = await updateGym(req.params.id, req.body);
-        res.json(gym);
+        const updateData = { ...req.body };
+        const updatedGym = await updateGym(req.params.id, updateData);
+        res.status(200).json(updatedGym);
     } catch (error: any) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: error?.message });
     }
 };
 export const deleteGymHandler = async (req: Request, res: Response) => {
@@ -136,5 +138,46 @@ export const getCurrentGymHandler = async (req: any, res: Response) => {
         res.status(500).json({
             error: 'Error al obtener información del gimnasio'
         });
+    }
+};
+
+export const updateGymPhotosHandler = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const mainPhotoUrl = req.body.mainPhoto; // Puede ser una URL ya existente o una de las nuevas
+
+        // Subir todas las fotos nuevas a Cloudinary
+        let photoUrls: string[] = [];
+        if (req.files && Array.isArray(req.files)) {
+            photoUrls = await Promise.all(
+                req.files.map(async (file: any) => {
+                    return await new Promise<string>((resolve, reject) => {
+                        const stream = cloudinary.uploader.upload_stream(
+                            { folder: 'gyms' },
+                            (error, result) => {
+                                if (error) return reject(error);
+                                resolve(result?.secure_url || '');
+                            }
+                        );
+                        stream.end(file.buffer);
+                    });
+                })
+            );
+        }
+
+        // Si el frontend envía URLs antiguas, añádelas también
+        if (req.body.oldPhotos) {
+            const oldPhotos = Array.isArray(req.body.oldPhotos)
+                ? req.body.oldPhotos
+                : [req.body.oldPhotos];
+            photoUrls = [...oldPhotos, ...photoUrls];
+        }
+
+        // Actualiza las fotos y la principal
+        const updatedGym = await updateGymPhotos(id, photoUrls, mainPhotoUrl);
+
+        res.status(200).json(updatedGym);
+    } catch (error: any) {
+        res.status(500).json({ message: error?.message });
     }
 };

@@ -55,6 +55,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: ['Hombre', 'Mujer'],
         required: true
+    },
+    boxingVideo: {
+        type: String,
+        default: null
     }
 });
 const User = mongoose.model('User', userSchema);

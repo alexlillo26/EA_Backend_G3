@@ -1,6 +1,7 @@
 import express from 'express';
-import { addGymHandler, deleteGymHandler, getAllGymsHandler, getGymByIdHandler, updateGymHandler, hideGymHandler, loginGymHandler, refreshGymTokenHandler, getCurrentGymHandler } from './gym_controller.js';
+import { addGymHandler, deleteGymHandler, getAllGymsHandler, getGymByIdHandler, updateGymHandler, hideGymHandler, loginGymHandler, refreshGymTokenHandler, getCurrentGymHandler, updateGymPhotosHandler } from './gym_controller.js';
 import { checkJwt } from '../../middleware/session.js';
+import upload from '../../middleware/uploads.js';
 const router = express.Router();
 /**
  * @openapi
@@ -303,4 +304,5 @@ router.post('/gym/login', loginGymHandler);
  *         description: Refresh token inválido
  */
 router.post('/gym/refresh', refreshGymTokenHandler); // Ensure this route is correctly set up
+router.put('/gym/:id/photos', checkJwt, upload.array('photos'), updateGymPhotosHandler);
 export default router;

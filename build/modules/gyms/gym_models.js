@@ -46,6 +46,13 @@ const gymSchema = new mongoose.Schema({
         type: String,
         unique: true,
         sparse: true, // Permite valores nulos
+    },
+    photos: {
+        type: [String],
+        default: []
+    },
+    mainPhoto: {
+        type: String,
     }
 });
 gymSchema.pre('save', function (next) {

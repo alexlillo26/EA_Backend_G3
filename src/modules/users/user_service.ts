@@ -154,7 +154,7 @@ export const getUserCount = async () => {
 };
 
 // usuario del motor de búsqueda
-export const searchUsers = async (city?: string, weight?: string) => {
+export const searchUsers = async (city?: string, weight?: string, boxingVideo?: string) => {
   try {
     let query: any = {};
 
@@ -164,11 +164,14 @@ export const searchUsers = async (city?: string, weight?: string) => {
     if (weight && ['Peso pluma', 'Peso medio', 'Peso pesado'].includes(weight)) {
       query.weight = weight;
     }
+    if (boxingVideo) {
+      query.boxingVideo = { $exists: true, $ne: null }; // Buscar usuarios con video de boxeo
+    }
 
     console.log('Search query:', query); // Debug log
     // Si no se proporciona ciudad ni peso, devolver todos los usuarios
     const users = await User.find(query)
-      .select('name email city weight') // conserva _id
+      .select('name city weight boxingVideo') // conserva _id
       .sort({ name: 1 })
       .lean()
       .then(users => users.map(user => ({
@@ -181,4 +184,8 @@ export const searchUsers = async (city?: string, weight?: string) => {
     // Devolver una matriz vacía en lugar de lanzar una excepción evita que los 500
     return [];
   }
+};
+
+export const updateUserBoxingVideo = async (id: string, videoUrl: string) => {
+  return await User.findByIdAndUpdate(id, { boxingVideo: videoUrl }, { new: true });
 };

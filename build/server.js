@@ -8,6 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 // Contenido para EA_Backend_G3/src/server.ts (Versión Corregida y Ordenada)
+import 'dotenv/config';
 import dotenv from 'dotenv';
 dotenv.config(); // Asegúrate que esto esté al principio
 import express from 'express';
@@ -102,7 +103,7 @@ console.log('Generated Swagger Spec:', JSON.stringify(swaggerSpec, null, 2));
 // Parsear JSON bodies
 app.use(express.json());
 // Servir archivos estáticos de /uploads
-app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 // CORS para desarrollo local y producción
 app.use(cors({
     origin: [

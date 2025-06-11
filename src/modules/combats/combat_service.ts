@@ -13,7 +13,9 @@ interface CombatHistoryResult {
 export const saveMethod = () => {
     return 'Hola';
 };
-export const createCombat = async (combatData: Partial<ICombat>) => {
+
+export const createCombat = async (combatData: Partial<ICombat>, imagePath?: string) => {
+    // Validar y convertir IDs a ObjectId si son string
     if (combatData.creator && typeof combatData.creator === 'string') {
         combatData.creator = new mongoose.Types.ObjectId(combatData.creator);
     }
@@ -23,18 +25,39 @@ export const createCombat = async (combatData: Partial<ICombat>) => {
     if (combatData.gym && typeof combatData.gym === 'string') {
         combatData.gym = new mongoose.Types.ObjectId(combatData.gym);
     }
+    if(imagePath){
+        combatData.image = imagePath; 
+    }
     const combat = new Combat(combatData);
     return await combat.save();
 };
 
-export const getFutureCombats = async (userId: string) => {
-    return Combat.find({
+
+// Devuelve todos los combates aceptados donde el usuario es creator u opponent
+export const getFutureCombats = async (userId: string, page: number = 1, pageSize: number = 10) => {
+    const skip = (page - 1) * pageSize;
+    const filter = {
         status: 'accepted',
         $or: [{ creator: userId }, { opponent: userId }]
-    })
-    .populate('creator')
-    .populate('opponent')
-    .populate('gym');
+    };
+
+    const totalCombats = await Combat.countDocuments(filter);
+    const totalPages = Math.ceil(totalCombats / pageSize);
+
+    const combats = await Combat.find(filter)
+        .skip(skip)
+        .limit(pageSize)
+        .populate('creator')
+        .populate('opponent')
+        .populate('gym');
+
+    return {
+        combats,
+        totalCombats,
+        totalPages,
+        currentPage: page,
+        pageSize
+    };
 };
 
 export const getPendingInvitations = async (userId: string) => {
@@ -178,7 +201,7 @@ export const setCombatResult = async (combatId: string, winnerId: string) => {
     if (!combat) {
       throw new Error('Combate no encontrado');
     }
-  
+
     if (combat.winner) {
       throw new Error('Este combate ya tiene un resultado asignado.');
     }
@@ -195,13 +218,16 @@ export const setCombatResult = async (combatId: string, winnerId: string) => {
     return combat.populate(['creator', 'opponent', 'gym', 'winner']);
   };
 
-  // Añadir al final de src/combats/combat_service.js
+  export const updateCombatImage = async (combatId: string, imagePath: string) => {
+    // Asegura que la ruta se guarde con barras normales para la web
+    const normalizedPath = imagePath.replace(/\\/g, '/');
+    return await Combat.findByIdAndUpdate(
+        combatId,
+        { $set: { image: normalizedPath } },
+        { new: true }
+    );
+};
 
-/**
- * Genera estadísticas de combate para un boxeador específico.
- * @param {string} boxerId - El ID del boxeador.
- * @returns {Promise<object>} Un objeto con las estadísticas calculadas.
- */
 export const generateUserStatistics = async (boxerId: string): Promise<object> => {
     const boxerObjectId = new mongoose.Types.ObjectId(boxerId);
   

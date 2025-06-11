@@ -13,7 +13,10 @@ import CombatModel from '../combats/combat_models.js';
 export const saveMethod = () => {
     return 'Hola';
 };
-export const createCombat = (combatData) => __awaiter(void 0, void 0, void 0, function* () {
+
+export const createCombat = (combatData, imagePath) => __awaiter(void 0, void 0, void 0, function* () {
+    // Validar y convertir IDs a ObjectId si son string
+
     if (combatData.creator && typeof combatData.creator === 'string') {
         combatData.creator = new mongoose.Types.ObjectId(combatData.creator);
     }
@@ -23,17 +26,35 @@ export const createCombat = (combatData) => __awaiter(void 0, void 0, void 0, fu
     if (combatData.gym && typeof combatData.gym === 'string') {
         combatData.gym = new mongoose.Types.ObjectId(combatData.gym);
     }
+    if (imagePath) {
+        combatData.image = imagePath;
+    }
     const combat = new Combat(combatData);
     return yield combat.save();
 });
-export const getFutureCombats = (userId) => __awaiter(void 0, void 0, void 0, function* () {
-    return Combat.find({
+
+// Devuelve todos los combates aceptados donde el usuario es creator u opponent
+export const getFutureCombats = (userId, page = 1, pageSize = 10) => __awaiter(void 0, void 0, void 0, function* () {
+    const skip = (page - 1) * pageSize;
+    const filter = {
         status: 'accepted',
         $or: [{ creator: userId }, { opponent: userId }]
-    })
+    };
+    const totalCombats = yield Combat.countDocuments(filter);
+    const totalPages = Math.ceil(totalCombats / pageSize);
+    const combats = yield Combat.find(filter)
+        .skip(skip)
+        .limit(pageSize)
         .populate('creator')
         .populate('opponent')
         .populate('gym');
+    return {
+        combats,
+        totalCombats,
+        totalPages,
+        currentPage: page,
+        pageSize
+    };
 });
 export const getPendingInvitations = (userId) => __awaiter(void 0, void 0, void 0, function* () {
     return Combat.find({ opponent: userId, status: 'pending' })
@@ -209,4 +230,9 @@ export const generateUserStatistics = (boxerId) => __awaiter(void 0, void 0, voi
         frequentGyms,
         combatsPerMonth
     };
+});
+export const updateCombatImage = (combatId, imagePath) => __awaiter(void 0, void 0, void 0, function* () {
+    // Asegura que la ruta se guarde con barras normales para la web
+    const normalizedPath = imagePath.replace(/\\/g, '/');
+    return yield Combat.findByIdAndUpdate(combatId, { $set: { image: normalizedPath } }, { new: true });
 });
