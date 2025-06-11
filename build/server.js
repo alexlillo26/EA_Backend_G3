@@ -84,10 +84,10 @@ console.log('Generated Swagger Spec:', JSON.stringify(swaggerSpec, null, 2));
 // --- Middlewares de Express ---
 // Parsear JSON bodies
 app.use(express.json());
-// Configuración CORS para Express (usando la librería 'cors')
-// Colocar ANTES de las rutas.
+// CORS para desarrollo local y producción
 app.use(cors({
     origin: [
+        "http://localhost:3000",
         "https://ea3.upc.edu",
         "https://ea3-back.upc.edu",
         "https://localhost:3000",
@@ -99,8 +99,6 @@ app.use(cors({
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
 }));
-// Si prefieres usar tu corsHandler personalizado:
-// app.use(corsHandler); // Asegúrate que permita los orígenes correctos.
 app.use(loggingHandler);
 // --- Rutas de la API ---
 app.use('/api/auth', authRoutes);

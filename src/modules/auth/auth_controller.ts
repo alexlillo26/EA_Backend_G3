@@ -90,3 +90,23 @@ export const googleRegisterCtrl = async (req: Request, res: Response) => {
         }
     }
 };
+
+export const googleRegisterGymCtrl = async (req: Request, res: Response) => {
+    try {
+        const { code, password } = req.body;
+        if (!code || !password) {
+            return res.status(400).json({ message: 'Código de autorización y contraseña son requeridos' });
+        }
+        // Lógica similar a googleRegister pero para Gym
+        const { token, refreshToken, gym } = await googleRegister(code, password, true); // true indica gym
+        res.status(201).json({
+            message: 'Registro de gimnasio completado',
+            token,
+            refreshToken,
+            gym,
+        });
+    } catch (error: any) {
+        console.error('Error en googleRegisterGymCtrl:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
