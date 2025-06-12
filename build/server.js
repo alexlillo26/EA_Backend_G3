@@ -1,3 +1,4 @@
+// src/server.ts — Servidor unificado para chat y notificaciones push
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -7,58 +8,52 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-// Contenido para EA_Backend_G3/src/server.ts (Versión Corregida y Ordenada)
 import 'dotenv/config';
-import dotenv from 'dotenv';
-dotenv.config(); // Asegúrate que esto esté al principio
 import express from 'express';
 import mongoose from 'mongoose';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import { verifyToken } from './utils/jwt.handle.js'; // Asumo .js es correcto para tu setup
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import swaggerUi from 'swagger-ui-express';
+import swaggerJSDoc from 'swagger-jsdoc';
+import webpush from 'web-push';
+// Rutas y controladores
+import authRoutes from './modules/auth/auth_routes.js';
 import userRoutes from './modules/users/user_routes.js';
 import gymRoutes from './modules/gyms/gym_routes.js';
 import combatRoutes from './modules/combats/combat_routes.js';
-import authRoutes from './modules/auth/auth_routes.js';
 import ratingRoutes from './modules/ratings/rating_routes.js';
-import chatRoutes from './modules/chat/chat_routes.js'; // Asegúrate que esta importación esté
+import chatRoutes from './modules/chat/chat_routes.js';
 import * as chatService from './modules/chat/chat_service.js';
-// import { corsHandler } from './middleware/corsHandler.js'; // Comentado para usar la librería cors estándar
+import followerRoutes from './modules/followers/follower_routes.js';
+import { verifyToken } from './utils/jwt.handle.js';
 import { loggingHandler } from './middleware/loggingHandler.js';
-// import { routeNotFound } from './middleware/routeNotFound.js'; // Descomenta si lo usas
-// import { routeNotFound } from './middleware/routeNotFound.js'; // Descomenta si lo usas
-import swaggerUi from 'swagger-ui-express';
-import swaggerJSDoc from 'swagger-jsdoc';
-import cors from 'cors'; // Importar la librería cors
 import { setSocketIoInstance } from './modules/combats/combat_controller.js';
-import path from "path";
-import { fileURLToPath } from "url";
-// Definir __filename y __dirname para ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
-const LOCAL_PORT = parseInt(process.env.SERVER_PORT || '9000', 10); // Parseado a entero
+const LOCAL_PORT = parseInt(process.env.SERVER_PORT || '9000', 10);
 const httpServer = http.createServer(app);
 // Configuración de Socket.IO
 const io = new SocketIOServer(httpServer, {
     cors: {
         origin: [
-            "https://ea3.upc.edu",
-            "https://ea3-back.upc.edu",
-            "http://localhost:3000",
-            "http://localhost:3001",
-            "http://localhost",
-            "http://localhost:54385",
-            `http://localhost:${LOCAL_PORT}`,
-            "http://10.0.2.2",
-            process.env.FLUTTER_APP_ORIGIN || "*" // Para Flutter (ser específico en producción)
+            'http://localhost:3000',
+            'http://localhost:3001',
+            'http://localhost:54385',
+            'https://ea3.upc.edu',
+            'https://ea3-back.upc.edu',
+            'http://10.0.2.2',
+            process.env.FLUTTER_APP_ORIGIN || '*'
         ],
-        methods: ["GET", "POST"],
+        methods: ['GET', 'POST'],
         credentials: true
     }
 });
 // Configuración de Swagger
-const swaggerOptions = {
+const swaggerSpec = swaggerJSDoc({
     definition: {
         openapi: '3.0.0',
         info: {
@@ -84,246 +79,115 @@ const swaggerOptions = {
                 bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }
             }
         },
-        security: [{ bearerAuth: [] }] // Aplica seguridad JWT globalmente por defecto
+        security: [{ bearerAuth: [] }]
     },
-    // Apunta a tus archivos TypeScript originales (.ts) donde tienes los comentarios JSDoc @openapi
-    // Asumiendo que node se ejecuta desde /usr/src/app/build/ y tus fuentes .ts están en /usr/src/app/src/
     apis: ['../src/**/*.ts']
-};
-const swaggerSpec = swaggerJSDoc(swaggerOptions);
-// Log para depurar la especificación generada (muy útil)
-console.log('Generated Swagger Spec:', JSON.stringify(swaggerSpec, null, 2));
-// --- Middlewares de Express ---
-// Parsear JSON bodies
+});
+// Middlewares
 app.use(express.json());
-// Servir archivos estáticos de /uploads
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
-// CORS para desarrollo local y producción
 app.use(cors({
     origin: [
-        "http://localhost:3000",
-        "https://ea3.upc.edu",
-        "https://ea3-back.upc.edu",
-        "https://localhost:3000",
-        "https://localhost:3001",
-        "http://localhost:54385", // Origen de Flutter web debug
-        // Añade otros orígenes de desarrollo si los necesitas
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:54385',
+        'https://ea3.upc.edu',
+        'https://ea3-back.upc.edu'
     ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
 }));
 app.use(loggingHandler);
-// --- Rutas de la API ---
-//Mínimo de rutas para Swagger
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+// Montaje de rutas
 app.use('/api/auth', authRoutes);
-app.use('/api', userRoutes); // Si en user_routes.js las rutas son ej. /users, la URL será /api/users
-app.use('/api', gymRoutes); // Si en gym_routes.js las rutas son ej. /gym, la URL será /api/gym
-app.use('/api', combatRoutes); // Si en combat_routes.js las rutas son ej. /combat, la URL será /api/combat
-app.use('/api', ratingRoutes); // Si en rating_routes.js las rutas son ej. /ratings, la URL será /api/ratings
-app.use('/api/chat', chatRoutes); // Si en chat_routes.js las rutas son ej. /conversations, la URL será /api/chat/conversations
-// --- Ruta para Swagger UI ---
+app.use('/api', userRoutes);
+app.use('/api', gymRoutes);
+app.use('/api', combatRoutes);
+app.use('/api', ratingRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/followers', followerRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
-// --- Rutas de Prueba ---
-app.get('/', (_req, res) => {
-    res.send('Welcome to my API!');
-});
-/**
- * @openapi
- * /ping:
- * get:
- * tags:
- * - Main
- * summary: Endpoint de prueba de actividad del servidor.
- * description: Devuelve 'pong' si el servidor está activo.
- * responses:
- * '200':
- * description: Respuesta exitosa, el servidor está activo.
- * content:
- * text/plain:
- * schema:
- * type: string
- * example: pong
- */
-app.get('/ping', (_req, res) => {
-    console.log('Request a /ping recibido');
-    res.send('pong');
-});
-// --- Conexión a MongoDB ---
-const mongoUriToConnect = process.env.MONGODB_URI; // Esta la define tu docker-compose.yml
-if (!mongoUriToConnect) {
-    console.error('ERROR CRÍTICO: La variable de entorno MONGODB_URI no está definida.');
-    console.log('Asegúrate de que esté configurada en tu docker-compose.yml para el servicio backend.');
-    console.log('Usando fallback a mongodb://mongo:27017/proyecto_fallback (esto podría no ser lo que quieres)');
-    // process.exit(1); // Considera salir si la URI no está, o usa un fallback seguro
-}
-mongoose.connect(mongoUriToConnect || 'mongodb://mongo:27017/proyecto_fallback_db') // Fallback MUY de emergencia
-    .then(() => console.log(`Conectado a MongoDB exitosamente usando URI: ${mongoUriToConnect ? 'la proporcionada por env' : 'la de fallback'}`))
-    .catch((error) => {
-    console.error('ERROR DE CONEXIÓN A MONGODB:');
-    console.error('URI Intentada:', mongoUriToConnect || 'mongodb://mongo:27017/proyecto_fallback_db');
-    // Corrige acceso a error.message
-    const msg = (error && error.message) ? error.message : String(error);
-    console.error('Error Detallado:', error.name, msg);
-    if (error.reason && error.reason.servers) {
-        try {
-            console.error('Detalles de los servidores de MongoDB (error.reason.servers):', JSON.stringify(error.reason.servers, null, 2));
-        }
-        catch (e) {
-            console.error('Detalles de los servidores de MongoDB (error.reason.servers):', error.reason.servers);
-        }
-    }
-});
-const userSocketMap = new Map();
+// Rutas básicas
+app.get('/', (_req, res) => res.send('Welcome to my API!'));
+app.get('/ping', (_req, res) => res.send('pong'));
+// Conexión a MongoDB
+const mongoUri = process.env.MONGODB_URI || 'mongodb://mongo:27017/proyecto_fallback_db';
+mongoose.connect(mongoUri)
+    .then(() => console.log('✅ Conectado a MongoDB'))
+    .catch(err => console.error('❌ Error conectando a MongoDB:', err.message));
+// Mapa global de sockets
+global.userSocketMap = new Map();
+// Autenticación de sockets
 io.use((socket, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
     const token = socket.handshake.auth.token;
-    if (!token) {
+    if (!token)
         return next(new Error('Authentication error: No token provided'));
-    }
     try {
-        const decodedPayload = yield verifyToken(token);
+        const decoded = yield verifyToken(token);
         socket.user = {
-            userId: decodedPayload.id,
-            email: decodedPayload.email,
-            nameToDisplay: decodedPayload.username || decodedPayload.name || "Usuario Desconocido"
+            userId: decoded.id,
+            email: decoded.email,
+            nameToDisplay: decoded.username || decoded.name || 'Usuario'
         };
-        if ((_a = socket.user) === null || _a === void 0 ? void 0 : _a.userId) {
-            userSocketMap.set(socket.user.userId, socket.id);
-        }
+        global.userSocketMap.set(socket.user.userId, socket.id);
+        socket.join(socket.user.userId);
         next();
     }
     catch (err) {
-        console.error(`Socket Auth Error for socket ${socket.id}: ${err.message}`);
-        return next(new Error(`Authentication error: ${err.message}`));
+        next(new Error(`Authentication error: ${err.message}`));
     }
 }));
+// Manejo de conexiones Socket.IO
 io.on('connection', (socket) => {
-    var _a, _b, _c;
-    console.log(`Usuario conectado a Socket.IO: ${socket.id}, UserId: ${(_a = socket.user) === null || _a === void 0 ? void 0 : _a.userId}, Name: ${(_b = socket.user) === null || _b === void 0 ? void 0 : _b.nameToDisplay}`);
-    if ((_c = socket.user) === null || _c === void 0 ? void 0 : _c.userId) {
-        socket.join(socket.user.userId);
-    }
-    // --- EVENTOS PARA CHAT 1 A 1 (CONVERSACIONES DIRECTAS) ---
-    socket.on('join_chat_room', (data) => {
-        var _a;
-        if (!((_a = socket.user) === null || _a === void 0 ? void 0 : _a.userId)) {
-            return socket.emit('chat_error', { message: 'Usuario no autenticado para unirse al chat.' });
-        }
-        if (!(data === null || data === void 0 ? void 0 : data.conversationId)) {
-            return socket.emit('chat_error', { message: 'conversationId es requerido para unirse al chat.' });
-        }
-        const conversationRoom = `conversation_${data.conversationId}`;
-        socket.join(conversationRoom);
-        console.log(`Usuario ${socket.user.nameToDisplay} (ID: ${socket.user.userId}) se unió a la sala: ${conversationRoom}`);
-        socket.emit('chat_notification', {
-            type: 'success',
-            message: `Te has unido al chat (ID Conversación: ${data.conversationId}).`,
-            conversationId: data.conversationId
-        });
+    if (!socket.user)
+        return;
+    const { userId, nameToDisplay } = socket.user;
+    // — Chat Flutter —
+    socket.on('join_chat_room', ({ conversationId }) => {
+        socket.join(`conversation_${conversationId}`);
     });
-    socket.on('send_message', (data) => __awaiter(void 0, void 0, void 0, function* () {
-        var _d, _e;
-        if (!((_d = socket.user) === null || _d === void 0 ? void 0 : _d.userId) || !socket.user.nameToDisplay) { // Verificamos nameToDisplay también
-            return socket.emit('chat_error', { message: 'Usuario no autenticado completamente para enviar mensaje.' });
-        }
-        const messageText = (_e = data === null || data === void 0 ? void 0 : data.message) === null || _e === void 0 ? void 0 : _e.trim();
-        if (!(data === null || data === void 0 ? void 0 : data.conversationId) || !messageText) {
-            return socket.emit('chat_error', { message: 'conversationId y un mensaje no vacío son requeridos.' });
-        }
-        const conversationRoom = `conversation_${data.conversationId}`;
-        try {
-            // --- GUARDAR MENSAJE EN LA BASE DE DATOS ---
-            // Esta es la línea crucial que activa la persistencia:
-            const savedMessage = yield chatService.addMessageToConversation(data.conversationId, socket.user.userId, socket.user.nameToDisplay, // Nombre del remitente
-            messageText);
-            // --------------------------------------------
-            // Construir el objeto a emitir usando los datos del mensaje guardado (incluye _id y createdAt de la BD)
-            const finalMessageDataToEmit = {
-                conversationId: savedMessage.conversationId.toString(),
-                senderId: savedMessage.senderId.toString(),
-                senderUsername: savedMessage.senderUsername,
-                message: savedMessage.message,
-                timestamp: savedMessage.createdAt.toISOString(), // Usar el timestamp de la BD
-                // Podrías añadir el _id del mensaje si el cliente lo necesita:
-                //messageId: (savedMessage._id as Types.ObjectId | string).toString(),
-            };
-            io.to(conversationRoom).emit('new_message', finalMessageDataToEmit);
-            console.log(`Mensaje ("${messageText}") guardado (ID: ${savedMessage._id.toString()}) y enviado en ${conversationRoom} por ${socket.user.nameToDisplay} (ID: ${socket.user.userId})`);
-        }
-        catch (dbError) {
-            console.error(`Error al intentar guardar/procesar mensaje para conv ${data.conversationId}:`, dbError.message);
-            socket.emit('chat_error', { message: `Error del servidor al procesar el mensaje: ${dbError.message}` });
-        }
+    socket.on('send_message', (_a) => __awaiter(void 0, [_a], void 0, function* ({ conversationId, message }) {
+        const saved = yield chatService.addMessageToConversation(conversationId, userId, nameToDisplay, message);
+        io.to(`conversation_${conversationId}`).emit('new_message', {
+            conversationId,
+            senderId: userId,
+            senderUsername: nameToDisplay,
+            message,
+            timestamp: saved.createdAt.toISOString()
+        });
     }));
-    socket.on('typing_started', (data) => {
-        var _a;
-        if (!((_a = socket.user) === null || _a === void 0 ? void 0 : _a.userId) || !(data === null || data === void 0 ? void 0 : data.conversationId))
-            return;
-        const conversationRoom = `conversation_${data.conversationId}`;
-        socket.to(conversationRoom).emit('opponent_typing', {
-            conversationId: data.conversationId,
-            userId: socket.user.userId,
-            username: socket.user.nameToDisplay,
-            isTyping: true
+    socket.on('typing_started', ({ conversationId }) => {
+        socket.to(`conversation_${conversationId}`).emit('opponent_typing', {
+            conversationId, userId, username: nameToDisplay, isTyping: true
         });
     });
-    socket.on('typing_stopped', (data) => {
-        var _a;
-        if (!((_a = socket.user) === null || _a === void 0 ? void 0 : _a.userId) || !(data === null || data === void 0 ? void 0 : data.conversationId))
-            return;
-        const conversationRoom = `conversation_${data.conversationId}`;
-        socket.to(conversationRoom).emit('opponent_typing', {
-            conversationId: data.conversationId,
-            userId: socket.user.userId,
-            username: socket.user.nameToDisplay,
-            isTyping: false
+    socket.on('typing_stopped', ({ conversationId }) => {
+        socket.to(`conversation_${conversationId}`).emit('opponent_typing', {
+            conversationId, userId, username: nameToDisplay, isTyping: false
         });
     });
-    // --- FIN DE EVENTOS PARA CHAT 1 A 1 ---
-    // --- EVENTOS RELACIONADOS CON COMBATES (NO CHAT DIRECTO) ---
+    // — Combates y notificaciones Web —
     socket.on('sendCombatInvitation', ({ opponentId, combat }) => {
-        const targetSocketId = userSocketMap.get(opponentId);
-        if (targetSocketId) {
-            console.log(`📨 Enviando invitación de combate a ${opponentId} (socket: ${targetSocketId}) para combate: ${(combat === null || combat === void 0 ? void 0 : combat._id) || 'ID no disponible'}`);
-            io.to(targetSocketId).emit("new_invitation", combat);
-        }
-        else {
-            console.log(`⚠️ Usuario ${opponentId} no está conectado para recibir invitación de combate`);
-        }
+        const target = global.userSocketMap.get(opponentId);
+        if (target)
+            io.to(target).emit('new_invitation', combat);
     });
     socket.on('respond_combat', ({ combatId, status }) => {
-        console.log(`🔄 Respuesta a combate ${combatId}: ${status}`);
-        socket.broadcast.emit("combat_response", { combatId, status });
+        socket.broadcast.emit('combat_response', { combatId, status });
     });
-    // --- FIN DE EVENTOS DE COMBATE ---
-    socket.on('disconnect', (reason) => {
-        var _a;
-        if ((_a = socket.user) === null || _a === void 0 ? void 0 : _a.userId) {
-            const prevSocketId = userSocketMap.get(socket.user.userId);
-            if (prevSocketId === socket.id) {
-                userSocketMap.delete(socket.user.userId);
-            }
-            console.log(`❌ Usuario desconectado: ${socket.user.userId}. Socket: ${socket.id}. Razón: ${reason}`);
-        }
-        else {
-            console.log(`Socket ${socket.id} desconectado sin usuario autenticado. Razón: ${reason}`);
-        }
-    });
-    socket.on('error', (err) => {
-        var _a;
-        console.error(`Error de bajo nivel en socket ${socket.id} (Usuario ${(_a = socket.user) === null || _a === void 0 ? void 0 : _a.userId}): ${err.message}`);
+    socket.on('disconnect', () => {
+        global.userSocketMap.delete(userId);
     });
 });
-// --- Fin Lógica de Socket.IO ---
-// Pasa la instancia de io al controlador de combates para emitir eventos desde handlers HTTP
+// Configuración Web Push
+webpush.setVapidDetails('mailto:admin@ea3.upc.edu', process.env.VAPID_PUBLIC_KEY || '', process.env.VAPID_PRIVATE_KEY || '');
+// Pasar instancia de io al controlador de combates
 setSocketIoInstance(io);
-// Iniciar el servidor HTTP (que incluye Express y Socket.IO)
+// Iniciar servidor
 httpServer.listen(LOCAL_PORT, '0.0.0.0', () => {
-    console.log(`Servidor Express y Chat Socket.IO escuchando en https://ea3-api.upc.edu (internamente en VM puerto ${LOCAL_PORT})`);
-    console.log(`Swagger UI disponible en https://ea3-api.upc.edu/api-docs (y localmente en http://localhost:${LOCAL_PORT}/api-docs si usas port-forwarding o corres local)`);
+    console.log(`Servidor activo en http://localhost:${LOCAL_PORT}`);
 });
-// Logs de variables de Google (se leen del .env que se copia a la imagen)
-console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
-console.log("GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET);
-console.log("GOOGLE_OAUTH_REDIRECT_URL:", process.env.GOOGLE_OAUTH_REDIRECT_URL);
+// Debug variables
+console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID);
+console.log('GOOGLE_OAUTH_REDIRECT_URL:', process.env.GOOGLE_OAUTH_REDIRECT_URL);
