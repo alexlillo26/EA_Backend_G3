@@ -59,7 +59,7 @@ export const createUser = (userData) => __awaiter(void 0, void 0, void 0, functi
     return yield newUser.save();
 });
 // ✅ Obtener usuarios (ordenados por isHidden, paginados)
-export const getAllUsers = (page = 1, pageSize = 10) => __awaiter(void 0, void 0, void 0, function* () {
+export const getAllUsers = (...args_1) => __awaiter(void 0, [...args_1], void 0, function* (page = 1, pageSize = 10) {
     const skip = (page - 1) * pageSize;
     const users = yield User.find()
         .sort({ isHidden: 1 })

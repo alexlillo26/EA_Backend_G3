@@ -268,3 +268,21 @@ export const generateUserStatistics = async (boxerId: string): Promise<object> =
       combatsPerMonth
     };
   };
+
+  export const getCombatsByGymId = async (gymId: string, page: number, pageSize: number) => {
+    const combats = await Combat.find({ gym: gymId })
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .populate("creator")
+      .populate("opponent")
+      .populate("gym");
+
+    const total = await Combat.countDocuments({ gym: gymId });
+    const totalPages = Math.ceil(total / pageSize);
+
+    return {
+      combats,
+      totalPages,
+      currentPage: page,
+    };
+  };
