@@ -1,12 +1,3 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 // src/services/user_service.ts
 import bcrypt from 'bcryptjs'; // ✅ Necesario para login seguro
 import User from '../users/user_models.js';
@@ -16,13 +7,13 @@ export const saveMethod = () => {
     return 'Hola';
 };
 // ✅ Crear usuario con validaciones y bcrypt
-export const createUser = (userData) => __awaiter(void 0, void 0, void 0, function* () {
+export const createUser = async (userData) => {
     const { name, email, password, confirmPassword, birthDate, weight, city, phone, gender } = userData;
     // En user_service.ts, dentro de createUser
     if (!name || !email || !password || !confirmPassword || !birthDate || !weight || !city || !phone || !gender) {
         throw new Error('Todos los campos son obligatorios: name, email, password, confirmPassword, birthDate, weight, city, phone, gender'); // <--- MENSAJE ACTUALIZADO
     }
-    const existingUser = yield User.findOne({
+    const existingUser = await User.findOne({
         $or: [{ name }, { email }, { phone }]
     });
     if (existingUser) {
@@ -54,23 +45,26 @@ export const createUser = (userData) => __awaiter(void 0, void 0, void 0, functi
     if (!validGenders.includes(gender)) {
         throw new Error(`El género debe ser uno de los siguientes: ${validGenders.join(', ')}`);
     }
-    const hashedPassword = yield bcrypt.hash(password, 10); // ✅ Seguridad
-    const newUser = new User(Object.assign(Object.assign({}, userData), { password: hashedPassword }));
-    return yield newUser.save();
-});
+    const hashedPassword = await bcrypt.hash(password, 10); // ✅ Seguridad
+    const newUser = new User({
+        ...userData,
+        password: hashedPassword
+    });
+    return await newUser.save();
+};
 // ✅ Obtener usuarios (ordenados por isHidden, paginados)
-export const getAllUsers = (page = 1, pageSize = 10) => __awaiter(void 0, void 0, void 0, function* () {
+export const getAllUsers = async (page = 1, pageSize = 10) => {
     const skip = (page - 1) * pageSize;
-    const users = yield User.find()
+    const users = await User.find()
         .sort({ isHidden: 1 })
         .skip(skip)
         .limit(pageSize)
         .lean()
-        .then(users => users.map(user => {
-        var _a;
-        return (Object.assign(Object.assign({}, user), { id: (_a = user._id) === null || _a === void 0 ? void 0 : _a.toString() }));
-    }));
-    const totalUsers = yield User.countDocuments();
+        .then(users => users.map(user => ({
+        ...user,
+        id: user._id?.toString(),
+    })));
+    const totalUsers = await User.countDocuments();
     const totalPages = Math.ceil(totalUsers / pageSize);
     return {
         users,
@@ -78,37 +72,37 @@ export const getAllUsers = (page = 1, pageSize = 10) => __awaiter(void 0, void 0
         totalPages,
         currentPage: page
     };
-});
+};
 // ✅ Obtener un usuario por ID
-export const getUserById = (id) => __awaiter(void 0, void 0, void 0, function* () {
-    const user = yield User.findById(id);
+export const getUserById = async (id) => {
+    const user = await User.findById(id);
     if (user) {
-        return Object.assign(Object.assign({}, user.toObject()), { age: calculateAge(user.birthDate), id: user._id.toString() });
+        return { ...user.toObject(), age: calculateAge(user.birthDate), id: user._id.toString() };
     }
     return null;
-});
+};
 // ✅ Actualizar usuario
-export const updateUser = (id, updateData) => __awaiter(void 0, void 0, void 0, function* () {
-    return yield User.findByIdAndUpdate(id, updateData, { new: true });
-});
+export const updateUser = async (id, updateData) => {
+    return await User.findByIdAndUpdate(id, updateData, { new: true });
+};
 // ✅ Eliminar usuario
-export const deleteUser = (id) => __awaiter(void 0, void 0, void 0, function* () {
-    return yield User.findByIdAndDelete(id);
-});
+export const deleteUser = async (id) => {
+    return await User.findByIdAndDelete(id);
+};
 // ✅ Ocultar o mostrar usuario
-export const hideUser = (id, isHidden) => __awaiter(void 0, void 0, void 0, function* () {
-    return yield User.findByIdAndUpdate(id, { isHidden }, { new: true });
-});
+export const hideUser = async (id, isHidden) => {
+    return await User.findByIdAndUpdate(id, { isHidden }, { new: true });
+};
 // ✅ Login seguro con bcrypt
-export const loginUser = (email, password) => __awaiter(void 0, void 0, void 0, function* () {
-    const user = yield User.findOne({ email });
+export const loginUser = async (email, password) => {
+    const user = await User.findOne({ email });
     if (!user) {
         throw new Error('Usuario no encontrado');
     }
     if (user.isHidden) {
         throw new Error('Este usuario está oculto y no puede iniciar sesión');
     }
-    const isPasswordValid = yield bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
         throw new Error('Contraseña incorrecta');
     }
@@ -116,7 +110,7 @@ export const loginUser = (email, password) => __awaiter(void 0, void 0, void 0, 
     const token = generateToken(user.id, user.email, user.name);
     const refreshToken = generateRefreshToken(user.id);
     return { token, refreshToken, user };
-});
+};
 // ✅ Calcular edad
 const calculateAge = (birthDate) => {
     if (!birthDate)
@@ -126,11 +120,11 @@ const calculateAge = (birthDate) => {
     return Math.abs(ageDate.getUTCFullYear() - 1970);
 };
 // ✅ Contar usuarios visibles
-export const getUserCount = () => __awaiter(void 0, void 0, void 0, function* () {
-    return yield User.countDocuments({ isHidden: false });
-});
+export const getUserCount = async () => {
+    return await User.countDocuments({ isHidden: false });
+};
 // usuario del motor de búsqueda
-export const searchUsers = (city, weight) => __awaiter(void 0, void 0, void 0, function* () {
+export const searchUsers = async (city, weight) => {
     try {
         let query = {};
         if (city) {
@@ -141,14 +135,14 @@ export const searchUsers = (city, weight) => __awaiter(void 0, void 0, void 0, f
         }
         console.log('Search query:', query); // Debug log
         // Si no se proporciona ciudad ni peso, devolver todos los usuarios
-        const users = yield User.find(query)
+        const users = await User.find(query)
             .select('name email city weight') // conserva _id
             .sort({ name: 1 })
             .lean()
-            .then(users => users.map(user => {
-            var _a;
-            return (Object.assign(Object.assign({}, user), { id: (_a = user._id) === null || _a === void 0 ? void 0 : _a.toString() }));
-        }));
+            .then(users => users.map(user => ({
+            ...user,
+            id: user._id?.toString(),
+        })));
         return users;
     }
     catch (error) {
@@ -156,4 +150,19 @@ export const searchUsers = (city, weight) => __awaiter(void 0, void 0, void 0, f
         // Devolver una matriz vacía en lugar de lanzar una excepción evita que los 500
         return [];
     }
-});
+};
+export const saveFcmToken = async (userId, fcmToken) => {
+    if (!userId || !fcmToken) {
+        throw new Error('El ID de usuario y el token FCM son requeridos.');
+    }
+    // Usamos findByIdAndUpdate para actualizar solo el campo fcmToken
+    // sin disparar las validaciones de otros campos del documento.
+    const updatedUser = await User.findByIdAndUpdate(userId, { fcmToken: fcmToken }, // El campo que queremos actualizar
+    { new: true } // Devuelve el documento actualizado
+    );
+    if (!updatedUser) {
+        throw new Error('Usuario no encontrado al guardar token.');
+    }
+    console.log(`[DEBUG] Token para ${updatedUser.name} actualizado en DB.`);
+    return updatedUser;
+};

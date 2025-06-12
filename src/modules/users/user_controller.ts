@@ -1,5 +1,5 @@
 // src/controllers/user_controller.ts
-import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser, hideUser, loginUser, getUserCount, searchUsers } from '../users/user_service.js';
+import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser, hideUser, loginUser, getUserCount, searchUsers, saveFcmToken } from '../users/user_service.js';
 import { verifyRefreshToken, generateToken } from '../../utils/jwt.handle.js';
 import User from '../users/user_models.js'; // Ensure this import exists
 
@@ -192,4 +192,24 @@ export const searchUsersHandler = async (req: Request, res: Response) => {
             error: error?.message 
         });
     }
+};
+
+export const saveFcmTokenHandler = async (req: any, res: Response) => {
+  try {
+    // Obtenemos el ID del usuario del token JWT (gracias al middleware checkJwt)
+    const userId = req.user?.id; 
+    const { fcmToken } = req.body;
+
+    if (!fcmToken) {
+      return res.status(400).json({ message: 'fcmToken es requerido en el body' });
+    }
+
+    await saveFcmToken(userId, fcmToken);
+
+    res.status(200).json({ success: true, message: 'Token FCM guardado correctamente' });
+
+  } catch (error: any) {
+    console.error('Error en saveFcmTokenHandler:', error);
+    res.status(500).json({ message: 'Error interno del servidor', error: error?.message });
+  }
 };

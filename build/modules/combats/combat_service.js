@@ -1,19 +1,10 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 import mongoose from 'mongoose';
 import Combat from '../combats/combat_models.js';
 import CombatModel from '../combats/combat_models.js';
 export const saveMethod = () => {
     return 'Hola';
 };
-export const createCombat = (combatData) => __awaiter(void 0, void 0, void 0, function* () {
+export const createCombat = async (combatData) => {
     if (combatData.creator && typeof combatData.creator === 'string') {
         combatData.creator = new mongoose.Types.ObjectId(combatData.creator);
     }
@@ -24,9 +15,9 @@ export const createCombat = (combatData) => __awaiter(void 0, void 0, void 0, fu
         combatData.gym = new mongoose.Types.ObjectId(combatData.gym);
     }
     const combat = new Combat(combatData);
-    return yield combat.save();
-});
-export const getFutureCombats = (userId) => __awaiter(void 0, void 0, void 0, function* () {
+    return await combat.save();
+};
+export const getFutureCombats = async (userId) => {
     return Combat.find({
         status: 'accepted',
         $or: [{ creator: userId }, { opponent: userId }]
@@ -34,44 +25,44 @@ export const getFutureCombats = (userId) => __awaiter(void 0, void 0, void 0, fu
         .populate('creator')
         .populate('opponent')
         .populate('gym');
-});
-export const getPendingInvitations = (userId) => __awaiter(void 0, void 0, void 0, function* () {
+};
+export const getPendingInvitations = async (userId) => {
     return Combat.find({ opponent: userId, status: 'pending' })
         .populate('creator')
         .populate('opponent')
         .populate('gym');
-});
-export const getSentInvitations = (userId) => __awaiter(void 0, void 0, void 0, function* () {
+};
+export const getSentInvitations = async (userId) => {
     return Combat.find({ creator: userId, status: 'pending' })
         .populate('creator')
         .populate('opponent')
         .populate('gym');
-});
-export const respondToCombatInvitation = (combatId, userId, status) => __awaiter(void 0, void 0, void 0, function* () {
-    const combat = yield Combat.findById(combatId);
+};
+export const respondToCombatInvitation = async (combatId, userId, status) => {
+    const combat = await Combat.findById(combatId);
     if (!combat)
         throw new Error('Combate no encontrado');
     if (combat.opponent.toString() !== userId)
         throw new Error('Solo el usuario invitado puede responder');
     if (status === 'accepted') {
         combat.status = 'accepted';
-        yield combat.save();
+        await combat.save();
         return combat;
     }
     else if (status === 'rejected') {
-        yield Combat.deleteOne({ _id: combatId });
+        await Combat.deleteOne({ _id: combatId });
         return { deleted: true };
     }
     else {
         throw new Error('Estado inválido');
     }
-});
-export const getAllCombats = (page, pageSize) => __awaiter(void 0, void 0, void 0, function* () {
+};
+export const getAllCombats = async (page, pageSize) => {
     try {
         const skip = (page - 1) * pageSize;
-        const totalCombats = yield Combat.countDocuments();
+        const totalCombats = await Combat.countDocuments();
         const totalPages = Math.ceil(totalCombats / pageSize);
-        const combats = yield Combat.find().skip(skip).limit(pageSize);
+        const combats = await Combat.find().skip(skip).limit(pageSize);
         return {
             combats,
             totalCombats,
@@ -84,21 +75,21 @@ export const getAllCombats = (page, pageSize) => __awaiter(void 0, void 0, void 
         console.error('Error in getAllCombats:', error);
         throw error;
     }
-});
-export const getCombatById = (id, page, pageSize) => __awaiter(void 0, void 0, void 0, function* () {
-    return yield Combat.findById(id)
+};
+export const getCombatById = async (id, page, pageSize) => {
+    return await Combat.findById(id)
         .populate('creator')
         .populate('opponent')
         .populate('gym');
-});
-export const updateCombat = (id, updateData) => __awaiter(void 0, void 0, void 0, function* () {
-    return yield Combat.updateOne({ _id: id }, { $set: updateData });
-});
-export const deleteCombat = (id) => __awaiter(void 0, void 0, void 0, function* () {
-    return yield Combat.deleteOne({ _id: id });
-});
-export const getBoxersByCombatId = (id) => __awaiter(void 0, void 0, void 0, function* () {
-    const combat = yield Combat.findById(id)
+};
+export const updateCombat = async (id, updateData) => {
+    return await Combat.updateOne({ _id: id }, { $set: updateData });
+};
+export const deleteCombat = async (id) => {
+    return await Combat.deleteOne({ _id: id });
+};
+export const getBoxersByCombatId = async (id) => {
+    const combat = await Combat.findById(id)
         .populate('creator')
         .populate('opponent');
     if (!combat)
@@ -107,11 +98,11 @@ export const getBoxersByCombatId = (id) => __awaiter(void 0, void 0, void 0, fun
         combat.creator,
         combat.opponent
     ];
-});
-export const hideCombat = (id, isHidden) => __awaiter(void 0, void 0, void 0, function* () {
-    return yield Combat.updateOne({ _id: id }, { $set: { isHidden } });
-});
-export const getCompletedCombatHistoryForBoxer = (boxerId, page = 1, pageSize = 10) => __awaiter(void 0, void 0, void 0, function* () {
+};
+export const hideCombat = async (id, isHidden) => {
+    return await Combat.updateOne({ _id: id }, { $set: { isHidden } });
+};
+export const getCompletedCombatHistoryForBoxer = async (boxerId, page = 1, pageSize = 10) => {
     const boxerObjectId = new mongoose.Types.ObjectId(boxerId);
     const skip = (page - 1) * pageSize;
     const now = new Date();
@@ -131,9 +122,9 @@ export const getCompletedCombatHistoryForBoxer = (boxerId, page = 1, pageSize = 
             }
         ]
     };
-    const totalCombats = yield CombatModel.countDocuments(query);
+    const totalCombats = await CombatModel.countDocuments(query);
     const totalPages = Math.ceil(totalCombats / pageSize);
-    const combats = yield CombatModel.find(query)
+    const combats = await CombatModel.find(query)
         // === CAMBIO CLAVE Y DEFINITIVO AQUÍ ===
         .populate('creator', 'name profileImage') // <-- Pedimos 'name'
         .populate('opponent', 'name profileImage') // <-- Pedimos 'name'
@@ -150,9 +141,9 @@ export const getCompletedCombatHistoryForBoxer = (boxerId, page = 1, pageSize = 
         currentPage: page,
         pageSize,
     };
-});
-export const setCombatResult = (combatId, winnerId) => __awaiter(void 0, void 0, void 0, function* () {
-    const combat = yield Combat.findById(combatId);
+};
+export const setCombatResult = async (combatId, winnerId) => {
+    const combat = await Combat.findById(combatId);
     if (!combat) {
         throw new Error('Combate no encontrado');
     }
@@ -165,6 +156,6 @@ export const setCombatResult = (combatId, winnerId) => __awaiter(void 0, void 0,
     }
     combat.status = 'completed';
     combat.winner = new mongoose.Types.ObjectId(winnerId);
-    yield combat.save();
+    await combat.save();
     return combat.populate(['creator', 'opponent', 'gym', 'winner']);
-});
+};

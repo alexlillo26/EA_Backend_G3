@@ -153,6 +153,8 @@ export const getUserCount = async () => {
   return await User.countDocuments({ isHidden: false });
 };
 
+
+
 // usuario del motor de búsqueda
 export const searchUsers = async (city?: string, weight?: string) => {
   try {
@@ -181,4 +183,26 @@ export const searchUsers = async (city?: string, weight?: string) => {
     // Devolver una matriz vacía en lugar de lanzar una excepción evita que los 500
     return [];
   }
+
+};
+
+export const saveFcmToken = async (userId: string, fcmToken: string) => {
+  if (!userId || !fcmToken) {
+    throw new Error('El ID de usuario y el token FCM son requeridos.');
+  }
+
+  // Usamos findByIdAndUpdate para actualizar solo el campo fcmToken
+  // sin disparar las validaciones de otros campos del documento.
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { fcmToken: fcmToken }, // El campo que queremos actualizar
+    { new: true } // Devuelve el documento actualizado
+  );
+
+  if (!updatedUser) {
+    throw new Error('Usuario no encontrado al guardar token.');
+  }
+
+  console.log(`[DEBUG] Token para ${updatedUser.name} actualizado en DB.`);
+  return updatedUser;
 };

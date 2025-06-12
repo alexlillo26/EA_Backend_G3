@@ -9,6 +9,11 @@ import express, { Request, Response } from 'express';
 import Combat from './combat_models.js';
 import mongoose, { Types } from 'mongoose';
 import { Server as SocketIOServer } from 'socket.io';
+import { sendPushNotification } from '../../services/notification_service.js';
+
+import User from '../users/user_models.js'; // Necesario para obtener los nombres
+
+
 
 interface PopulatedUser {
     _id: Types.ObjectId;
@@ -48,9 +53,17 @@ export const createCombatHandler = async (req: Request, res: Response) => {
             return res.status(400).json({ message: 'Faltan campos obligatorios o IDs inválidos' });
         }
         // Nota: El status 'completed' se mantiene, ya que indica que el sparring se realizó.
-        const combat = await createCombat({ creator, opponent, date, time, level, gym, status: 'completed' });
-        if (io && opponent) {
-            io.to(opponent.toString()).emit('new_invitation', combat);
+        const combat = await createCombat({ creator, opponent, date, time, level, gym, status: 'pending' });
+         if (Combat) {
+            const creatorDoc = await User.findById(creator).select('name').lean();
+            if (creatorDoc) {
+                const notificationTitle = '🥊 ¡Nuevo Desafío!';
+                const notificationBody = `${creatorDoc.name} te ha invitado a un combate.`;
+                const notificationData = { screen: '/combats' }; // Ruta en tu app a la que navegar
+
+                // Enviamos la notificación al oponente
+                await sendPushNotification(opponent, notificationTitle, notificationBody, notificationData);
+            }
         }
         res.status(201).json(combat);
     } catch (error: any) {
@@ -193,20 +206,51 @@ export const getSentInvitationsHandler = async (req: Request, res: Response) => 
     }
 };
 
-export const respondToInvitationHandler = async (req: Request, res: Response) => {
+// 3. Modifica el respondToInvitationHandler
+export const respondToInvitationHandler = async (req: any, res: Response) => {
     try {
-        const userId = (req as any).user?.id;
+        const opponentId = req.user?.id; // El que responde es el oponente
         const { id } = req.params;
         const { status } = req.body;
+
         if (!['accepted', 'rejected'].includes(status)) {
             return res.status(400).json({ message: 'Estado inválido' });
         }
-        const result = await respondToCombatInvitation(id, userId, status);
+        
+        // Primero, guardamos el combate antes de enviar la notificación para tener el creatorId
+        const combatBeforeResponse = await Combat.findById(id).lean();
+        if (!combatBeforeResponse) {
+            return res.status(404).json({ message: 'Combate no encontrado' });
+        }
+        const creatorId = combatBeforeResponse.creator.toString();
+
+        const result = await respondToCombatInvitation(id, opponentId, status);
+
+        const opponentDoc = await User.findById(opponentId).select('name').lean();
+        if (opponentDoc) {
+            let notificationTitle = '';
+            let notificationBody = '';
+
+            if (status === 'accepted') {
+                notificationTitle = '✅ ¡Combate Aceptado!';
+                notificationBody = `${opponentDoc.name} ha aceptado tu desafío.`;
+            } else { // status === 'rejected'
+                notificationTitle = '❌ Invitación Rechazada';
+                notificationBody = `${opponentDoc.name} ha rechazado tu invitación.`;
+            }
+            
+            const notificationData = { screen: '/combats' };
+
+            // Enviamos la notificación al creador del combate
+            await sendPushNotification(creatorId, notificationTitle, notificationBody, notificationData);
+        }
+
         res.json(result);
     } catch (error: any) {
         res.status(403).json({ message: error?.message });
     }
 };
+
 
 export const getInvitationsHandler = async (req: Request, res: Response) => {
     try {

@@ -1,7 +1,48 @@
 // Contenido para EA_Backend_G3/src/server.ts (Versión Corregida y Ordenada)
 import dotenv from 'dotenv';
 dotenv.config(); // Asegúrate que esto esté al principio
+import admin from 'firebase-admin';
+import { readFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 
+// Obtener __dirname en ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// INICIALIZACIÓN CORREGIDA DE FIREBASE ADMIN
+try {
+  if (!admin.apps.length) {
+    console.log('🔥 Inicializando Firebase Admin SDK...');
+    
+    // CORRECCIÓN DE LA RUTA: Subimos un nivel ('..') desde 'build' para encontrar 'config'
+    const serviceAccountPath = path.resolve(__dirname, '..', 'config', 'serviceAccountKey.json');
+    
+    const serviceAccountContent = readFileSync(serviceAccountPath, 'utf8');
+    const serviceAccount = JSON.parse(serviceAccountContent);
+    
+    if (!serviceAccount.project_id) {
+        throw new Error('serviceAccountKey.json está corrupto o no es válido.');
+    }
+    
+    console.log('📁 Archivo serviceAccountKey.json leído correctamente desde:', serviceAccountPath);
+    console.log('🏷️ Project ID:', serviceAccount.project_id);
+    
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      projectId: serviceAccount.project_id
+
+      // Ya no es necesario pasar el projectId aquí, cert() es suficiente
+    });
+    
+    console.log('✅ Firebase Admin SDK inicializado correctamente');
+  } else {
+    console.log('✔️ Firebase Admin SDK ya estaba inicializado.');
+  }
+} catch (initError) {
+  console.error('💥 ERROR CRÍTICO: No se pudo inicializar Firebase Admin SDK.', initError);
+  console.error('🚨 Las notificaciones push NO funcionarán hasta resolver este problema');
+}
 import express from 'express';
 import mongoose from 'mongoose';
 import http from 'http';
@@ -24,11 +65,12 @@ import cors from 'cors'; // Importar la librería cors
 import Combat from './modules/combats/combat_models.js';
 import { setSocketIoInstance } from './modules/combats/combat_controller.js';
 import path from "path";
-import { fileURLToPath } from "url";
+import { sendPushNotification } from './services/notification_service.js'; // Nuestro servicio de notificaciones
+import { Conversation } from './modules/chat/chat_models.js'; // Modelo para buscar participantes
+import User from './modules/users/user_models.js'; // Modelo para buscar el nombre del remitente
 
-// Definir __filename y __dirname para ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+
+
 import { Types } from 'mongoose';
 
 const app = express();
@@ -89,7 +131,7 @@ const swaggerOptions = {
 };
 const swaggerSpec = swaggerJSDoc(swaggerOptions);
 // Log para depurar la especificación generada (muy útil)
-console.log('Generated Swagger Spec:', JSON.stringify(swaggerSpec, null, 2));
+//console.log('Generated Swagger Spec:', JSON.stringify(swaggerSpec, null, 2));
 
 // --- Middlewares de Express ---
 // Parsear JSON bodies
@@ -258,8 +300,8 @@ io.on('connection', (socket: CustomSocket) => {
     });
 
     socket.on('send_message', async (data: { conversationId: string; message: string }) => {
-        if (!socket.user?.userId || !socket.user.nameToDisplay) { // Verificamos nameToDisplay también
-            return socket.emit('chat_error', { message: 'Usuario no autenticado completamente para enviar mensaje.' });
+        if (!socket.user?.userId || !socket.user.nameToDisplay) {
+            return socket.emit('chat_error', { message: 'Usuario no autenticado para enviar mensaje.' });
         }
         const messageText = data?.message?.trim();
         if (!data?.conversationId || !messageText) {
@@ -269,32 +311,60 @@ io.on('connection', (socket: CustomSocket) => {
         const conversationRoom = `conversation_${data.conversationId}`;
         
         try {
-            // --- GUARDAR MENSAJE EN LA BASE DE DATOS ---
-            // Esta es la línea crucial que activa la persistencia:
             const savedMessage = await chatService.addMessageToConversation(
-              data.conversationId,
-              socket.user.userId,
-              socket.user.nameToDisplay, // Nombre del remitente
-              messageText
+                data.conversationId,
+                socket.user.userId,
+                socket.user.nameToDisplay,
+                messageText
             );
-            // --------------------------------------------
 
-            // Construir el objeto a emitir usando los datos del mensaje guardado (incluye _id y createdAt de la BD)
             const finalMessageDataToEmit: DirectChatMessageData = {
                 conversationId: (savedMessage.conversationId as Types.ObjectId | string).toString(),
                 senderId: (savedMessage.senderId as Types.ObjectId | string).toString(),
                 senderUsername: savedMessage.senderUsername,
                 message: savedMessage.message,
-                timestamp: savedMessage.createdAt.toISOString(), // Usar el timestamp de la BD
-                // Podrías añadir el _id del mensaje si el cliente lo necesita:
-                //messageId: (savedMessage._id as Types.ObjectId | string).toString(),
+                timestamp: savedMessage.createdAt.toISOString(),
             };
 
             io.to(conversationRoom).emit('new_message', finalMessageDataToEmit);
-            console.log(`Mensaje ("${messageText}") guardado (ID: ${(savedMessage._id as Types.ObjectId | string).toString()}) y enviado en ${conversationRoom} por ${socket.user.nameToDisplay} (ID: ${socket.user.userId})`);
+            console.log(`Mensaje guardado y emitido en ${conversationRoom}`);
+
+
+            // 1. Identificar al destinatario
+            const conversation = await Conversation.findById(data.conversationId).lean();
+            if (!conversation) return;
+
+            const recipientId = conversation.participants.find(p => p.toString() !== socket.user?.userId)?.toString();
+
+            if (recipientId) {
+                // 2. Construir el payload de la notificación
+                const notificationTitle = socket.user.nameToDisplay; // Título: "Nombre del remitente"
+                const notificationBody = messageText;                 // Cuerpo: "El mensaje que envió"
+                
+                const notificationData = {
+                    screen: '/chat', // Le dice a la app Flutter qué pantalla abrir
+                    conversationId: data.conversationId,
+                    opponentId: socket.user.userId,
+                    opponentName: socket.user.nameToDisplay
+                };
+
+                // 3. Opcional: Verificar si el usuario ya está online en la sala
+                const clientsInRoom = io.sockets.adapter.rooms.get(conversationRoom);
+                const isRecipientConnected = clientsInRoom ? Array.from(clientsInRoom).some(socketId => {
+                    const clientSocket = io.sockets.sockets.get(socketId) as CustomSocket;
+                    return clientSocket?.user?.userId === recipientId;
+                }) : false;
+                
+                // 4. Enviar la notificación push SOLO si el destinatario no está conectado y viendo el chat
+                if (!isRecipientConnected) {
+                    await sendPushNotification(recipientId, notificationTitle, notificationBody, notificationData);
+                } else {
+                    console.log(`Usuario ${recipientId} ya está en la sala del chat, no se envía notificación push.`);
+                }
+            }
 
         } catch (dbError: any) {
-            console.error(`Error al intentar guardar/procesar mensaje para conv ${data.conversationId}:`, dbError.message);
+            console.error(`Error al procesar mensaje para conv ${data.conversationId}:`, dbError.message);
             socket.emit('chat_error', { message: `Error del servidor al procesar el mensaje: ${dbError.message}` });
         }
     });

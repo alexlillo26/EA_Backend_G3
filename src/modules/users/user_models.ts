@@ -12,6 +12,7 @@ export interface IUser {
   phone: string; 
   gender: string;
   profilePicture?: string; // URL de la imagen de perfil
+  fcmToken?: string; // Token de FCM para notificaciones push
 }
 
 const userSchema = new mongoose.Schema({
@@ -70,6 +71,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['Hombre', 'Mujer'],
     required: true
+  },
+  fcmToken: {
+    type: String,
+    default: null
   }
 });
 

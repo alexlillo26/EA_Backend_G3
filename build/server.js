@@ -1,15 +1,41 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 // Contenido para EA_Backend_G3/src/server.ts (Versión Corregida y Ordenada)
 import dotenv from 'dotenv';
 dotenv.config(); // Asegúrate que esto esté al principio
+import admin from 'firebase-admin';
+import { readFileSync } from 'fs';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+// Obtener __dirname en ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+// INICIALIZACIÓN CORREGIDA DE FIREBASE ADMIN
+try {
+    if (!admin.apps.length) {
+        console.log('🔥 Inicializando Firebase Admin SDK...');
+        // CORRECCIÓN DE LA RUTA: Subimos un nivel ('..') desde 'build' para encontrar 'config'
+        const serviceAccountPath = path.resolve(__dirname, '..', 'config', 'serviceAccountKey.json');
+        const serviceAccountContent = readFileSync(serviceAccountPath, 'utf8');
+        const serviceAccount = JSON.parse(serviceAccountContent);
+        if (!serviceAccount.project_id) {
+            throw new Error('serviceAccountKey.json está corrupto o no es válido.');
+        }
+        console.log('📁 Archivo serviceAccountKey.json leído correctamente desde:', serviceAccountPath);
+        console.log('🏷️ Project ID:', serviceAccount.project_id);
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount),
+            projectId: serviceAccount.project_id
+            // Ya no es necesario pasar el projectId aquí, cert() es suficiente
+        });
+        console.log('✅ Firebase Admin SDK inicializado correctamente');
+    }
+    else {
+        console.log('✔️ Firebase Admin SDK ya estaba inicializado.');
+    }
+}
+catch (initError) {
+    console.error('💥 ERROR CRÍTICO: No se pudo inicializar Firebase Admin SDK.', initError);
+    console.error('🚨 Las notificaciones push NO funcionarán hasta resolver este problema');
+}
 import express from 'express';
 import mongoose from 'mongoose';
 import http from 'http';
@@ -31,10 +57,8 @@ import swaggerJSDoc from 'swagger-jsdoc';
 import cors from 'cors'; // Importar la librería cors
 import { setSocketIoInstance } from './modules/combats/combat_controller.js';
 import path from "path";
-import { fileURLToPath } from "url";
-// Definir __filename y __dirname para ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { sendPushNotification } from './services/notification_service.js'; // Nuestro servicio de notificaciones
+import { Conversation } from './modules/chat/chat_models.js'; // Modelo para buscar participantes
 const app = express();
 const LOCAL_PORT = parseInt(process.env.SERVER_PORT || '9000', 10); // Parseado a entero
 const httpServer = http.createServer(app);
@@ -91,7 +115,7 @@ const swaggerOptions = {
 };
 const swaggerSpec = swaggerJSDoc(swaggerOptions);
 // Log para depurar la especificación generada (muy útil)
-console.log('Generated Swagger Spec:', JSON.stringify(swaggerSpec, null, 2));
+//console.log('Generated Swagger Spec:', JSON.stringify(swaggerSpec, null, 2));
 // --- Middlewares de Express ---
 // Parsear JSON bodies
 app.use(express.json());
@@ -174,20 +198,19 @@ mongoose.connect(mongoUriToConnect || 'mongodb://mongo:27017/proyecto_fallback_d
     }
 });
 const userSocketMap = new Map();
-io.use((socket, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+io.use(async (socket, next) => {
     const token = socket.handshake.auth.token;
     if (!token) {
         return next(new Error('Authentication error: No token provided'));
     }
     try {
-        const decodedPayload = yield verifyToken(token);
+        const decodedPayload = await verifyToken(token);
         socket.user = {
             userId: decodedPayload.id,
             email: decodedPayload.email,
             nameToDisplay: decodedPayload.username || decodedPayload.name || "Usuario Desconocido"
         };
-        if ((_a = socket.user) === null || _a === void 0 ? void 0 : _a.userId) {
+        if (socket.user?.userId) {
             userSocketMap.set(socket.user.userId, socket.id);
         }
         next();
@@ -196,20 +219,18 @@ io.use((socket, next) => __awaiter(void 0, void 0, void 0, function* () {
         console.error(`Socket Auth Error for socket ${socket.id}: ${err.message}`);
         return next(new Error(`Authentication error: ${err.message}`));
     }
-}));
+});
 io.on('connection', (socket) => {
-    var _a, _b, _c;
-    console.log(`Usuario conectado a Socket.IO: ${socket.id}, UserId: ${(_a = socket.user) === null || _a === void 0 ? void 0 : _a.userId}, Name: ${(_b = socket.user) === null || _b === void 0 ? void 0 : _b.nameToDisplay}`);
-    if ((_c = socket.user) === null || _c === void 0 ? void 0 : _c.userId) {
+    console.log(`Usuario conectado a Socket.IO: ${socket.id}, UserId: ${socket.user?.userId}, Name: ${socket.user?.nameToDisplay}`);
+    if (socket.user?.userId) {
         socket.join(socket.user.userId);
     }
     // --- EVENTOS PARA CHAT 1 A 1 (CONVERSACIONES DIRECTAS) ---
     socket.on('join_chat_room', (data) => {
-        var _a;
-        if (!((_a = socket.user) === null || _a === void 0 ? void 0 : _a.userId)) {
+        if (!socket.user?.userId) {
             return socket.emit('chat_error', { message: 'Usuario no autenticado para unirse al chat.' });
         }
-        if (!(data === null || data === void 0 ? void 0 : data.conversationId)) {
+        if (!data?.conversationId) {
             return socket.emit('chat_error', { message: 'conversationId es requerido para unirse al chat.' });
         }
         const conversationRoom = `conversation_${data.conversationId}`;
@@ -221,43 +242,63 @@ io.on('connection', (socket) => {
             conversationId: data.conversationId
         });
     });
-    socket.on('send_message', (data) => __awaiter(void 0, void 0, void 0, function* () {
-        var _d, _e;
-        if (!((_d = socket.user) === null || _d === void 0 ? void 0 : _d.userId) || !socket.user.nameToDisplay) { // Verificamos nameToDisplay también
-            return socket.emit('chat_error', { message: 'Usuario no autenticado completamente para enviar mensaje.' });
+    socket.on('send_message', async (data) => {
+        if (!socket.user?.userId || !socket.user.nameToDisplay) {
+            return socket.emit('chat_error', { message: 'Usuario no autenticado para enviar mensaje.' });
         }
-        const messageText = (_e = data === null || data === void 0 ? void 0 : data.message) === null || _e === void 0 ? void 0 : _e.trim();
-        if (!(data === null || data === void 0 ? void 0 : data.conversationId) || !messageText) {
+        const messageText = data?.message?.trim();
+        if (!data?.conversationId || !messageText) {
             return socket.emit('chat_error', { message: 'conversationId y un mensaje no vacío son requeridos.' });
         }
         const conversationRoom = `conversation_${data.conversationId}`;
         try {
-            // --- GUARDAR MENSAJE EN LA BASE DE DATOS ---
-            // Esta es la línea crucial que activa la persistencia:
-            const savedMessage = yield chatService.addMessageToConversation(data.conversationId, socket.user.userId, socket.user.nameToDisplay, // Nombre del remitente
-            messageText);
-            // --------------------------------------------
-            // Construir el objeto a emitir usando los datos del mensaje guardado (incluye _id y createdAt de la BD)
+            const savedMessage = await chatService.addMessageToConversation(data.conversationId, socket.user.userId, socket.user.nameToDisplay, messageText);
             const finalMessageDataToEmit = {
                 conversationId: savedMessage.conversationId.toString(),
                 senderId: savedMessage.senderId.toString(),
                 senderUsername: savedMessage.senderUsername,
                 message: savedMessage.message,
-                timestamp: savedMessage.createdAt.toISOString(), // Usar el timestamp de la BD
-                // Podrías añadir el _id del mensaje si el cliente lo necesita:
-                //messageId: (savedMessage._id as Types.ObjectId | string).toString(),
+                timestamp: savedMessage.createdAt.toISOString(),
             };
             io.to(conversationRoom).emit('new_message', finalMessageDataToEmit);
-            console.log(`Mensaje ("${messageText}") guardado (ID: ${savedMessage._id.toString()}) y enviado en ${conversationRoom} por ${socket.user.nameToDisplay} (ID: ${socket.user.userId})`);
+            console.log(`Mensaje guardado y emitido en ${conversationRoom}`);
+            // 1. Identificar al destinatario
+            const conversation = await Conversation.findById(data.conversationId).lean();
+            if (!conversation)
+                return;
+            const recipientId = conversation.participants.find(p => p.toString() !== socket.user?.userId)?.toString();
+            if (recipientId) {
+                // 2. Construir el payload de la notificación
+                const notificationTitle = socket.user.nameToDisplay; // Título: "Nombre del remitente"
+                const notificationBody = messageText; // Cuerpo: "El mensaje que envió"
+                const notificationData = {
+                    screen: '/chat',
+                    conversationId: data.conversationId,
+                    opponentId: socket.user.userId,
+                    opponentName: socket.user.nameToDisplay
+                };
+                // 3. Opcional: Verificar si el usuario ya está online en la sala
+                const clientsInRoom = io.sockets.adapter.rooms.get(conversationRoom);
+                const isRecipientConnected = clientsInRoom ? Array.from(clientsInRoom).some(socketId => {
+                    const clientSocket = io.sockets.sockets.get(socketId);
+                    return clientSocket?.user?.userId === recipientId;
+                }) : false;
+                // 4. Enviar la notificación push SOLO si el destinatario no está conectado y viendo el chat
+                if (!isRecipientConnected) {
+                    await sendPushNotification(recipientId, notificationTitle, notificationBody, notificationData);
+                }
+                else {
+                    console.log(`Usuario ${recipientId} ya está en la sala del chat, no se envía notificación push.`);
+                }
+            }
         }
         catch (dbError) {
-            console.error(`Error al intentar guardar/procesar mensaje para conv ${data.conversationId}:`, dbError.message);
+            console.error(`Error al procesar mensaje para conv ${data.conversationId}:`, dbError.message);
             socket.emit('chat_error', { message: `Error del servidor al procesar el mensaje: ${dbError.message}` });
         }
-    }));
+    });
     socket.on('typing_started', (data) => {
-        var _a;
-        if (!((_a = socket.user) === null || _a === void 0 ? void 0 : _a.userId) || !(data === null || data === void 0 ? void 0 : data.conversationId))
+        if (!socket.user?.userId || !data?.conversationId)
             return;
         const conversationRoom = `conversation_${data.conversationId}`;
         socket.to(conversationRoom).emit('opponent_typing', {
@@ -268,8 +309,7 @@ io.on('connection', (socket) => {
         });
     });
     socket.on('typing_stopped', (data) => {
-        var _a;
-        if (!((_a = socket.user) === null || _a === void 0 ? void 0 : _a.userId) || !(data === null || data === void 0 ? void 0 : data.conversationId))
+        if (!socket.user?.userId || !data?.conversationId)
             return;
         const conversationRoom = `conversation_${data.conversationId}`;
         socket.to(conversationRoom).emit('opponent_typing', {
@@ -284,7 +324,7 @@ io.on('connection', (socket) => {
     socket.on('sendCombatInvitation', ({ opponentId, combat }) => {
         const targetSocketId = userSocketMap.get(opponentId);
         if (targetSocketId) {
-            console.log(`📨 Enviando invitación de combate a ${opponentId} (socket: ${targetSocketId}) para combate: ${(combat === null || combat === void 0 ? void 0 : combat._id) || 'ID no disponible'}`);
+            console.log(`📨 Enviando invitación de combate a ${opponentId} (socket: ${targetSocketId}) para combate: ${combat?._id || 'ID no disponible'}`);
             io.to(targetSocketId).emit("new_invitation", combat);
         }
         else {
@@ -297,8 +337,7 @@ io.on('connection', (socket) => {
     });
     // --- FIN DE EVENTOS DE COMBATE ---
     socket.on('disconnect', (reason) => {
-        var _a;
-        if ((_a = socket.user) === null || _a === void 0 ? void 0 : _a.userId) {
+        if (socket.user?.userId) {
             const prevSocketId = userSocketMap.get(socket.user.userId);
             if (prevSocketId === socket.id) {
                 userSocketMap.delete(socket.user.userId);
@@ -310,8 +349,7 @@ io.on('connection', (socket) => {
         }
     });
     socket.on('error', (err) => {
-        var _a;
-        console.error(`Error de bajo nivel en socket ${socket.id} (Usuario ${(_a = socket.user) === null || _a === void 0 ? void 0 : _a.userId}): ${err.message}`);
+        console.error(`Error de bajo nivel en socket ${socket.id} (Usuario ${socket.user?.userId}): ${err.message}`);
     });
 });
 // --- Fin Lógica de Socket.IO ---

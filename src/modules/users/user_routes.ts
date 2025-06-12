@@ -10,7 +10,8 @@ import {
     hideUserHandler,
     loginUserHandler,
     refreshTokenHandler,
-    searchUsersHandler
+    searchUsersHandler,
+    saveFcmTokenHandler
 } from '../users/user_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
 import User from './user_models.js';
@@ -121,6 +122,36 @@ router.post('/users/register', createUserHandler);
  *         description: Lista de usuarios encontrados
  */
 router.get('/users/search', searchUsersHandler);
+
+/**
+ * @openapi
+ * /api/users/save-fcm-token:
+ *   post:
+ *     summary: Guarda el token de FCM para notificaciones push
+ *     description: Asocia un token de Firebase Cloud Messaging con el usuario autenticado.
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fcmToken:
+ *                 type: string
+ *                 example: "eJ...G-4"
+ *     responses:
+ *       200:
+ *         description: Token guardado exitosamente
+ *       400:
+ *         description: fcmToken no proporcionado
+ *       401:
+ *         description: No autorizado
+ */
+router.post('/users/save-fcm-token', checkJwt, saveFcmTokenHandler);
 
 /**
  * @openapi
@@ -396,5 +427,6 @@ router.get('/users/me', checkJwt, async (req: any, res: express.Response) => {
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
+
 
 export default router;

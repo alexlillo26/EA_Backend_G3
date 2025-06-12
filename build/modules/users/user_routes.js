@@ -1,15 +1,6 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 import express from 'express';
 import upload from '../../middleware/uploads.js';
-import { saveMethodHandler, createUserHandler, getAllUsersHandler, getUserByIdHandler, updateUserHandler, deleteUserHandler, hideUserHandler, loginUserHandler, refreshTokenHandler, searchUsersHandler } from '../users/user_controller.js';
+import { saveMethodHandler, createUserHandler, getAllUsersHandler, getUserByIdHandler, updateUserHandler, deleteUserHandler, hideUserHandler, loginUserHandler, refreshTokenHandler, searchUsersHandler, saveFcmTokenHandler } from '../users/user_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
 import User from './user_models.js';
 const router = express.Router();
@@ -115,6 +106,35 @@ router.post('/users/register', createUserHandler);
  *         description: Lista de usuarios encontrados
  */
 router.get('/users/search', searchUsersHandler);
+/**
+ * @openapi
+ * /api/users/save-fcm-token:
+ *   post:
+ *     summary: Guarda el token de FCM para notificaciones push
+ *     description: Asocia un token de Firebase Cloud Messaging con el usuario autenticado.
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fcmToken:
+ *                 type: string
+ *                 example: "eJ...G-4"
+ *     responses:
+ *       200:
+ *         description: Token guardado exitosamente
+ *       400:
+ *         description: fcmToken no proporcionado
+ *       401:
+ *         description: No autorizado
+ */
+router.post('/users/save-fcm-token', checkJwt, saveFcmTokenHandler);
 /**
  * @openapi
  * /api/users:
@@ -368,10 +388,9 @@ router.post('/users/refresh', refreshTokenHandler);
  */
 router.post('/users/refresh-token', refreshTokenHandler);
 // Ruta protegida para obtener el perfil del usuario autenticado
-router.get('/users/me', checkJwt, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+router.get('/users/me', checkJwt, async (req, res) => {
     try {
-        const user = yield User.findById((_a = req.user) === null || _a === void 0 ? void 0 : _a.id).select('-password');
+        const user = await User.findById(req.user?.id).select('-password');
         if (!user) {
             res.status(404).json({ message: 'Usuario no encontrado' });
             return;
@@ -382,5 +401,5 @@ router.get('/users/me', checkJwt, (req, res) => __awaiter(void 0, void 0, void 0
         console.error('Error al obtener usuario:', err);
         res.status(500).json({ message: 'Error interno del servidor' });
     }
-}));
+});
 export default router;
