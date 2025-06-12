@@ -17,6 +17,8 @@ node_modules/
 # Ignorar archivos de compilación (si usas TypeScript o Babel)
 dist/
 build/
+*.js
+*.js.map
 
 # Ignorar archivos de sistema
 .DS_Store

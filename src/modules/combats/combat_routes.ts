@@ -567,6 +567,44 @@ router.get('/combat/history/user/:boxerId', /* checkJwt, */ combatController.get
 
 router.put('/combat/:id/image', checkJwt, upload.single('image'), combatController.updateCombatImageHandler);
 
+
+/**
+ * @openapi
+ * /api/combat/gym/search/{gymId}:
+ *   get:
+ *     summary: Busca combates por gimnasio
+ *     description: Retorna una lista paginada de combates asociados a un gimnasio.
+ *     tags:
+ *       - Combat
+ *     parameters:
+ *       - name: gymId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del gimnasio
+ *       - name: page
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - name: pageSize
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Lista de combates obtenida exitosamente
+ *       400:
+ *         description: ID de gimnasio inválido
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/combat/gym/search/:gymId', checkJwt, getCombatsByGymSearchHandler);
+
 // Cancelar combate (puedes usar PATCH o DELETE según tu lógica)
 router.patch('/combat/:id/cancel', checkJwt, /* cancelCombatHandler */); // Debes implementar cancelCombatHandler
 router.get('/combats/user/:id/history', checkJwt, combatController.getUserCombatHistoryHandler);

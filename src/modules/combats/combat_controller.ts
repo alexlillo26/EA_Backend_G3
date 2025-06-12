@@ -413,3 +413,18 @@ export const getUserStatisticsHandler = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error interno del servidor al generar estadísticas.' });
   }
 };
+
+export const getCombatsByGymSearchHandler = async (req: Request, res: Response) => {
+    try {
+        const { gymId } = req.params;
+        const page = parseInt(req.query.page as string) || 1;
+        const pageSize = parseInt(req.query.pageSize as string) || 10;
+        if (!mongoose.Types.ObjectId.isValid(gymId)) {
+            return res.status(400).json({ message: 'ID de gimnasio inválido' });
+        }
+        const result = await getCombatsByGym(gymId, page, pageSize);
+        res.status(200).json(result);
+    } catch (error: any) {
+        res.status(500).json({ message: error?.message });
+    }
+};
