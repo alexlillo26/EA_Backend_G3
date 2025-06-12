@@ -159,19 +159,17 @@ export const searchUsers = async (city?: string, weight?: string, boxingVideo?: 
     let query: any = {};
 
     if (city) {
-      query.city = new RegExp(city, 'i'); // Búsqueda de ciudades sin distinción entre mayúsculas y minúsculas
+      query.city = new RegExp(city, 'i');
     }
     if (weight && ['Peso pluma', 'Peso medio', 'Peso pesado'].includes(weight)) {
       query.weight = weight;
     }
     if (boxingVideo) {
-      query.boxingVideo = { $exists: true, $ne: null }; // Buscar usuarios con video de boxeo
+      query.boxingVideo = { $exists: true, $ne: null };
     }
 
-    console.log('Search query:', query); // Debug log
-    // Si no se proporciona ciudad ni peso, devolver todos los usuarios
     const users = await User.find(query)
-      .select('name city weight boxingVideo') // conserva _id
+      .select('name city weight boxingVideo')
       .sort({ name: 1 })
       .lean()
       .then(users => users.map(user => ({
@@ -180,8 +178,6 @@ export const searchUsers = async (city?: string, weight?: string, boxingVideo?: 
       })));
     return users;
   } catch (error) {
-    console.error('Error in searchUsers:', error);
-    // Devolver una matriz vacía en lugar de lanzar una excepción evita que los 500
     return [];
   }
 };

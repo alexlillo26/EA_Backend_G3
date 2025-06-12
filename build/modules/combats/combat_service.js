@@ -31,7 +31,7 @@ export const createCombat = (combatData, imagePath) => __awaiter(void 0, void 0,
     return yield combat.save();
 });
 // Devuelve todos los combates aceptados donde el usuario es creator u opponent
-export const getFutureCombats = (userId_1, ...args_1) => __awaiter(void 0, [userId_1, ...args_1], void 0, function* (userId, page = 1, pageSize = 10) {
+export const getFutureCombats = (userId, page = 1, pageSize = 10) => __awaiter(void 0, void 0, void 0, function* () {
     const skip = (page - 1) * pageSize;
     const filter = {
         status: 'accepted',
@@ -129,7 +129,7 @@ export const getBoxersByCombatId = (id) => __awaiter(void 0, void 0, void 0, fun
 export const hideCombat = (id, isHidden) => __awaiter(void 0, void 0, void 0, function* () {
     return yield Combat.updateOne({ _id: id }, { $set: { isHidden } });
 });
-export const getCompletedCombatHistoryForBoxer = (boxerId_1, ...args_1) => __awaiter(void 0, [boxerId_1, ...args_1], void 0, function* (boxerId, page = 1, pageSize = 10) {
+export const getCompletedCombatHistoryForBoxer = (boxerId, page = 1, pageSize = 10) => __awaiter(void 0, void 0, void 0, function* () {
     const boxerObjectId = new mongoose.Types.ObjectId(boxerId);
     const skip = (page - 1) * pageSize;
     const now = new Date();

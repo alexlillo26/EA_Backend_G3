@@ -184,14 +184,39 @@ export const searchUsersHandler = async (req: Request, res: Response) => {
 };
 
 
+export const uploadUserAvatarHandler = async (req: Request, res: Response) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No se ha enviado ningún avatar.' });
+        }
+        const file = req.file;
+        const avatarUrl = await new Promise<string>((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+                { folder: 'users/avatars' },
+                (error, result) => {
+                    if (error) return reject(error);
+                    resolve(result?.secure_url || '');
+                }
+            );
+            stream.end(file.buffer);
+        });
+        // req.user.id debe estar presente por checkJwt
+        // @ts-ignore
+        const userId = req.user?.id;
+        if (!userId) return res.status(401).json({ message: 'No autorizado' });
+        const updatedUser = await User.findByIdAndUpdate(userId, { profilePicture: avatarUrl }, { new: true });
+        res.status(200).json(updatedUser);
+    } catch (error: any) {
+        res.status(500).json({ message: error?.message });
+    }
+};
+
 export const updateUserBoxingVideoHandler = async (req: Request, res: Response) => {
   try {
-    console.log('Archivo recibido:', req.file);
     if (!req.file) {
       return res.status(400).json({ message: 'No se ha enviado ningún video.' });
     }
     const file = req.file;
-    // Sube el video a Cloudinary
     const videoUrl = await new Promise<string>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         { folder: 'users/videos', resource_type: 'video' },
@@ -202,25 +227,20 @@ export const updateUserBoxingVideoHandler = async (req: Request, res: Response) 
       );
       stream.end(file.buffer);
     });
-
     const updatedUser = await updateUserBoxingVideo(req.params.id, videoUrl);
     res.status(200).json(updatedUser);
   } catch (error: any) {
-     console.error('Error al subir vídeo:', error);
     res.status(500).json({ error: 'Error al subir vídeo', details: error.message });
   }
 };
 
 export const getUserStatisticsHandler = async (req: Request, res: Response) => {
     try {
-        const { boxerId } = req.params;
-        if (!mongoose.Types.ObjectId.isValid(boxerId)) {
-            return res.status(400).json({ message: 'ID de boxeador inválido.' });
-        }
-        const statistics = await generateUserStatistics(boxerId);
+        const userId = req.params.id || (req as any).user?.id;
+        if (!userId) return res.status(400).json({ message: 'ID de usuario requerido.' });
+        const statistics = await generateUserStatistics(userId);
         res.status(200).json(statistics);
     } catch (error: any) {
-        console.error(`Error en getUserStatisticsHandler: ${error.message}`);
         res.status(500).json({ message: 'Error interno del servidor al generar estadísticas.' });
     }
 };

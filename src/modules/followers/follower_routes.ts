@@ -18,6 +18,9 @@ router.post("/push-subscription", checkJwt, savePushSubscription);
 // DELETE /api/followers/push-subscription
 router.delete("/push-subscription", checkJwt, removePushSubscription);
 
+// Guardar suscripción push (para notificaciones)
+router.post("/save-subscription", checkJwt, savePushSubscription);
+
 // GET /api/followers/count/:userId
 router.get("/count/:userId", checkJwt, async (req, res) => {
   try {

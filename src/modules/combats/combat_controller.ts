@@ -16,7 +16,8 @@ import {
   respondToCombatInvitation,
   updateCombatImage,
   getCompletedCombatHistoryForBoxer,
-  setCombatResult
+  setCombatResult,
+  generateUserStatistics
 } from '../combats/combat_service.js';
 
 import Follower from "../followers/follower_model.js";
@@ -399,5 +400,16 @@ export const setCombatResultHandler = async (req: Request, res: Response) => {
     }
     console.error("Error setCombatResultHandler:", error);
     res.status(500).json({ message: 'Error interno.', details: error.message });
+  }
+};
+
+export const getUserStatisticsHandler = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.id || (req as any).user?.id;
+    if (!userId) return res.status(400).json({ message: 'ID de usuario requerido.' });
+    const statistics = await generateUserStatistics(userId);
+    res.status(200).json(statistics);
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error interno del servidor al generar estadísticas.' });
   }
 };

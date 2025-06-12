@@ -59,7 +59,7 @@ export const createUser = (userData) => __awaiter(void 0, void 0, void 0, functi
     return yield newUser.save();
 });
 // ✅ Obtener usuarios (ordenados por isHidden, paginados)
-export const getAllUsers = (...args_1) => __awaiter(void 0, [...args_1], void 0, function* (page = 1, pageSize = 10) {
+export const getAllUsers = (page = 1, pageSize = 10) => __awaiter(void 0, void 0, void 0, function* () {
     const skip = (page - 1) * pageSize;
     const users = yield User.find()
         .sort({ isHidden: 1 })
@@ -134,18 +134,16 @@ export const searchUsers = (city, weight, boxingVideo) => __awaiter(void 0, void
     try {
         let query = {};
         if (city) {
-            query.city = new RegExp(city, 'i'); // Búsqueda de ciudades sin distinción entre mayúsculas y minúsculas
+            query.city = new RegExp(city, 'i');
         }
         if (weight && ['Peso pluma', 'Peso medio', 'Peso pesado'].includes(weight)) {
             query.weight = weight;
         }
         if (boxingVideo) {
-            query.boxingVideo = { $exists: true, $ne: null }; // Buscar usuarios con video de boxeo
+            query.boxingVideo = { $exists: true, $ne: null };
         }
-        console.log('Search query:', query); // Debug log
-        // Si no se proporciona ciudad ni peso, devolver todos los usuarios
         const users = yield User.find(query)
-            .select('name city weight boxingVideo') // conserva _id
+            .select('name city weight boxingVideo')
             .sort({ name: 1 })
             .lean()
             .then(users => users.map(user => {
@@ -155,8 +153,6 @@ export const searchUsers = (city, weight, boxingVideo) => __awaiter(void 0, void
         return users;
     }
     catch (error) {
-        console.error('Error in searchUsers:', error);
-        // Devolver una matriz vacía en lugar de lanzar una excepción evita que los 500
         return [];
     }
 });

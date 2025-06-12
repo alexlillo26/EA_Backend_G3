@@ -12,7 +12,6 @@ import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUse
 import { verifyRefreshToken, generateToken } from '../../utils/jwt.handle.js';
 import User from '../users/user_models.js'; // Ensure this import exists
 import cloudinary from '../config/cloudinary.js';
-import mongoose from 'mongoose';
 import { generateUserStatistics } from '../combats/combat_service.js';
 export const saveMethodHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -177,14 +176,39 @@ export const searchUsersHandler = (req, res) => __awaiter(void 0, void 0, void 0
         });
     }
 });
+export const uploadUserAvatarHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No se ha enviado ningún avatar.' });
+        }
+        const file = req.file;
+        const avatarUrl = yield new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream({ folder: 'users/avatars' }, (error, result) => {
+                if (error)
+                    return reject(error);
+                resolve((result === null || result === void 0 ? void 0 : result.secure_url) || '');
+            });
+            stream.end(file.buffer);
+        });
+        // req.user.id debe estar presente por checkJwt
+        // @ts-ignore
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        if (!userId)
+            return res.status(401).json({ message: 'No autorizado' });
+        const updatedUser = yield User.findByIdAndUpdate(userId, { profilePicture: avatarUrl }, { new: true });
+        res.status(200).json(updatedUser);
+    }
+    catch (error) {
+        res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
+    }
+});
 export const updateUserBoxingVideoHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        console.log('Archivo recibido:', req.file);
         if (!req.file) {
             return res.status(400).json({ message: 'No se ha enviado ningún video.' });
         }
         const file = req.file;
-        // Sube el video a Cloudinary
         const videoUrl = yield new Promise((resolve, reject) => {
             const stream = cloudinary.uploader.upload_stream({ folder: 'users/videos', resource_type: 'video' }, (error, result) => {
                 if (error)
@@ -197,21 +221,19 @@ export const updateUserBoxingVideoHandler = (req, res) => __awaiter(void 0, void
         res.status(200).json(updatedUser);
     }
     catch (error) {
-        console.error('Error al subir vídeo:', error);
         res.status(500).json({ error: 'Error al subir vídeo', details: error.message });
     }
 });
 export const getUserStatisticsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _b;
     try {
-        const { boxerId } = req.params;
-        if (!mongoose.Types.ObjectId.isValid(boxerId)) {
-            return res.status(400).json({ message: 'ID de boxeador inválido.' });
-        }
-        const statistics = yield generateUserStatistics(boxerId);
+        const userId = req.params.id || ((_b = req.user) === null || _b === void 0 ? void 0 : _b.id);
+        if (!userId)
+            return res.status(400).json({ message: 'ID de usuario requerido.' });
+        const statistics = yield generateUserStatistics(userId);
         res.status(200).json(statistics);
     }
     catch (error) {
-        console.error(`Error en getUserStatisticsHandler: ${error.message}`);
         res.status(500).json({ message: 'Error interno del servidor al generar estadísticas.' });
     }
 });

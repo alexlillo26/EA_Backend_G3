@@ -8,7 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { saveMethod, createCombat, getAllCombats, updateCombat, deleteCombat, hideCombat, getCombatsByGymId, getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation, updateCombatImage, getCompletedCombatHistoryForBoxer, setCombatResult } from '../combats/combat_service.js';
+import { saveMethod, createCombat, getAllCombats, updateCombat, deleteCombat, hideCombat, getCombatsByGymId, getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation, updateCombatImage, getCompletedCombatHistoryForBoxer, setCombatResult, generateUserStatistics } from '../combats/combat_service.js';
 import Follower from "../followers/follower_model.js";
 import webpush from "web-push";
 import Combat from './combat_models.js';
@@ -194,9 +194,9 @@ export const getCombatsByGymIdHandler = (req, res) => __awaiter(void 0, void 0, 
     }
 });
 export const getFutureCombatsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _b;
     try {
-        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b.id;
         const combats = yield getFutureCombats(userId);
         res.json(combats);
     }
@@ -205,9 +205,9 @@ export const getFutureCombatsHandler = (req, res) => __awaiter(void 0, void 0, v
     }
 });
 export const getPendingInvitationsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _c;
     try {
-        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        const userId = (_c = req.user) === null || _c === void 0 ? void 0 : _c.id;
         const invitations = yield getPendingInvitations(userId);
         res.json(invitations);
     }
@@ -216,9 +216,9 @@ export const getPendingInvitationsHandler = (req, res) => __awaiter(void 0, void
     }
 });
 export const getSentInvitationsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _d;
     try {
-        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        const userId = (_d = req.user) === null || _d === void 0 ? void 0 : _d.id;
         const invitations = yield getSentInvitations(userId);
         res.json(invitations);
     }
@@ -227,9 +227,9 @@ export const getSentInvitationsHandler = (req, res) => __awaiter(void 0, void 0,
     }
 });
 export const respondToInvitationHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _e;
     try {
-        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        const userId = (_e = req.user) === null || _e === void 0 ? void 0 : _e.id;
         const { id: combatId } = req.params;
         const { status } = req.body;
         if (!['accepted', 'rejected'].includes(status)) {
@@ -263,9 +263,9 @@ export const respondToInvitationHandler = (req, res) => __awaiter(void 0, void 0
     }
 });
 export const getInvitationsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _f;
     try {
-        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+        const userId = (_f = req.user) === null || _f === void 0 ? void 0 : _f.id;
         const invitations = yield Combat.find({ opponent: userId, status: 'pending' })
             .populate('creator')
             .populate('opponent')
@@ -368,5 +368,18 @@ export const setCombatResultHandler = (req, res) => __awaiter(void 0, void 0, vo
         }
         console.error("Error setCombatResultHandler:", error);
         res.status(500).json({ message: 'Error interno.', details: error.message });
+    }
+});
+export const getUserStatisticsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _g;
+    try {
+        const userId = req.params.id || ((_g = req.user) === null || _g === void 0 ? void 0 : _g.id);
+        if (!userId)
+            return res.status(400).json({ message: 'ID de usuario requerido.' });
+        const statistics = yield generateUserStatistics(userId);
+        res.status(200).json(statistics);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error interno del servidor al generar estadísticas.' });
     }
 });

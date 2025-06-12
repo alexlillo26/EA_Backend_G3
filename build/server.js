@@ -147,7 +147,7 @@ io.on('connection', (socket) => {
     socket.on('join_chat_room', ({ conversationId }) => {
         socket.join(`conversation_${conversationId}`);
     });
-    socket.on('send_message', (_a) => __awaiter(void 0, [_a], void 0, function* ({ conversationId, message }) {
+    socket.on('send_message', ({ conversationId, message }) => __awaiter(void 0, void 0, void 0, function* () {
         const saved = yield chatService.addMessageToConversation(conversationId, userId, nameToDisplay, message);
         io.to(`conversation_${conversationId}`).emit('new_message', {
             conversationId,

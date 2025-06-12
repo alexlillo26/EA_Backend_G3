@@ -31,7 +31,7 @@ const combatSchema = new Schema({
     // --- MODIFICACIÓN AQUÍ ---
     status: {
         type: String,
-        enum: ['pending', 'accepted', 'rejected', 'completed', 'active', 'cancelled'], // Estados actualizados
+        enum: ['pending', 'accepted', 'rejected', 'completed', 'active', 'cancelled'],
         default: 'pending',
         required: true
     },

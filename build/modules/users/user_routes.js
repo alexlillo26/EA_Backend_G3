@@ -1,7 +1,8 @@
 import express from 'express';
 import upload from '../../middleware/uploads.js';
 import uploadVideo from '../../middleware/uploadVideo.js';
-import { saveMethodHandler, createUserHandler, getAllUsersHandler, getUserByIdHandler, updateUserHandler, deleteUserHandler, hideUserHandler, loginUserHandler, refreshTokenHandler, searchUsersHandler, updateUserBoxingVideoHandler, getUserStatisticsHandler } from '../users/user_controller.js';
+import { saveMethodHandler, createUserHandler, getAllUsersHandler, getUserByIdHandler, updateUserHandler, deleteUserHandler, hideUserHandler, loginUserHandler, refreshTokenHandler, searchUsersHandler, updateUserBoxingVideoHandler, getUserStatisticsHandler, uploadUserAvatarHandler // <-- Debes crear este handler en user_controller.ts
+ } from '../users/user_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
 const router = express.Router();
 /**
@@ -383,5 +384,10 @@ router.post('/users/refresh-token', refreshTokenHandler);
  *       - bearerAuth: []
  */
 router.get('/combat/statistics/user/:boxerId', checkJwt, getUserStatisticsHandler);
+// Subida de avatar del usuario autenticado
+router.put('/users/me/avatar', checkJwt, upload.single('avatar'), uploadUserAvatarHandler);
+// Subida de vídeo de boxeo
 router.put('/users/:id/boxing-video', checkJwt, uploadVideo.single('video'), updateUserBoxingVideoHandler);
+// Estadísticas de usuario
+router.get('/users/:id/statistics', checkJwt, getUserStatisticsHandler);
 export default router;

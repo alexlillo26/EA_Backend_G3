@@ -1,26 +1,6 @@
 // src/routes/user_routes.ts
 import express from 'express';
-import {
-    saveMethodHandler,
-    createCombatHandler,
-    getAllCombatsHandler,
-    getCombatByIdHandler,
-    updateCombatHandler,
-    deleteCombatHandler,
-    getBoxersByCombatIdHandler,
-    getCombatsByBoxerIdHandler,
-    hideCombatHandler,
-    getCombatsByGymIdHandler,
-    getPendingInvitationsHandler,
-    respondToInvitationHandler,
-    getFutureCombatsHandler,
-    getInvitationsHandler,
-    getSentInvitationsHandler,
-    getFilteredCombatsHandler,
-    updateCombatImageHandler,
-    getUserCombatHistoryHandler,
-
-} from '../combats/combat_controller.js';
+import * as combatController from '../combats/combat_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
 import upload from '../../middleware/uploads.js'; 
 
@@ -37,7 +17,7 @@ const router = express.Router();
  *       200:
  *         description:  recibidas
  */
-router.get('/combat/invitations', checkJwt, getInvitationsHandler);
+router.get('/combat/invitations', checkJwt, combatController.getInvitationsHandler);
 
 /**
  * @openapi
@@ -74,7 +54,7 @@ router.get('/combat/invitations', checkJwt, getInvitationsHandler);
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/combat/invitations/pending', checkJwt, getPendingInvitationsHandler);
+router.get('/combat/invitations/pending', checkJwt, combatController.getPendingInvitationsHandler);
 
 /**
  * @openapi
@@ -87,7 +67,7 @@ router.get('/combat/invitations/pending', checkJwt, getPendingInvitationsHandler
  *       200:
  *         description: Invitaciones enviadas
  */
-router.get('/combat/sent-invitations', checkJwt, getSentInvitationsHandler);
+router.get('/combat/sent-invitations', checkJwt, combatController.getSentInvitationsHandler);
 
 /**
  * @openapi
@@ -121,7 +101,7 @@ router.get('/combat/sent-invitations', checkJwt, getSentInvitationsHandler);
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/combat/future', checkJwt, getFutureCombatsHandler);
+router.get('/combat/future', checkJwt, combatController.getFutureCombatsHandler);
 
 /**
  * @openapi
@@ -162,7 +142,7 @@ router.get('/combat/future', checkJwt, getFutureCombatsHandler);
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/combat/boxer/:boxerId', getCombatsByBoxerIdHandler);
+router.get('/combat/boxer/:boxerId', combatController.getCombatsByBoxerIdHandler);
 
 /**
  * @openapi
@@ -221,7 +201,7 @@ router.get('/combat/boxer/:boxerId', getCombatsByBoxerIdHandler);
  *         description: Datos inválidos
  */
 
-router.post('/combat', checkJwt, upload.single('image'), createCombatHandler);
+router.post('/combat', checkJwt, upload.single('image'), combatController.createCombatHandler);
 
 
 /**
@@ -270,7 +250,7 @@ router.post('/combat', checkJwt, upload.single('image'), createCombatHandler);
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/combat', checkJwt, getFilteredCombatsHandler);
+router.get('/combat', checkJwt, combatController.getFilteredCombatsHandler);
 
 /**
  * @openapi
@@ -310,7 +290,7 @@ router.get('/combat', checkJwt, getFilteredCombatsHandler);
  *         description: Combate no encontrado
  */
 
-router.get('/combat/:id', getCombatByIdHandler);
+router.get('/combat/:id', combatController.getCombatByIdHandler);
 
 /**
  * @openapi
@@ -352,8 +332,8 @@ router.get('/combat/:id', getCombatByIdHandler);
  *         description: Combate no encontrado
  */
 
-router.put('/combat/:id', checkJwt, updateCombatHandler);
-router.put('/combat/:id', checkJwt, updateCombatHandler);
+router.put('/combat/:id', checkJwt, combatController.updateCombatHandler);
+router.put('/combat/:id', checkJwt, combatController.updateCombatHandler);
 
 /**
  * @openapi
@@ -376,8 +356,8 @@ router.put('/combat/:id', checkJwt, updateCombatHandler);
  *         description: Combate no encontrado
  */
 
-router.delete('/combat/:id', checkJwt, deleteCombatHandler);
-router.delete('/combat/:id', checkJwt, deleteCombatHandler);
+router.delete('/combat/:id', checkJwt, combatController.deleteCombatHandler);
+router.delete('/combat/:id', checkJwt, combatController.deleteCombatHandler);
 
 /**
  * @openapi
@@ -416,8 +396,8 @@ router.delete('/combat/:id', checkJwt, deleteCombatHandler);
  *         description: Combate no encontrado
  */
 
-router.get('/combat/:id/boxers', getBoxersByCombatIdHandler);
-router.get('/combat/:id/boxers', getBoxersByCombatIdHandler);
+router.get('/combat/:id/boxers', combatController.getBoxersByCombatIdHandler);
+router.get('/combat/:id/boxers', combatController.getBoxersByCombatIdHandler);
 
 /**
  * @openapi
@@ -449,7 +429,7 @@ router.get('/combat/:id/boxers', getBoxersByCombatIdHandler);
  *       404:
  *         description: Combate no encontrado
  */
-router.put('/combat/:id/oculto', checkJwt, hideCombatHandler); // Require authentication
+router.put('/combat/:id/oculto', checkJwt, combatController.hideCombatHandler); // Require authentication
 
 /**
  * @openapi
@@ -482,7 +462,7 @@ router.put('/combat/:id/oculto', checkJwt, hideCombatHandler); // Require authen
  *       404:
  *         description: Invitación no encontrada
  */
-router.patch('/combat/:id/respond', checkJwt, respondToInvitationHandler);
+router.patch('/combat/:id/respond', checkJwt, combatController.respondToInvitationHandler);
 
 /**
  * @openapi
@@ -583,9 +563,14 @@ router.patch('/combat/:id/respond', checkJwt, respondToInvitationHandler);
  *     security:
  *       - bearerAuth: [] # Asumiendo que usas JWT
  */
-router.get('/combat/history/user/:boxerId', /* checkJwt, */ getUserCombatHistoryHandler);
+router.get('/combat/history/user/:boxerId', /* checkJwt, */ combatController.getUserCombatHistoryHandler);
 
-router.put('/combat/:id/image', checkJwt, upload.single('image'), updateCombatImageHandler);
+router.put('/combat/:id/image', checkJwt, upload.single('image'), combatController.updateCombatImageHandler);
+
+// Cancelar combate (puedes usar PATCH o DELETE según tu lógica)
+router.patch('/combat/:id/cancel', checkJwt, /* cancelCombatHandler */); // Debes implementar cancelCombatHandler
+router.get('/combats/user/:id/history', checkJwt, combatController.getUserCombatHistoryHandler);
+router.get('/combats/user/:id/statistics', checkJwt, combatController.getUserStatisticsHandler);
 
 
 export default router;
