@@ -263,7 +263,30 @@ router.delete('/gym/:id', checkJwt, deleteGymHandler); // Require authentication
  *         description: Gimnasio no encontrado
  */
 router.put('/gym/:id/oculto', checkJwt, hideGymHandler); // Require authentication
-
+/**
+ * @openapi
+ * /api/gym/refresh:
+ *   post:
+ *     summary: Refresca el token de acceso para un gimnasio
+ *     description: Genera un nuevo token de acceso usando el refresh token.
+ *     tags:
+ *       - Gym
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Token refrescado exitosamente
+ *       403:
+ *         description: Refresh token inválido
+ */
+router.post('/gym/refresh', refreshGymTokenHandler); // Ensure this route is correctly set up
 /**
  * @openapi
  * /api/gym/login:
@@ -293,30 +316,7 @@ router.put('/gym/:id/oculto', checkJwt, hideGymHandler); // Require authenticati
  */
 router.post('/gym/login', loginGymHandler);
 
-/**
- * @openapi
- * /api/gym/refresh:
- *   post:
- *     summary: Refresca el token de acceso para un gimnasio
- *     description: Genera un nuevo token de acceso usando el refresh token.
- *     tags:
- *       - Gym
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               refreshToken:
- *                 type: string
- *     responses:
- *       200:
- *         description: Token refrescado exitosamente
- *       403:
- *         description: Refresh token inválido
- */
-router.post('/gym/refresh', refreshGymTokenHandler); // Ensure this route is correctly set up
+
 
 router.put('/gym/:id/photos', checkJwt, upload.array('photos'), updateGymPhotosHandler);
 
