@@ -24,4 +24,4 @@ build/
 # Ignorar archivos de uploads
 /uploads
 
-src/config/serviceAccountKey.json
+/config/serviceAccountKey.json
