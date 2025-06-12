@@ -73,3 +73,18 @@ export const removePushSubscription = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Error eliminando la suscripción push" });
   }
 };
+
+/**
+ * unfollowUser: el usuario autenticado (req.user.id) deja de seguir a req.params.userId
+ */
+export const unfollowUser = async (req: Request, res: Response) => {
+  try {
+    // @ts-ignore
+    const followerId = req.user.id;
+    const followingId = req.params.userId;
+    await Follower.findOneAndDelete({ follower: followerId, following: followingId });
+    return res.status(200).json({ success: true });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+};
