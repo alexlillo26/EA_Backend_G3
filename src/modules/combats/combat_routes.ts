@@ -5,6 +5,7 @@ import { checkJwt } from '../../middleware/session.js'; // Correct import path
 import upload from '../../middleware/uploads.js'; 
 
 const router = express.Router();
+const { getCombatsByGymSearchHandler } = combatController;
 
 /**
  * @openapi

@@ -422,7 +422,8 @@ export const getCombatsByGymSearchHandler = async (req: Request, res: Response) 
         if (!mongoose.Types.ObjectId.isValid(gymId)) {
             return res.status(400).json({ message: 'ID de gimnasio inválido' });
         }
-        const result = await getCombatsByGym(gymId, page, pageSize);
+        // Cambia getCombatsByGym por getCombatsByGymId
+        const result = await getCombatsByGymId(gymId, page, pageSize);
         res.status(200).json(result);
     } catch (error: any) {
         res.status(500).json({ message: error?.message });
