@@ -267,17 +267,60 @@ export const respondToInvitationHandler = async (req: Request, res: Response) =>
       // A) seguidores de quien acepta
       const actorUser = await User.findById(userId).select("name");
       const actor = { id: userId, name: actorUser?.name || "Usuario" };
-      for (const fId of await getFollowersOfUser(userId)) {
-        io.to(fId).emit("new_combat_from_followed", { combat: result, actor });
+      // Enviar socket y push a cada seguidor
+      const followers = await Follower.find({ following: userId }).select("follower pushSubscription");
+      for (const f of followers) {
+        const fid = f.follower.toString();
+        io.to(fid).emit("new_combat_from_followed", { combat: result, actor });
+        if (f.pushSubscription) {
+          // --- FIX: Solo accede a _id si existe y es string o ObjectId ---
+          let combatIdStr = '';
+          if (result && typeof result === 'object' && '_id' in result && result._id) {
+            // Puede ser ObjectId o string
+            combatIdStr = typeof result._id === 'string'
+              ? result._id
+              : typeof result._id === 'object' && 'toString' in result._id
+                ? (result._id as any).toString()
+                : '';
+          }
+          const payload = JSON.stringify({
+            title: "¡Tu seguido ha aceptado un combate!",
+            body: `${actor.name} ha aceptado un combate.`,
+            data: { combatId: combatIdStr, type: "accepted" }
+          });
+          webpush.sendNotification(f.pushSubscription, payload)
+            .catch(err => console.error("Error push accept:", err));
+        }
       }
+
       // B) seguidores del creador original
-      const orig = await Combat.findById(combatId).select("creator");
-      if (orig?.creator) {
-        const creatorId = orig.creator.toString();
+      const originalCombat = await Combat.findById(combatId).select("creator");
+      if (originalCombat?.creator) {
+        const creatorId = originalCombat.creator.toString();
         const creatorUser = await User.findById(creatorId).select("name");
         const creatorActor = { id: creatorId, name: creatorUser?.name || "Usuario" };
-        for (const fId of await getFollowersOfUser(creatorId)) {
-          io.to(fId).emit("new_combat_from_followed", { combat: result, actor: creatorActor });
+        const followersOfCreator = await Follower.find({ following: creatorId }).select("follower pushSubscription");
+        for (const f of followersOfCreator) {
+          const fid = f.follower.toString();
+          io.to(fid).emit("new_combat_from_followed", { combat: result, actor: creatorActor });
+          if (f.pushSubscription) {
+            // --- FIX: Solo accede a _id si existe y es string o ObjectId ---
+            let combatIdStr = '';
+            if (result && typeof result === 'object' && '_id' in result && result._id) {
+              combatIdStr = typeof result._id === 'string'
+                ? result._id
+                : typeof result._id === 'object' && 'toString' in result._id
+                  ? (result._id as any).toString()
+                  : '';
+            }
+            const payload = JSON.stringify({
+              title: "¡Tu seguido ha aceptado un combate!",
+              body: `${creatorActor.name} ha aceptado un combate.`,
+              data: { combatId: combatIdStr, type: "accepted" }
+            });
+            webpush.sendNotification(f.pushSubscription, payload)
+              .catch(err => console.error("Error push accept (creator):", err));
+          }
         }
       }
     }

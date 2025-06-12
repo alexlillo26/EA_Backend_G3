@@ -1,5 +1,5 @@
 import express from "express";
-import { followUser, unfollowUser, getFollowers, savePushSubscription, removePushSubscription, getFollowing, removeFollower } from "./follower_controller.js";
+import { followUser, unfollowUser, getFollowers, savePushSubscription, removePushSubscription, getFollowing, removeFollower, checkFollow } from "./follower_controller.js";
 import { checkJwt } from "../../middleware/session.js";
 import Follower from "./follower_model.js"; // Importa el modelo para el endpoint de conteo
 
@@ -38,5 +38,8 @@ router.get("/following/:userId", checkJwt, getFollowing);
 
 // DELETE /api/followers/remove/:followerId
 router.delete("/remove/:followerId", checkJwt, removeFollower);
+
+// GET /api/followers/check/:userId
+router.get("/check/:userId", checkJwt, checkFollow);
 
 export default router;

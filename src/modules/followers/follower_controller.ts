@@ -54,6 +54,8 @@ export const savePushSubscription = async (req: Request, res: Response) => {
     // @ts-ignore
     const userId = req.user.id;
     const { subscription } = req.body;
+    console.log("🔔 savePushSubscription received:", JSON.stringify(subscription).slice(0,200), "..."); // log parcial
+
     if (!subscription) return res.status(400).json({ message: "Falta la suscripción" });
 
     // Actualiza la subscripción en todos los registros donde follower = userId
@@ -122,6 +124,25 @@ export const removeFollower = async (req: Request, res: Response) => {
     await Follower.findOneAndDelete({ follower: followerId, following: userId });
     return res.status(200).json({ success: true });
   } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * checkFollow: comprueba si req.user.id sigue a req.params.userId
+ */
+export const checkFollow = async (req: Request, res: Response) => {
+  try {
+    // @ts-ignore
+    const followerId = req.user.id;
+    const followingId = req.params.userId;
+    const exists = await Follower.exists({
+      follower: followerId,
+      following: followingId,
+    });
+    return res.status(200).json({ following: Boolean(exists) });
+  } catch (err: any) {
+    console.error(err);
     return res.status(500).json({ message: err.message });
   }
 };
