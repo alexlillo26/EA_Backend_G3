@@ -210,3 +210,22 @@ export const generateUserStatistics = (boxerId) => __awaiter(void 0, void 0, voi
         combatsPerMonth
     };
 });
+export const getCombatsByGym = (gymId, page = 1, pageSize = 10) => __awaiter(void 0, void 0, void 0, function* () {
+    const skip = (page - 1) * pageSize;
+    const gymObjectId = new mongoose.Types.ObjectId(gymId);
+    const combats = yield Combat.find({ gym: gymObjectId })
+        .skip(skip)
+        .limit(pageSize)
+        .populate('creator')
+        .populate('opponent')
+        .populate('gym');
+    const totalCombats = yield Combat.countDocuments({ gym: gymObjectId });
+    const totalPages = Math.ceil(totalCombats / pageSize);
+    return {
+        combats,
+        totalCombats,
+        totalPages,
+        currentPage: page,
+        pageSize
+    };
+});

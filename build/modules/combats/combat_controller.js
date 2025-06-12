@@ -8,7 +8,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, deleteCombat, hideCombat, getCompletedCombatHistoryForBoxer, getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation, setCombatResult } from './combat_service.js';
+import { saveMethod, createCombat, getAllCombats, getCombatById, updateCombat, deleteCombat, hideCombat, getCompletedCombatHistoryForBoxer, getPendingInvitations, getSentInvitations, getFutureCombats, respondToCombatInvitation, setCombatResult, getCombatsByGym // <-- importación agregada
+ } from './combat_service.js';
 import Combat from './combat_models.js';
 import mongoose from 'mongoose';
 let io;
@@ -339,5 +340,20 @@ export const setCombatResultHandler = (req, res) => __awaiter(void 0, void 0, vo
         }
         console.error(`Error en setCombatResultHandler: ${error.message}`);
         res.status(500).json({ message: 'Error interno del servidor.', details: error.message });
+    }
+});
+export const getCombatsByGymSearchHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { gymId } = req.params;
+        const page = parseInt(req.query.page) || 1;
+        const pageSize = parseInt(req.query.pageSize) || 10;
+        if (!mongoose.Types.ObjectId.isValid(gymId)) {
+            return res.status(400).json({ message: 'ID de gimnasio inválido' });
+        }
+        const result = yield getCombatsByGym(gymId, page, pageSize);
+        res.status(200).json(result);
+    }
+    catch (error) {
+        res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
     }
 });

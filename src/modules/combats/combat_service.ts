@@ -242,3 +242,23 @@ export const generateUserStatistics = async (boxerId: string): Promise<object> =
       combatsPerMonth
     };
   };
+
+export const getCombatsByGym = async (gymId: string, page: number = 1, pageSize: number = 10) => {
+    const skip = (page - 1) * pageSize;
+    const gymObjectId = new mongoose.Types.ObjectId(gymId);
+    const combats = await Combat.find({ gym: gymObjectId })
+        .skip(skip)
+        .limit(pageSize)
+        .populate('creator')
+        .populate('opponent')
+        .populate('gym');
+    const totalCombats = await Combat.countDocuments({ gym: gymObjectId });
+    const totalPages = Math.ceil(totalCombats / pageSize);
+    return {
+        combats,
+        totalCombats,
+        totalPages,
+        currentPage: page,
+        pageSize
+    };
+};

@@ -1,6 +1,7 @@
 // src/routes/user_routes.ts
 import express from 'express';
-import { createCombatHandler, getCombatByIdHandler, updateCombatHandler, deleteCombatHandler, getBoxersByCombatIdHandler, getCombatsByBoxerIdHandler, hideCombatHandler, getPendingInvitationsHandler, respondToInvitationHandler, getFutureCombatsHandler, getInvitationsHandler, getSentInvitationsHandler, getFilteredCombatsHandler, getUserCombatHistoryHandler, } from '../combats/combat_controller.js';
+import { createCombatHandler, getCombatByIdHandler, updateCombatHandler, deleteCombatHandler, getBoxersByCombatIdHandler, getCombatsByBoxerIdHandler, hideCombatHandler, getPendingInvitationsHandler, respondToInvitationHandler, getFutureCombatsHandler, getInvitationsHandler, getSentInvitationsHandler, getFilteredCombatsHandler, getUserCombatHistoryHandler, getCombatsByGymSearchHandler // <-- importación agregada
+ } from '../combats/combat_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
 const router = express.Router();
 /**
@@ -539,4 +540,40 @@ router.patch('/combat/:id/respond', checkJwt, respondToInvitationHandler);
  *       - bearerAuth: [] # Asumiendo que usas JWT
  */
 router.get('/combat/history/user/:boxerId', /* checkJwt, */ getUserCombatHistoryHandler);
+/**
+ * @openapi
+ * /api/combat/gym/search/{gymId}:
+ *   get:
+ *     summary: Busca combates por gimnasio
+ *     description: Retorna una lista paginada de combates asociados a un gimnasio.
+ *     tags:
+ *       - Combat
+ *     parameters:
+ *       - name: gymId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del gimnasio
+ *       - name: page
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - name: pageSize
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Lista de combates obtenida exitosamente
+ *       400:
+ *         description: ID de gimnasio inválido
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/combat/gym/search/:gymId', checkJwt, getCombatsByGymSearchHandler);
 export default router;
