@@ -179,6 +179,7 @@ export const searchUsersHandler = (req, res) => __awaiter(void 0, void 0, void 0
 });
 export const updateUserBoxingVideoHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        console.log('Archivo recibido:', req.file);
         if (!req.file) {
             return res.status(400).json({ message: 'No se ha enviado ningún video.' });
         }
@@ -196,7 +197,8 @@ export const updateUserBoxingVideoHandler = (req, res) => __awaiter(void 0, void
         res.status(200).json(updatedUser);
     }
     catch (error) {
-        res.status(500).json({ message: error === null || error === void 0 ? void 0 : error.message });
+        console.error('Error al subir vídeo:', error);
+        res.status(500).json({ error: 'Error al subir vídeo', details: error.message });
     }
 });
 export const getUserStatisticsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {

@@ -186,6 +186,7 @@ export const searchUsersHandler = async (req: Request, res: Response) => {
 
 export const updateUserBoxingVideoHandler = async (req: Request, res: Response) => {
   try {
+    console.log('Archivo recibido:', req.file);
     if (!req.file) {
       return res.status(400).json({ message: 'No se ha enviado ningún video.' });
     }
@@ -205,7 +206,8 @@ export const updateUserBoxingVideoHandler = async (req: Request, res: Response) 
     const updatedUser = await updateUserBoxingVideo(req.params.id, videoUrl);
     res.status(200).json(updatedUser);
   } catch (error: any) {
-    res.status(500).json({ message: error?.message });
+     console.error('Error al subir vídeo:', error);
+    res.status(500).json({ error: 'Error al subir vídeo', details: error.message });
   }
 };
 
