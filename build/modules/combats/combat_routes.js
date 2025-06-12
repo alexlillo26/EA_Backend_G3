@@ -13,7 +13,7 @@ const router = express.Router();
  *       - Combat
  *     responses:
  *       200:
- *         description: Invitaciones recibidas
+ *         description:  recibidas
  */
 router.get('/combat/invitations', checkJwt, getInvitationsHandler);
 /**
