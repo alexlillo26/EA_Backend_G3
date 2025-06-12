@@ -1,40 +1,47 @@
 import { Request, Response } from "express";
 import Follower from "./follower_model.js";
+import User from "../users/user_models.js"; // Importa el modelo User
 
 /**
  * followUser: el usuario autenticado (req.user.id) sigue a req.params.userId
+ * Ahora es idempotente: nunca devuelve 409, siempre 200.
  */
 export const followUser = async (req: Request, res: Response) => {
   try {
     // @ts-ignore
-    const followerId = req.user.id;
-    const followingId = req.params.userId;
-
-    // 1) Si ya existe un “follow” de followerId → followingId, devolvemos 409
-    const exists = await Follower.findOne({ follower: followerId, following: followingId });
-    if (exists) {
-      return res.status(409).json({ message: "Ya sigues a este usuario" });
-    }
-
-    // 2) Crear el nuevo “follow”
-    const newFollow = await Follower.create({ follower: followerId, following: followingId });
-    return res.status(201).json(newFollow);
+    const userId = req.user.id;
+    const targetId = req.params.userId;
+    // Upsert: si ya existe, no hace nada; si no, crea
+    await Follower.findOneAndUpdate(
+      { follower: userId, following: targetId },
+      { follower: userId, following: targetId },
+      { upsert: true }
+    );
+    return res.status(200).json({ success: true });
   } catch (err: any) {
+    console.error(err);
     return res.status(500).json({ message: err.message });
   }
 };
 
 /**
  * getFollowers: devuelve la lista de seguidores de la ruta /:userId
- *  → Busca Follower.find({ following: userId })
+ *  → Busca Follower.find({ following: userId }) y pobla el campo follower
  */
 export const getFollowers = async (req: Request, res: Response) => {
   try {
     const userId = req.params.userId;
-    const followers = await Follower.find({ following: userId }).select("follower");
+    // Pobla el campo follower con name y username
+    const followers = await Follower
+      .find({ following: userId })
+      .populate<{ follower: { _id: string; name: string; username: string } }>(
+        "follower",
+        "name username"
+      );
     return res.status(200).json({ success: true, followers });
   } catch (err) {
-    return res.status(500).json({ message: "Error interno" });
+    console.error(err);
+    return res.status(500).json({ message: "Error al obtener seguidores" });
   }
 };
 
@@ -83,6 +90,36 @@ export const unfollowUser = async (req: Request, res: Response) => {
     const followerId = req.user.id;
     const followingId = req.params.userId;
     await Follower.findOneAndDelete({ follower: followerId, following: followingId });
+    return res.status(200).json({ success: true });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+/** getFollowing: lista de usuarios que sigue el userId, poblado */
+export const getFollowing = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.userId;
+    const following = await Follower
+      .find({ follower: userId })
+      .populate<{ following: { _id: string; name: string; username: string } }>(
+        "following",
+        "name username"
+      );
+    return res.status(200).json({ success: true, following });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Error al obtener following" });
+  }
+};
+
+/** removeFollower: elimina a “followerId” de la lista de seguidores de req.user.id */
+export const removeFollower = async (req: Request, res: Response) => {
+  try {
+    // @ts-ignore
+    const userId = req.user.id;            // yo
+    const followerId = req.params.followerId;  // el que quiero eliminar
+    await Follower.findOneAndDelete({ follower: followerId, following: userId });
     return res.status(200).json({ success: true });
   } catch (err: any) {
     return res.status(500).json({ message: err.message });

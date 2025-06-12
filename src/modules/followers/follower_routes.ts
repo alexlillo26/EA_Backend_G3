@@ -1,6 +1,7 @@
 import express from "express";
-import { followUser, unfollowUser, getFollowers, savePushSubscription, removePushSubscription } from "./follower_controller.js";
+import { followUser, unfollowUser, getFollowers, savePushSubscription, removePushSubscription, getFollowing, removeFollower } from "./follower_controller.js";
 import { checkJwt } from "../../middleware/session.js";
+import Follower from "./follower_model.js"; // Importa el modelo para el endpoint de conteo
 
 const router = express.Router();
 
@@ -16,5 +17,23 @@ router.get("/:userId", checkJwt, getFollowers);
 router.post("/push-subscription", checkJwt, savePushSubscription);
 // DELETE /api/followers/push-subscription
 router.delete("/push-subscription", checkJwt, removePushSubscription);
+
+// GET /api/followers/count/:userId
+router.get("/count/:userId", checkJwt, async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const followersCount = await Follower.countDocuments({ following: userId });
+    const followingCount = await Follower.countDocuments({ follower: userId });
+    res.json({ followers: followersCount, following: followingCount });
+  } catch (err) {
+    res.status(500).json({ message: "Error al contar seguidores/seguidos" });
+  }
+});
+
+// GET /api/followers/following/:userId
+router.get("/following/:userId", checkJwt, getFollowing);
+
+// DELETE /api/followers/remove/:followerId
+router.delete("/remove/:followerId", checkJwt, removeFollower);
 
 export default router;
