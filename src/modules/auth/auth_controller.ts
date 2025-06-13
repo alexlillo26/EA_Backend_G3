@@ -33,7 +33,13 @@ export const googleAuthCtrl = async (req: Request, res: Response) => {
 export const googleAuthCallback = async (req: Request, res: Response) => {
     try {
         const code = req.query.code as string;
-        const origin = req.query.state as string || 'frontend'; // Cambiado a 'frontend' por defecto
+        let origin = req.query.state as string || 'webreact';
+        const allowedOrigins = ['webreact', 'frontend'];
+
+        if (!allowedOrigins.includes(origin)) {
+            origin = 'webreact'; // redirección segura por defecto
+        }
+
         if (!code) {
             return res.status(400).json({ message: 'Código de autorización faltante' });
         }

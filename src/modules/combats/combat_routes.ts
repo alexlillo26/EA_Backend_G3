@@ -607,7 +607,7 @@ router.put('/combat/:id/image', checkJwt, upload.single('image'), combatControll
 router.get('/combat/gym/search/:gymId', checkJwt, getCombatsByGymSearchHandler);
 
 // Cancelar combate (puedes usar PATCH o DELETE según tu lógica)
-router.patch('/combat/:id/cancel', checkJwt, /* cancelCombatHandler */); // Debes implementar cancelCombatHandler
+router.patch('/combat/:id/cancel', checkJwt, combatController.deleteCombatHandler);
 router.get('/combats/user/:id/history', checkJwt, combatController.getUserCombatHistoryHandler);
 router.get('/combats/user/:id/statistics', checkJwt, combatController.getUserStatisticsHandler);
 

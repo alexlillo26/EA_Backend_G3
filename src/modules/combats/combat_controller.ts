@@ -29,6 +29,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import User from "../users/user_models.js";
 import path from 'path';
 import cloudinary from '../config/cloudinary.js';
+import { sendEmail } from '../../utils/emailService.js';
 
 let io: SocketIOServer | undefined;
 export function setSocketIoInstance(ioInstance: SocketIOServer) {
@@ -157,11 +158,57 @@ export const updateCombatHandler = async (req: Request, res: Response) => {
 };
 
 export const deleteCombatHandler = async (req: Request, res: Response) => {
+  // --- DEBUG LOGS PARA TRAZAR LA PETICIÓN ---
+  console.log("🧪 LLEGA PETICIÓN DE CANCELACIÓN");
+  console.log("➡️  ID:", req.params.id);
+  console.log("📩 Reason:", req.body?.reason);
+  // --- FIN DEBUG LOGS ---
   try {
-    const combat = await deleteCombat(req.params.id);
-    res.json(combat);
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const combat = await Combat.findById(id).populate('creator').populate('opponent');
+    if (!combat) return res.status(404).json({ message: 'Combate no encontrado' });
+
+    combat.status = 'cancelled';
+    await combat.save();
+
+    const oponente = combat.opponent as any;
+    const creador = combat.creator as any;
+
+    if (oponente?.email) {
+      const emailBody = `
+Hola ${oponente.name},
+
+El combate programado contra ti ha sido cancelado por ${creador.name}.
+
+Motivo de la cancelación:
+${reason || 'No se proporcionó un motivo.'}
+
+Fecha del combate: ${combat.date?.toLocaleDateString()}
+Hora: ${combat.time}
+
+Lamentamos los inconvenientes.
+
+- Face2Face Team
+`;
+
+      try {
+        await sendEmail({
+          to: oponente.email,
+          subject: 'Cancelación de combate',
+          text: emailBody,
+        });
+      } catch (mailErr) {
+        console.error('⚠️ Error enviando email de cancelación:', mailErr);
+        // Solo log, no interrumpimos el flujo
+      }
+    }
+
+    return res.status(200).json({ message: 'Combate cancelado correctamente', combat });
   } catch (error: any) {
-    res.status(500).json({ message: error?.message });
+    console.error('Error al cancelar combate:', error);
+    return res.status(500).json({ message: 'Error interno al cancelar combate', error: error.message });
   }
 };
 
