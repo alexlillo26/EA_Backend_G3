@@ -1,6 +1,7 @@
 import mongoose, { Types } from 'mongoose';
 import Combat, { ICombat } from '../combats/combat_models.js';
 import CombatModel from '../combats/combat_models.js';
+import Rating from '../ratings/rating_model.js';  // <-- importa el modelo
 
 interface CombatHistoryResult {
     combats: ICombat[];
@@ -229,45 +230,156 @@ export const setCombatResult = async (combatId: string, winnerId: string) => {
 };
 
 export const generateUserStatistics = async (boxerId: string): Promise<object> => {
-    const boxerObjectId = new mongoose.Types.ObjectId(boxerId);
-  
-    // 1. Oponente más frecuente
-    const opponentAggregation = await Combat.aggregate([
-      { $match: { status: 'completed', $or: [{ creator: boxerObjectId }, { opponent: boxerObjectId }] } },
-      { $project: { actualOpponent: { $cond: { if: { $eq: ['$creator', boxerObjectId] }, then: '$opponent', else: '$creator' } } } },
-      { $group: { _id: '$actualOpponent', count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 1 },
-      { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'opponentDetails' } },
-      { $unwind: '$opponentDetails' },
-      { $project: { _id: 0, opponent: { id: '$opponentDetails._id', name: '$opponentDetails.name' }, count: '$count' } }
-    ]);
-  
-    // 2. Gimnasios más frecuentes (Top 5)
-    const frequentGyms = await Combat.aggregate([
-      { $match: { status: 'completed', $or: [{ creator: boxerObjectId }, { opponent: boxerObjectId }] } },
-      { $group: { _id: '$gym', count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 5 },
-      { $lookup: { from: 'gyms', localField: '_id', foreignField: 'id', as: 'gymDetails' } },
-      { $unwind: '$gymDetails' },
-      { $project: { _id: 0, gym: { id: '$gymDetails._id', name: '$gymDetails.name' }, count: '$count' } }
-    ]);
-  
-    // 3. Número de sparrings por mes
-    const combatsPerMonth = await Combat.aggregate([
-      { $match: { status: 'completed', $or: [{ creator: boxerObjectId }, { opponent: boxerObjectId }] } },
-      { $group: { _id: { year: { $year: '$date' }, month: { $month: '$date' } }, count: { $sum: 1 } } },
-      { $sort: { '_id.year': 1, '_id.month': 1 } },
-      { $project: { _id: 0, year: '$_id.year', month: '$_id.month', count: '$count' } }
-    ]);
-  
-    return {
-      mostFrequentOpponent: opponentAggregation.length > 0 ? opponentAggregation[0] : null,
-      frequentGyms,
-      combatsPerMonth
-    };
+  const boxerObjectId = new mongoose.Types.ObjectId(boxerId);
+  const now = new Date();
+
+  const matchStage = {
+    $match: {
+      $and: [
+        {
+          $or: [
+            { status: 'completed' },
+            { status: 'accepted', date: { $lte: now } }
+          ]
+        },
+        {
+          $or: [
+            { creator: boxerObjectId },
+            { opponent: boxerObjectId }
+          ]
+        }
+      ]
+    }
   };
+
+  // 1. Oponente más frecuente
+  const opponentAggregation = await Combat.aggregate([
+    matchStage,
+    {
+      $project: {
+        actualOpponent: {
+          $cond: {
+            if: { $eq: ['$creator', boxerObjectId] },
+            then: '$opponent',
+            else: '$creator'
+          }
+        }
+      }
+    },
+    { $group: { _id: '$actualOpponent', count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+    { $limit: 1 },
+    {
+      $lookup: {
+        from: 'users',
+        localField: '_id',
+        foreignField: '_id',
+        as: 'opponentDetails'
+      }
+    },
+    { $unwind: '$opponentDetails' },
+    {
+      $project: {
+        _id: 0,
+        opponent: {
+          id: '$opponentDetails._id',
+          name: '$opponentDetails.name'
+        },
+        count: '$count'
+      }
+    }
+  ]);
+
+  // 2. Gimnasios más frecuentes
+  const frequentGyms = await Combat.aggregate([
+    matchStage,
+    { $group: { _id: '$gym', count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+    { $limit: 5 },
+    {
+      $lookup: {
+        from: 'gyms',
+        localField: '_id',
+        foreignField: '_id',
+        as: 'gymDetails'
+      }
+    },
+    { $unwind: '$gymDetails' },
+    {
+      $project: {
+        _id: 0,
+        gym: {
+          id: '$gymDetails._id',
+          name: '$gymDetails.name'
+        },
+        count: '$count'
+      }
+    }
+  ]);
+
+  // 3. Combates por mes
+  const combatsPerMonth = await Combat.aggregate([
+    matchStage,
+    {
+      $group: {
+        _id: {
+          year: { $year: '$date' },
+          month: { $month: '$date' }
+        },
+        count: { $sum: 1 }
+      }
+    },
+    { $sort: { '_id.year': 1, '_id.month': 1 } },
+    {
+      $project: {
+        _id: 0,
+        year: '$_id.year',
+        month: '$_id.month',
+        count: '$count'
+      }
+    }
+  ]);
+
+  // 4. Promedios de valoraciones recibidas
+  const ratingAgg = await Rating.aggregate([
+    { $match: { to: boxerObjectId } },
+    {
+      $group: {
+        _id: null,
+        punctualityAvg:   { $avg: '$punctuality' },
+        attitudeAvg:      { $avg: '$attitude' },
+        intensityAvg:     { $avg: '$intensity' },
+        sportmanshipAvg:  { $avg: '$sportmanship' },
+        techniqueAvg:     { $avg: '$technique' }
+      }
+    },
+    {
+      $project: {
+        _id: 0,
+        punctuality:  { $round: ['$punctualityAvg', 2] },
+        attitude:     { $round: ['$attitudeAvg', 2] },
+        intensity:    { $round: ['$intensityAvg', 2] },
+        sportmanship: { $round: ['$sportmanshipAvg', 2] },
+        technique:    { $round: ['$techniqueAvg', 2] }
+      }
+    }
+  ]);
+
+  const ratingAverages = ratingAgg[0] || {
+    punctuality: 0,
+    attitude: 0,
+    intensity: 0,
+    sportmanship: 0,
+    technique: 0
+  };
+
+  return {
+    mostFrequentOpponent: opponentAggregation[0] || null,
+    frequentGyms,
+    combatsPerMonth,
+    ratingAverages
+  };
+};
 
   export const getCombatsByGymId = async (gymId: string, page: number, pageSize: number) => {
     const combats = await Combat.find({ gym: gymId })
