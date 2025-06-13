@@ -1,5 +1,6 @@
 import Rating from './rating_model.js';
 import { Types } from 'mongoose';
+import Combat from '../combats/combat_models.js';
 
 // Crear un rating
 export const createRating = async (ratingData: {
@@ -35,7 +36,9 @@ export const createRating = async (ratingData: {
     isHidden: false,
   });
 
-  return await newRating.save();
+  const savedRating = await newRating.save();
+  await Combat.findByIdAndUpdate(combat, { status: 'completed'});
+  return savedRating;
 };
 
 // Obtener todos los ratings (paginados, ordenados por isHidden)

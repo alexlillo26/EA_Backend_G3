@@ -173,10 +173,7 @@ export const getCompletedCombatHistoryForBoxer = async (
             { 
               status: 'accepted', 
               date: { $lt: now } // Cambié $lte por $lt para asegurar que ya pasó
-            },
-            // Combates cancelados o rechazados (para historial completo)
-            { status: 'cancelled' },
-            { status: 'rejected' }
+            }
           ]
         }
       ]
@@ -190,8 +187,8 @@ export const getCompletedCombatHistoryForBoxer = async (
     interface PopulatedGymRef { _id: Types.ObjectId; name: string; location?: string; }
   
     const combats = await CombatModel.find(query)
-      .populate<{ creator: PopulatedUserRef }>('creator', 'name profileImage')
-      .populate<{ opponent: PopulatedUserRef }>('opponent', 'name profileImage')
+      .populate<{ creator: PopulatedUserRef }>('creator', '_id name profileImage')
+      .populate<{ opponent: PopulatedUserRef }>('opponent', '_id name profileImage')
       .populate<{ winner?: PopulatedUserRef | null }>('winner', 'name')
       .populate<{ gym: PopulatedGymRef }>('gym', 'name location')
       .sort({ date: -1, time: -1 }) // Más recientes primero
@@ -397,9 +394,9 @@ export const generateUserStatistics = async (boxerId: string): Promise<object> =
     const combats = await Combat.find({ gym: gymId })
       .skip((page - 1) * pageSize)
       .limit(pageSize)
-      .populate("creator")
-      .populate("opponent")
-      .populate("gym");
+      .populate('creator')
+      .populate('opponent')
+      .populate('gym');
 
     const total = await Combat.countDocuments({ gym: gymId });
     const totalPages = Math.ceil(total / pageSize);
