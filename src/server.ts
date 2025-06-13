@@ -210,6 +210,7 @@ setSocketIoInstance(io);
 // Iniciar servidor
 httpServer.listen(LOCAL_PORT, '0.0.0.0', () => {
   console.log(`Servidor activo en http://localhost:${LOCAL_PORT}`);
+  console.log(`Swagger docs: http://localhost:${LOCAL_PORT}/api-docs`);
 });
 
 // Debug variables
