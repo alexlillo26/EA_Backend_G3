@@ -1,4 +1,4 @@
-// src/routes/user_routes.ts
+// src/routes/combat_routes.ts
 import express from 'express';
 import * as combatController from '../combats/combat_controller.js';
 import { checkJwt } from '../../middleware/session.js'; // Correct import path
@@ -334,31 +334,33 @@ router.get('/combat/:id', combatController.getCombatByIdHandler);
  */
 
 router.put('/combat/:id', checkJwt, combatController.updateCombatHandler);
-router.put('/combat/:id', checkJwt, combatController.updateCombatHandler);
 
 /**
  * @openapi
- * /api/combat/{id}:
- *   delete:
- *     summary: Elimina un combate por ID
- *     description: Elimina un combate específico.
+ * /combat/{id}/cancel:
+ *   patch:
+ *     summary: Cancelar un combate por ID
+ *     description: Cambia el estado de un combate a 'cancelled' sin eliminarlo físicamente de la base de datos.
  *     tags:
  *       - Combat
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - name: id
  *         in: path
  *         required: true
+ *         description: ID del combate que se desea cancelar
  *         schema:
  *           type: string
  *     responses:
  *       200:
- *         description: Combate eliminado exitosamente
+ *         description: Combate cancelado exitosamente
+ *       400:
+ *         description: ID inválido o el combate ya está cancelado
  *       404:
  *         description: Combate no encontrado
  */
-
-router.delete('/combat/:id', checkJwt, combatController.deleteCombatHandler);
-router.delete('/combat/:id', checkJwt, combatController.deleteCombatHandler);
+router.patch('/combat/:id/cancel', checkJwt, combatController.deleteCombatHandler);
 
 /**
  * @openapi
@@ -397,7 +399,6 @@ router.delete('/combat/:id', checkJwt, combatController.deleteCombatHandler);
  *         description: Combate no encontrado
  */
 
-router.get('/combat/:id/boxers', combatController.getBoxersByCombatIdHandler);
 router.get('/combat/:id/boxers', combatController.getBoxersByCombatIdHandler);
 
 /**
@@ -607,8 +608,6 @@ router.put('/combat/:id/image', checkJwt, upload.single('image'), combatControll
 router.get('/combat/gym/search/:gymId', checkJwt, getCombatsByGymSearchHandler);
 
 // Cancelar combate (puedes usar PATCH o DELETE según tu lógica)
-router.patch('/combat/:id/cancel', checkJwt, combatController.deleteCombatHandler);
-router.get('/combats/user/:id/history', checkJwt, combatController.getUserCombatHistoryHandler);
 router.get('/combats/user/:id/statistics', checkJwt, combatController.getUserStatisticsHandler);
 
 

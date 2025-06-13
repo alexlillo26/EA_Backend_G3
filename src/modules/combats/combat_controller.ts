@@ -171,6 +171,8 @@ export const deleteCombatHandler = async (req: Request, res: Response) => {
     if (!combat) return res.status(404).json({ message: 'Combate no encontrado' });
 
     combat.status = 'cancelled';
+    combat.cancellationReason = reason; // <-- AÑADIR ESTA LÍNEA
+
     await combat.save();
 
     const oponente = combat.opponent as any;

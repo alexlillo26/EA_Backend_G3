@@ -153,22 +153,35 @@ export const getCompletedCombatHistoryForBoxer = async (
     const skip = (page - 1) * pageSize;
   
     const now = new Date();
+    
+    // === CONSULTA CORREGIDA ===
+    // Para el historial queremos combates que YA han ocurrido:
+    // 1. Combates con status 'completed' (finalizados con resultado)
+    // 2. Combates con status 'accepted' que ya pasaron su fecha (ocurrieron pero sin resultado registrado)
+    // 3. Combates 'cancelled' y 'rejected' para mostrar historial completo
     const query = {
-        $and: [
-            {
-                $or: [
-                    { creator: boxerObjectId },
-                    { opponent: boxerObjectId },
-                ]
+      $or: [
+        { creator: boxerObjectId },
+        { opponent: boxerObjectId },
+      ],
+      $and: [
+        {
+          $or: [
+            // Combates completados (con resultado)
+            { status: 'completed' },
+            // Combates aceptados que ya pasaron su fecha
+            { 
+              status: 'accepted', 
+              date: { $lt: now } // Cambié $lte por $lt para asegurar que ya pasó
             },
-            {
-                $or: [
-                    { status: 'completed' },
-                    { status: 'accepted', date: { $lte: now } }
-                ]
-            }
-        ]
+            // Combates cancelados o rechazados (para historial completo)
+            { status: 'cancelled' },
+            { status: 'rejected' }
+          ]
+        }
+      ]
     };
+    // === FIN DE LA CORRECCIÓN ===
   
     const totalCombats = await CombatModel.countDocuments(query);
     const totalPages = Math.ceil(totalCombats / pageSize);
@@ -177,12 +190,11 @@ export const getCompletedCombatHistoryForBoxer = async (
     interface PopulatedGymRef { _id: Types.ObjectId; name: string; location?: string; }
   
     const combats = await CombatModel.find(query)
-      // === CAMBIO CLAVE Y DEFINITIVO AQUÍ ===
-      .populate<{ creator: PopulatedUserRef }>('creator', 'name profileImage')   // <-- Pedimos 'name'
-      .populate<{ opponent: PopulatedUserRef }>('opponent', 'name profileImage') // <-- Pedimos 'name'
-      .populate<{ winner?: PopulatedUserRef | null }>('winner', 'name')           // <-- Pedimos 'name' también para el ganador
+      .populate<{ creator: PopulatedUserRef }>('creator', 'name profileImage')
+      .populate<{ opponent: PopulatedUserRef }>('opponent', 'name profileImage')
+      .populate<{ winner?: PopulatedUserRef | null }>('winner', 'name')
       .populate<{ gym: PopulatedGymRef }>('gym', 'name location')
-      .sort({ date: -1, time: -1 })
+      .sort({ date: -1, time: -1 }) // Más recientes primero
       .skip(skip)
       .limit(pageSize)
       .lean<ICombat[]>();

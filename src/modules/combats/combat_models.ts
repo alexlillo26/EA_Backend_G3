@@ -17,6 +17,8 @@ export interface ICombat extends Document {
     createdAt?: Date;
     updatedAt?: Date;
     image?: string;
+    cancellationReason?: string; // <-- AÑADIR ESTA LÍNEA
+
 }
 
 const combatSchema = new Schema<ICombat>({
@@ -61,7 +63,8 @@ const combatSchema = new Schema<ICombat>({
         type: Schema.Types.ObjectId,
         ref: "User",
         default: null
-    }
+    },
+    cancellationReason: { type: String } // <-- AÑADIR ESTA LÍNEA
     // --- FIN MODIFICACIÓN ---
 }, { timestamps: true });
 
