@@ -173,7 +173,11 @@ export const getCompletedCombatHistoryForBoxer = async (
             { 
               status: 'accepted', 
               date: { $lt: now } // Cambié $lte por $lt para asegurar que ya pasó
-            }
+            },
+
+            // Combates cancelados o rechazados
+            { status: 'cancelled' },
+            { status: 'rejected' }
           ]
         }
       ]
