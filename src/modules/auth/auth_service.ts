@@ -50,10 +50,16 @@ export const googleAuth = async (code: string): Promise<{ token: string; refresh
                 });
             } else {
                 user = await User.create({
-                    name: profile.name,
-                    email: profile.email,
-                    googleId: profile.id,
-                    password: passHash, // Se almacena la contraseña encriptada
+                    name:       profile.name,
+                    email:      profile.email,
+                    googleId:   profile.id,
+                    password:   passHash,
+                    // Campos obligatorios con valores por defecto:
+                    birthDate:  new Date("2000-01-01T00:00:00.000Z"),
+                    weight:     "Peso medio",
+                    city:       "Sin definir",
+                    phone:      "000000000",
+                    gender:     "Hombre",
                 });
             }
         }

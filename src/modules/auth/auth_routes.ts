@@ -208,13 +208,13 @@ router.post('/google/flutter-login', async (req, res) => {
       const randomPassword = Math.random().toString(36).slice(-8);
       const passHash = await encrypt(randomPassword);
 
-      // Añade todos los campos obligatorios con valores por defecto
       user = await User.create({
         name:       profile.name,
         email:      profile.email,
         password:   passHash,
         googleId:   profile.id,
-        birthDate:  new Date("2017-01-01T00:00:00.000Z"),
+        // Campos obligatorios con valores por defecto:
+        birthDate:  new Date("2000-01-01T00:00:00.000Z"),
         weight:     "Peso medio",
         city:       "Sin definir",
         phone:      "000000000",
