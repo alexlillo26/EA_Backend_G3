@@ -194,7 +194,6 @@ router.post('/google/register-gym', googleRegisterGymCtrl);
  */
 router.post('/google/flutter-login', async (req, res) => {
   const { accessToken } = req.body;
-
   if (!accessToken) return res.status(400).json({ message: 'Token requerido' });
 
   try {
@@ -202,17 +201,24 @@ router.post('/google/flutter-login', async (req, res) => {
       params: { access_token: accessToken },
       headers: { Accept: 'application/json' },
     });
-
     const profile = profileResponse.data;
 
     let user = await User.findOne({ email: profile.email });
     if (!user) {
       const randomPassword = Math.random().toString(36).slice(-8);
       const passHash = await encrypt(randomPassword);
+
+      // Añade todos los campos obligatorios con valores por defecto
       user = await User.create({
-        name: profile.name,
-        email: profile.email,
-        password: passHash,
+        name:       profile.name,
+        email:      profile.email,
+        password:   passHash,
+        googleId:   profile.id,
+        birthDate:  new Date("2017-01-01T00:00:00.000Z"),
+        weight:     "Peso medio",
+        city:       "Sin definir",
+        phone:      "000000000",
+        gender:     "Hombre",
       });
     }
 
