@@ -156,7 +156,7 @@ export const getUserCount = async () => {
 // usuario del motor de búsqueda
 export const searchUsers = async (city?: string, weight?: string, boxingVideo?: string) => {
   try {
-    let query: any = {};
+    let query: any = { isHidden: false }; 
 
     if (city) {
       query.city = new RegExp(city, 'i');
